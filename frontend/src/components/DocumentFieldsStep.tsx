@@ -27,6 +27,7 @@ import { WizardActions } from "./WizardShell";
 const inputClass =
   "w-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm min-h-[40px]";
 const panelClass = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800";
+const NO_EXCLUDED_FIELDS: readonly string[] = [];
 const buttonSecondary =
   "px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 min-h-[44px] text-sm";
 const buttonPrimary =
@@ -65,6 +66,8 @@ interface Props {
   documents: DocumentDefinition[];
   values: Record<string, string>;
   onChange: (values: Record<string, string>) => void;
+  /** Fields already edited in the surrounding shipment header. */
+  excludedFields?: readonly string[];
   autoValues?: Record<string, string>;
   modality?: string;
   onBack?: () => void;
@@ -95,6 +98,7 @@ export default function DocumentFieldsStep({
   documents,
   values,
   onChange,
+  excludedFields = NO_EXCLUDED_FIELDS,
   autoValues,
   modality,
   onBack,
@@ -121,7 +125,17 @@ export default function DocumentFieldsStep({
 
   const setValue = (key: string, value: string) => onChange({ ...values, [key]: value });
 
-  const { groups, covered } = useMemo(() => groupFields(registry, documents), [registry, documents]);
+  const { groups, covered } = useMemo(() => {
+    const grouped = groupFields(registry, documents);
+    if (!excludedFields.length) return grouped;
+    const excluded = new Set(excludedFields);
+    return { ...grouped, groups: grouped.groups.map(group => ({
+      ...group,
+      sections: group.sections.map(section => ({
+        ...section, fields: section.fields.filter(field => !excluded.has(field.key)),
+      })).filter(section => section.fields.length > 0),
+    })).filter(group => group.sections.length > 0) };
+  }, [registry, documents, excludedFields]);
 
   const valueOf = (field: DocumentField): string => {
     const autoValue = field.auto_from ? autoValues?.[field.auto_from] : undefined;

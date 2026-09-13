@@ -108,6 +108,8 @@ interface Props {
   onGoTo?: (key: WizardStepKey) => void;
   /** The draft line, built by the page that knows what may be stored. */
   draft?: ReactNode;
+  /** The shipment's editable reference, visible before every step. */
+  reference?: ReactNode;
   /** The assistant's button, which belongs beside the title and nowhere else. */
   aside?: ReactNode;
   /** How many things are waiting to be looked at, counted by the caller. */
@@ -120,7 +122,7 @@ interface Props {
 
 export default function WizardShell({
   title, modality, modalities, onModality, steps, currentStep, visited, onGoTo,
-  draft, aside, attention = 0, panel, children, secondaryAction,
+  draft, reference, aside, attention = 0, panel, children, secondaryAction,
 }: Props) {
   const { t } = useTranslation();
   const [el, setEl] = useState<HTMLElement | null>(null);
@@ -142,6 +144,7 @@ export default function WizardShell({
               {aside}
             </div>
             <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">{draft}</div>
+            {reference}
           </div>
           <div className="wizard-progress-wrap">
             <p className="wizard-progress-copy">{t("wizard.progressStep", { current: index + 1, total: steps.length })} — {steps[index]?.label}</p>

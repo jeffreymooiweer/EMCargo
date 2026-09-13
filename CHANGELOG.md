@@ -2,6 +2,15 @@
 
 All notable changes are documented here, following [Semantic Versioning](https://semver.org/).
 
+## [2.9.3] — 2026-09-13
+
+### Centred mobile branding and visible shipment references
+
+- Centre the mobile logo and wordmark between equal-width hamburger and account controls, preserving room for custom branding and compact screens.
+- Show an optional shipment reference field at the top of every wizard step, including reopened shipments. Provide a translated example and use the existing reference in drafts, saved shipments and document data.
+- Remove the duplicate reference editor from optional document questions. Preserve references through draft restoration and modality changes, clear them when starting from a template, and keep imported legacy references consistent when editing or clearing the field.
+- Cover reference entry, autosave, reopening, updating an existing shipment and legacy-reference clearing with regression tests. Add the new interface labels in all four languages.
+
 ## [2.9.2] — 2026-09-13
 
 ### Stop the refresh loop after updates

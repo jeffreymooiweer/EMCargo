@@ -121,10 +121,11 @@ export default function Layout({ user, onLogout }: Props) {
   }
   return <div className={`emcargo-shell ${railOpen ? "" : "emcargo-shell-folded"}`}>
     <a href="#main-content" className="skip-link">{t("nav.skipContent")}</a>
-    <header className="emcargo-mobile-header"><div className="mobile-header-leading">
+    <header className="emcargo-mobile-header">
       <button ref={trigger} type="button" className="mobile-menu-trigger" onClick={() => setMenuOpen(true)} aria-label={t("nav.openMenu")} aria-expanded={menuOpen}><MenuIcon className="h-6 w-6" /></button>
       {brand()}
-    </div><AccountMenu user={user} onLogout={() => void logout()} loggingOut={loggingOut} /></header>
+      <AccountMenu user={user} onLogout={() => void logout()} loggingOut={loggingOut} />
+    </header>
     <aside className="emcargo-sidebar">
       {brand(!railOpen)}
       <nav id="main-nav" aria-label={t("nav.menu")} className="emcargo-navigation">{navigation(!railOpen)}</nav>

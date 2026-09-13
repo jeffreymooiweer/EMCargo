@@ -117,7 +117,9 @@
     "stageGoods": "Marchandises",
     "stageDetails": "Données de l’envoi",
     "stageReview": "Vérifier",
-    "saveAndClose": "Enregistrer et fermer"
+    "saveAndClose": "Enregistrer et fermer",
+    "referenceLabel": "Référence de l’envoi",
+    "referencePlaceholder": "Facultatif, par ex. ORDER-2026-001"
   },
   "review": {
     "linesTitle": "Marchandises",

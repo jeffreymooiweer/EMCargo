@@ -10,7 +10,7 @@ import WizardPage from "./WizardPage";
 const mocks = vi.hoisted(() => ({
   api: {
     documentsRegistry: vi.fn(), shipments: vi.fn(), shipment: vi.fn(), runningDraft: vi.fn(),
-    saveDraft: vi.fn(), calculate: vi.fn(),
+    saveDraft: vi.fn(), calculate: vi.fn(), updateShipment: vi.fn(),
   },
   assistantProps: null as null | { onApplyState: (state: AssistantState) => void; buildState: () => AssistantState },
   toast: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
@@ -80,6 +80,7 @@ beforeEach(() => {
   mocks.api.runningDraft.mockResolvedValue(null);
   mocks.api.shipment.mockResolvedValue(saved());
   mocks.api.saveDraft.mockResolvedValue({ id: 42, updated_at: "2026-09-08T10:00:00Z" });
+  mocks.api.updateShipment.mockResolvedValue({ id: 42, updated_at: "2026-09-13T10:00:00Z" });
   mocks.api.calculate.mockImplementation(() => new Promise(() => {}));
 });
 afterEach(() => { vi.useRealTimers(); });
@@ -153,6 +154,7 @@ describe("shipment restoration", () => {
     await act(async () => secondRegistry.resolve({ ...registry }));
     await act(async () => record.resolve(saved()));
     expect(await screen.findByLabelText("Goods description")).toHaveValue("Saved goods");
+    expect(screen.getByLabelText("wizard.referenceLabel")).toHaveValue(source === "template" ? "" : "SAVED-42");
     expect(mocks.api.runningDraft).not.toHaveBeenCalled();
     if (source === "template") {
       expect(mocks.toast.info).toHaveBeenCalledTimes(1);
@@ -201,9 +203,11 @@ describe("shipment restoration", () => {
     open();
     const input = await screen.findByLabelText("Goods description");
     fireEvent.change(input, { target: { value: "Changed before switching" } });
+    fireEvent.change(screen.getByLabelText("wizard.referenceLabel"), { target: { value: "RAIL-2026-001" } });
     fireEvent.change(screen.getByRole("combobox", { name: "wizard.mode" }), { target: { value: "rail" } });
     expect(await screen.findByLabelText("Goods description")).toHaveValue("Changed before switching");
     expect(screen.getByRole("combobox", { name: "wizard.mode" })).toHaveValue("rail");
+    expect(screen.getByLabelText("wizard.referenceLabel")).toHaveValue("RAIL-2026-001");
     expect(mocks.api.runningDraft).toHaveBeenCalledTimes(1);
   });
 
@@ -218,6 +222,74 @@ describe("shipment restoration", () => {
     expect(mocks.api.runningDraft).not.toHaveBeenCalled();
     expect(mocks.api.saveDraft).not.toHaveBeenCalled();
   });
+});
+
+/** Shipments were listed as having no reference while the only editor was
+ * buried among optional document fields. A new shipment must expose it before
+ * any document is selected, and autosave must restore that same reference. */
+it('enters a reference on the first step and restores it from the saved draft', async () => {
+  vi.useFakeTimers();
+  const view = open();
+  await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+  const reference = screen.getByRole('textbox', { name: 'wizard.referenceLabel' });
+  expect(reference.closest('header')).not.toBeNull();
+  expect(reference).not.toBeRequired();
+  expect(reference).toHaveAttribute('maxlength', '120');
+  fireEvent.change(reference, { target: { value: '  ORDER-2026-001  ' } });
+  fireEvent.blur(reference);
+  expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('ORDER-2026-001');
+  await act(async () => { await vi.advanceTimersByTimeAsync(2600); });
+  const payload = mocks.api.saveDraft.mock.lastCall![0];
+  expect(payload.values.shipment_reference).toBe('ORDER-2026-001');
+  expect(payload.snapshot.docValues.shipment_reference).toBe('ORDER-2026-001');
+  expect(payload.documents).toEqual([]);
+  view.unmount();
+  mocks.api.runningDraft.mockResolvedValue({ ...saved(), snapshot: payload.snapshot });
+  open();
+  await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+  expect(screen.getByRole('textbox', { name: 'wizard.referenceLabel' })).toHaveValue('ORDER-2026-001');
+});
+
+/** The pencil on a saved shipment can reopen the export step directly. Adding
+ * a reference there must update that shipment's index values and its snapshot,
+ * without making a duplicate or requiring a return to optional questions. */
+it('adds a reference to an existing shipment on the export step', async () => {
+  const calculation = { success: true, lines: [{ line_id: 1, description: 'Saved goods', quantity: 1,
+    unit: 'pcs', include: true, status: 'ok', weight_total_kg: 50, weight_each_kg: 50,
+    messages: [], detected_un_numbers: [] }], totals: { line_count: 1, included_count: 1,
+    total_quantity: 1, total_weight_kg: 50, total_material_volume_m3: 0,
+    total_transport_volume_m3: 0, warning_count: 0, error_count: 0 } };
+  mocks.api.calculate.mockResolvedValue(calculation);
+  const shipment = saved();
+  shipment.snapshot = { ...shipment.snapshot, stepKey: 'export', result: calculation,
+    docValues: { consignor_name: 'Saved company' } };
+  mocks.api.shipment.mockResolvedValue(shipment);
+  open('/wizard/road?shipment=42');
+  const reference = await screen.findByRole('textbox', { name: 'wizard.referenceLabel' });
+  expect(reference).toHaveValue('');
+  fireEvent.change(reference, { target: { value: 'ORDER-42' } });
+  fireEvent.click(screen.getByRole('button', { name: 'history.update' }));
+  await waitFor(() => expect(mocks.api.updateShipment).toHaveBeenCalledWith(42, expect.objectContaining({
+    values: expect.objectContaining({ shipment_reference: 'ORDER-42' }),
+    snapshot: expect.objectContaining({ docValues: expect.objectContaining({ shipment_reference: 'ORDER-42' }) }),
+  })));
+});
+
+/** Older snapshots use reference instead of shipment_reference. An intentional
+ * clear must clear both aliases, or the history index resurrects the old name. */
+it('shows and clears a legacy reference without letting it reappear', async () => {
+  vi.useFakeTimers();
+  const draft = saved();
+  draft.snapshot = { ...draft.snapshot, docValues: { reference: 'LEGACY-42' } };
+  mocks.api.runningDraft.mockResolvedValue(draft);
+  open();
+  await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+  const reference = screen.getByLabelText('wizard.referenceLabel');
+  expect(reference).toHaveValue('LEGACY-42');
+  fireEvent.change(reference, { target: { value: '' } });
+  await act(async () => { await vi.advanceTimersByTimeAsync(2600); });
+  expect(reference).toHaveValue('');
+  expect(mocks.api.saveDraft.mock.lastCall![0].values).toMatchObject({ shipment_reference: '', reference: '' });
 });
 
 

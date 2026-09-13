@@ -117,7 +117,9 @@
     "stageGoods": "Goederen",
     "stageDetails": "Zendinggegevens",
     "stageReview": "Controleren",
-    "saveAndClose": "Opslaan en sluiten"
+    "saveAndClose": "Opslaan en sluiten",
+    "referenceLabel": "Zendingreferentie",
+    "referencePlaceholder": "Optioneel, bijv. ORDER-2026-001"
   },
   "review": {
     "linesTitle": "Goederen",
