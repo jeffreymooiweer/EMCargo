@@ -21,6 +21,7 @@ export default function AccountMenu({ user, onLogout, loggingOut, className = ""
   const trigger = useRef<HTMLButtonElement>(null);
   const popup = useRef<HTMLDivElement>(null);
   const firstFocus = useRef<"first" | "last">("first");
+  const tabbing = useRef(false);
   const [open, setOpen] = useState(false);
   const items = () => Array.from(popup.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? []);
 
@@ -32,6 +33,7 @@ export default function AccountMenu({ user, onLogout, loggingOut, className = ""
   useEffect(() => setOpen(false), [location.key]);
   useEffect(() => {
     if (!open) return;
+    tabbing.current = false;
     const targets = items();
     targets[firstFocus.current === "last" ? targets.length - 1 : 0]?.focus();
     const outside = (event: Event) => {
@@ -42,6 +44,7 @@ export default function AccountMenu({ user, onLogout, loggingOut, className = ""
     document.addEventListener("focusin", outside);
     window.addEventListener("resize", resize);
     return () => {
+      tabbing.current = false;
       document.removeEventListener("pointerdown", outside);
       document.removeEventListener("focusin", outside);
       window.removeEventListener("resize", resize);
@@ -52,6 +55,7 @@ export default function AccountMenu({ user, onLogout, loggingOut, className = ""
     if (event.key === "Escape") {
       event.preventDefault(); event.stopPropagation(); close(true); return;
     }
+    if (event.key === "Tab") { tabbing.current = true; return; }
     if (event.key === " " && event.target instanceof HTMLAnchorElement) {
       event.preventDefault(); event.target.click(); return;
     }
@@ -69,8 +73,9 @@ export default function AccountMenu({ user, onLogout, loggingOut, className = ""
       title={user.display_name || user.username} aria-haspopup="menu" aria-expanded={open} aria-controls={open ? id : undefined}
       onClick={() => { firstFocus.current = "first"; setOpen(value => !value); }}
       onFocus={event => {
-        // Shift+Tab returns here naturally; leave the browser's Tab order intact.
-        if (event.relatedTarget instanceof Node && popup.current?.contains(event.relatedTarget)) setOpen(false);
+        // Only keyboard return closes here; a pointer click must toggle once.
+        if (tabbing.current && event.relatedTarget instanceof Node && popup.current?.contains(event.relatedTarget)) setOpen(false);
+        tabbing.current = false;
       }}
       onKeyDown={event => {
         if (event.key === "ArrowDown" || event.key === "ArrowUp") {

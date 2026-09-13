@@ -40,6 +40,9 @@ it("opens at either end, cycles with arrows and returns focus on Escape", async 
 it("dismisses on outside taps and viewport changes without stealing outside focus", async () => {
   const avatar = renderMenu();
   await userEvent.click(avatar);
+  await userEvent.click(avatar);
+  expect(screen.queryByRole("menu")).toBeNull();
+  await userEvent.click(avatar);
   await userEvent.click(screen.getByRole("button", { name: "After" }));
   expect(screen.queryByRole("menu")).toBeNull();
   expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
