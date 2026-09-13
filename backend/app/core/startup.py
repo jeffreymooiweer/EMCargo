@@ -23,7 +23,7 @@ from app.models.dgsa_report import DgsaReport
 from app.models.dg_review import DgReview
 from app.models.shipment import Shipment
 from app.models.trip import Trip
-from app.models.user import Equipment, Job, Material, Profile, ReferenceItem, User
+from app.models.user import Equipment, Job, Profile, ReferenceItem, User
 from app.services import audit, history
 from app.services.catalog_sync import sync_catalogs
 from app.services.settings_store import instance_settings
@@ -124,23 +124,11 @@ def migrate_equipment_columns(db: Session) -> None:
 
 def seed_catalogs(db: Session) -> None:
     settings = get_settings()
-    if db.query(Material).count() == 0:
-        materials_path = settings.seed_dir / "materials.json"
-        for item in json.loads(materials_path.read_text(encoding="utf-8")):
-            db.add(
-                Material(
-                    canonical_name=item["canonical_name"],
-                    category=item["category"],
-                    density_kg_m3=item["density_kg_m3"],
-                    density_min_kg_m3=item.get("density_min_kg_m3"),
-                    density_max_kg_m3=item.get("density_max_kg_m3"),
-                    condition=item.get("condition"),
-                    language_labels_json=json.dumps(item.get("language_labels", {})),
-                    aliases_json=json.dumps(item.get("aliases", [])),
-                    source=item.get("source"),
-                    notes=item.get("notes"),
-                )
-            )
+    # Bundled additions also reach existing installations with online sync off.
+    # An upgrade never overwrites an installation's own edits or disabled rows.
+    from app.services.catalog_sync.materials import load_seed_material_records, upsert_materials
+
+    upsert_materials(db, load_seed_material_records(settings.seed_dir / "materials.json"), only_missing=True)
     if db.query(Profile).count() == 0:
         for item in json.loads((settings.seed_dir / "profiles.json").read_text(encoding="utf-8")):
             db.add(

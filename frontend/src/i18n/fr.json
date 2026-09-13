@@ -18,7 +18,8 @@
     "expandMenu": "Déplier le menu",
     "groupage": "Groupage",
     "shipments": "Expéditions",
-    "articles": "Articles",
+    "articles": "Marchandises",
+    "library": "Bibliothèque",
     "audit": "Journal d'audit",
     "trips": "Trajets",
     "group": {
@@ -29,7 +30,6 @@
     },
     "overview": "Aperçu",
     "skipContent": "Aller au contenu",
-    "library": "Bibliothèque",
     "manage": "Gestion"
   },
   "theme": {
@@ -246,6 +246,7 @@
     "dimensions_missing": "Aucune dimension dans la description et aucun poids saisi — indiquez le poids sous Détails.",
     "length_missing": "Aucune longueur dans la description — sans elle, le poids de ce profilé ne peut être établi.",
     "kg_per_meter_missing": "Aucun kilo par mètre connu pour ce profilé — indiquez le poids sous Détails.",
+    "density_reference_estimate": "Ce poids utilise une valeur indicative pour le vrac. Humidité, granulométrie et compactage peuvent varier ; utilisez les données de votre produit ou une pesée pour le poids définitif.",
     "material_not_recognized": "Matériau non reconnu — le poids ne vient pas du catalogue ; vérifiez-le ou saisissez-le vous-même.",
     "quantity_missing": "Aucune quantité saisie.",
     "wall_thickness_invalid": "L'épaisseur de paroi ne correspond pas aux cotes extérieures — il ne reste alors aucune matière."
@@ -1296,8 +1297,76 @@
     "saveTitle": "Enregistrer {{party}} dans le carnet d’adresses",
     "saved": "{{name}} enregistré dans le carnet d’adresses."
   },
+  "densities": {
+    "title": "Masses volumiques",
+    "intro": "Recherchez une marchandise, une substance ou une qualité précise. Ouvrez une valeur pour sa source et ses conditions. Ces valeurs ne remplacent pas une pesée.",
+    "search": "Rechercher une marchandise, une substance, un alliage ou une qualité…",
+    "loading": "Chargement des masses volumiques…",
+    "count": "{{count}} références de masse volumique",
+    "records": "{{count}} enregistrements sources",
+    "range": "Plage observée",
+    "sourceDetails": "Masse volumique et source",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "retry": "Réessayer",
+    "tabs": {
+      "own": "Marchandises propres",
+      "densities": "Masses volumiques"
+    },
+    "kinds": {
+      "measurement_mean": "Moyenne des mesures originales à l’humidité indiquée. Un autre lot peut présenter une valeur différente.",
+      "published_reference": "Valeur indicative publiée pour le vrac. La source ne précise pas entièrement l’humidité, la granulométrie et le compactage.",
+      "unverified": "Valeur existante ou modifiée sans source vérifiée.",
+      "measurement": "Mesure originale de l’échantillon décrit dans les conditions indiquées.",
+      "manufacturer_specification": "Valeur publiée pour cette qualité précise. Il ne s’agit pas d’un certificat d’essai de votre lot.",
+      "literature_reference": "Valeur issue d’un tableau publié pour le produit tel que décrit."
+    },
+    "conditions": {
+      "wood_mc_0": "Bois anhydre, humidité 0%. Uniquement pour cet état, et non pour du bois vert ou normalement séché à l’air.",
+      "wood_mc_8": "Bois à 8% d’humidité, rapportée à la masse sèche.",
+      "wood_mc_12": "Bois à 12% d’humidité, rapportée à la masse sèche.",
+      "wood_mc_15": "Bois à 15% d’humidité, rapportée à la masse sèche.",
+      "bulk_as_reported": "Masse volumique apparente, espaces entre les particules compris, dans la forme décrite par la source.",
+      "sample_at_conditions": "Substance pure : uniquement à la phase, à la température et à la pression indiquées.",
+      "grade_as_reported": "Masse volumique de la qualité indiquée, sans espaces de vrac ou d’empilage. Le tableau ne précise pas d’autres conditions de mesure.",
+      "campus_dry": "Éprouvette sèche selon le fabricant ; ISO 1183. Masse volumique du matériau, pas du granulat en vrac.",
+      "campus_as_reported": "Valeur du matériau selon ISO 1183. Le tableau ne distingue pas d’état d’humidité ; pas de masse volumique du granulat en vrac.",
+      "alloy_20c": "Alliage massif à 20 °C (68 °F), selon la Copper Development Association.",
+      "fao_measured_rc": "Aliment décrit, mesuré à 21 °C et à 393 m d’altitude. La préparation et la découpe font partie de la valeur.",
+      "fao_measured_ken": "Aliment décrit, mesuré à température ambiante et à 1 350 m d’altitude. La préparation et la découpe font partie de la valeur.",
+      "fao_compiled": "Masse publiée par volume d’aliment, espaces entre morceaux compris. La préparation et la composition font partie de la description ; température et pression non précisées.",
+      "insulation_nominal": "Masse volumique nominale du panneau isolant indiqué, pores compris.",
+      "campus_conditioned": "Éprouvette conditionnée selon le fabricant ; ISO 1183. Masse volumique du matériau, pas du granulat en vrac."
+    },
+    "category": "Catégorie",
+    "allCategories": "Toutes les catégories",
+    "temperature": "Température",
+    "pressure": "Pression",
+    "method": "Méthode de mesure ou norme",
+    "uncertainty": "Incertitude élargie indiquée par la source",
+    "manufacturer": "Fabricant",
+    "categories": {
+      "wood": "Bois",
+      "chemical": "Substances chimiques",
+      "plastic": "Plastiques",
+      "metal": "Métaux et alliages",
+      "food": "Aliments",
+      "insulation": "Isolants",
+      "construction": "Matériaux de construction",
+      "concrete": "Béton",
+      "bulk_material": "Matières en vrac",
+      "agri": "Produits agricoles",
+      "liquid": "Liquides",
+      "ore_mineral": "Minerais et minéraux",
+      "paper": "Papier",
+      "textile": "Textiles",
+      "waste": "Déchets",
+      "general_cargo": "Autres marchandises"
+    },
+    "originalValue": "Valeur source"
+  },
   "articles": {
-    "title": "Articles",
+    "title": "Marchandises",
     "intro": "Vos propres codes article, liés à ce que la bibliothèque sait de la matière et de son emballage : numéro ONU, désignation officielle de transport, groupe d'emballage, type d'emballage et contenu par emballage. Saisis une fois ; sur une ligne de marchandises vous choisissez le code et l'étape marchandises dangereuses reçoit le reste. Un tableur entre et sort dans les mêmes colonnes.",
     "template": "Télécharger le modèle",
     "export": "Exporter la bibliothèque",

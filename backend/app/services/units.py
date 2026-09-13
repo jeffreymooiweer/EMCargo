@@ -347,6 +347,7 @@ def convert(
     volume_per_item_m3: float | None = None,
     canonical_name: str | None = None,
     form: str | None = None,
+    source_basis: str | None = None,
 ) -> Converted:
     """Convert an entered quantity to mass and volume.
 
@@ -360,6 +361,13 @@ def convert(
     chosen = get_form(form) or default_form(category, canonical_name)
     chosen_name = chosen.value if chosen else None
     factor = fill_factor(category, canonical_name, form)
+    if source_basis is not None:
+        # A traceable specimen or grade has an explicit density basis. Do not
+        # infer liquid from "chemical", or stacked wood from its category.
+        basis = DensityBasis(source_basis)
+        chosen = (get_form(form) or CargoForm.SOLID) if basis == DensityBasis.SOLID else None
+        chosen_name = chosen.value if chosen else None
+        factor = FILL_FACTOR[chosen] if chosen else 1.0
     if density_kg_m3 is not None and factor != 1.0:
         density_kg_m3 = density_kg_m3 * factor
     unit = get_unit(unit_code)

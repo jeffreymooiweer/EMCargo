@@ -18,7 +18,8 @@
     "expandMenu": "Menü ausklappen",
     "groupage": "Sammelgut",
     "shipments": "Sendungen",
-    "articles": "Artikel",
+    "articles": "Güter",
+    "library": "Bibliothek",
     "audit": "Audit-Protokoll",
     "trips": "Fahrten",
     "group": {
@@ -29,7 +30,6 @@
     },
     "overview": "Übersicht",
     "skipContent": "Zum Inhalt",
-    "library": "Bibliothek",
     "manage": "Verwaltung"
   },
   "theme": {
@@ -246,6 +246,7 @@
     "dimensions_missing": "Keine Maße in der Beschreibung und kein Gewicht eingetragen — tragen Sie das Gewicht unter Details ein.",
     "length_missing": "Keine Länge in der Beschreibung — ohne sie lässt sich das Gewicht dieses Profils nicht bestimmen.",
     "kg_per_meter_missing": "Keine Kilogramm je Meter für dieses Profil bekannt — tragen Sie das Gewicht unter Details ein.",
+    "density_reference_estimate": "Dieses Gewicht verwendet einen Schüttdichte-Richtwert. Feuchte, Korngröße und Verdichtung können abweichen; verwenden Sie für das endgültige Gewicht Ihre Produktdaten oder eine Wägung.",
     "material_not_recognized": "Material nicht erkannt — das Gewicht stammt nicht aus dem Katalog; prüfen Sie es oder tragen Sie es selbst ein.",
     "quantity_missing": "Keine Anzahl eingetragen.",
     "wall_thickness_invalid": "Die Wanddicke passt nicht zu den Außenmaßen — damit bleibt kein Material übrig."
@@ -1296,8 +1297,76 @@
     "saveTitle": "{{party}} im Adressbuch speichern",
     "saved": "{{name}} im Adressbuch gespeichert."
   },
+  "densities": {
+    "title": "Dichten",
+    "intro": "Suchen Sie Güter, Stoffe oder eine bestimmte Produktqualität. Öffnen Sie einen Wert für Quelle und Bedingungen. Referenzwerte ersetzen keine Wägung.",
+    "search": "Güter, Stoff, Legierung oder Produktqualität suchen…",
+    "loading": "Dichten werden geladen…",
+    "count": "{{count}} Dichtereferenzen",
+    "records": "{{count}} Quelldatensätze",
+    "range": "Beobachteter Bereich",
+    "sourceDetails": "Dichte und Quelle",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "retry": "Erneut versuchen",
+    "tabs": {
+      "own": "Eigene Güter",
+      "densities": "Dichten"
+    },
+    "kinds": {
+      "measurement_mean": "Mittelwert ursprünglicher Messungen bei der angegebenen Feuchte. Andere Chargen können abweichen.",
+      "published_reference": "Veröffentlichter Schüttdichte-Richtwert. Feuchte, Korngröße und Verdichtung sind in der Quelle nicht vollständig angegeben.",
+      "unverified": "Bestehender oder angepasster Wert ohne verifizierten Quellennachweis.",
+      "measurement": "Ursprüngliche Messung an der beschriebenen Probe im angegebenen Zustand.",
+      "manufacturer_specification": "Veröffentlichter Wert für diese bestimmte Produktqualität. Kein Prüfzeugnis Ihrer Charge.",
+      "literature_reference": "Quellenwert aus einer veröffentlichten Tabelle für das beschriebene Produkt."
+    },
+    "conditions": {
+      "wood_mc_0": "Darrtrockenes Holz, 0% Feuchte. Gilt nur für diesen Zustand, nicht für frisches oder gewöhnlich luftgetrocknetes Holz.",
+      "wood_mc_8": "Holz bei 8% Feuchte, bezogen auf die Trockenmasse.",
+      "wood_mc_12": "Holz bei 12% Feuchte, bezogen auf die Trockenmasse.",
+      "wood_mc_15": "Holz bei 15% Feuchte, bezogen auf die Trockenmasse.",
+      "bulk_as_reported": "Schüttdichte einschließlich der Zwischenräume, in der von der Quelle beschriebenen Form.",
+      "sample_at_conditions": "Reinstoff: gilt nur für die angegebene Phase, Temperatur und den Druck.",
+      "grade_as_reported": "Dichte der genannten Material- oder Produktqualität, ohne Schütt- oder Stapelzwischenräume. Weitere Messbedingungen sind in der verwendeten Tabelle nicht angegeben.",
+      "campus_dry": "Trockener Probekörper laut Hersteller; ISO 1183. Materialdichte, keine Granulat-Schüttdichte.",
+      "campus_as_reported": "Materialwert nach ISO 1183. Keine gesonderte Feuchteangabe in der Tabelle; keine Granulat-Schüttdichte.",
+      "alloy_20c": "Massive Legierung bei 20 °C (68 °F), laut Copper Development Association.",
+      "fao_measured_rc": "Das beschriebene Lebensmittel, gemessen bei 21 °C auf 393 m Höhe. Zubereitung und Schnittform gehören zum Wert.",
+      "fao_measured_ken": "Das beschriebene Lebensmittel, bei Raumtemperatur auf 1.350 m Höhe gemessen. Zubereitung und Schnittform gehören zum Wert.",
+      "fao_compiled": "Veröffentlichte Masse je Lebensmittelvolumen einschließlich etwaiger Zwischenräume. Zubereitung und Zusammensetzung gehören zur Beschreibung; Temperatur und Druck fehlen.",
+      "insulation_nominal": "Nenndichte der genannten Dämmplatte einschließlich Poren.",
+      "campus_conditioned": "Konditionierter Probekörper laut Hersteller; ISO 1183. Materialdichte, keine Granulat-Schüttdichte."
+    },
+    "category": "Gütergruppe",
+    "allCategories": "Alle Gütergruppen",
+    "temperature": "Temperatur",
+    "pressure": "Druck",
+    "method": "Messmethode oder Norm",
+    "uncertainty": "Erweiterte Messunsicherheit laut Quelle",
+    "manufacturer": "Hersteller",
+    "categories": {
+      "wood": "Holz",
+      "chemical": "Chemische Stoffe",
+      "plastic": "Kunststoffe",
+      "metal": "Metalle und Legierungen",
+      "food": "Lebensmittel",
+      "insulation": "Dämmstoffe",
+      "construction": "Baustoffe",
+      "concrete": "Beton",
+      "bulk_material": "Schüttgüter",
+      "agri": "Agrarerzeugnisse",
+      "liquid": "Flüssigkeiten",
+      "ore_mineral": "Erze und Minerale",
+      "paper": "Papier",
+      "textile": "Textilien",
+      "waste": "Abfälle",
+      "general_cargo": "Sonstige Güter"
+    },
+    "originalValue": "Quellenwert"
+  },
   "articles": {
-    "title": "Artikel",
+    "title": "Güter",
     "intro": "Ihre eigenen Artikelnummern, verknüpft mit dem, was die Bibliothek über den Stoff und die Verpackung weiß: UN-Nummer, offizielle Benennung, Verpackungsgruppe, Verpackungsart und Inhalt je Verpackung. Einmal erfasst; auf einer Güterzeile wählen Sie die Nummer und der Gefahrgutschritt erhält den Rest. Eine Tabelle geht in denselben Spalten hinein und heraus.",
     "template": "Vorlage herunterladen",
     "export": "Bibliothek exportieren",

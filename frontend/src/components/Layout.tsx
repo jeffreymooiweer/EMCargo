@@ -11,7 +11,7 @@ import UpdateToast from "./UpdateToast";
 import TwoFactorNudge, { clearTwoFactorNudge } from "./TwoFactorNudge";
 import WhatsNewModal from "./WhatsNewModal";
 import { useToast } from "../toast/ToastProvider";
-import { ShieldIcon, ChevronDownIcon, CloseIcon, CollapseIcon, HistoryIcon, HomeIcon, LibraryIcon, MenuIcon, PlusIcon, RoadIcon, SettingsIcon, ShipmentsIcon, TripsIcon, UserIcon } from "./icons";
+import { ShieldIcon, ChevronDownIcon, CloseIcon, CollapseIcon, HistoryIcon, GoodsIcon, HomeIcon, LibraryIcon, MenuIcon, PlusIcon, RoadIcon, SettingsIcon, ShipmentsIcon, TripsIcon, UserIcon } from "./icons";
 
 interface Props { user: User; onLogout: () => void }
 
@@ -103,8 +103,16 @@ export default function Layout({ user, onLogout }: Props) {
       {link("/shipments", t("nav.shipments"), ShipmentsIcon, compact)}
       {link("/trips", t("nav.trips"), TripsIcon, compact)}
       {link("/dg-reviews", t("dgReview.title"), ShieldIcon, compact)}
-      {link("/articles", t("nav.articles"), LibraryIcon, compact)}
-      {manager && link("/materieel", t("nav.materieel"), RoadIcon, compact)}
+      {compact ? <>
+        {link("/articles", t("nav.articles"), GoodsIcon, true)}
+        {manager && link("/materieel", t("nav.materieel"), RoadIcon, true)}
+      </> : <details className="emcargo-nav-group" open={location.pathname.startsWith("/articles") || location.pathname.startsWith("/materieel") || undefined}>
+        <summary className="emcargo-nav-link"><LibraryIcon className="h-[22px] w-[22px]" /><span>{t("nav.library")}</span><ChevronDownIcon className="ml-auto h-3.5 w-3.5" /></summary>
+        <div className="emcargo-subnav">
+          {link("/articles", t("nav.articles"), GoodsIcon, false)}
+          {manager && link("/materieel", t("nav.materieel"), RoadIcon, false)}
+        </div>
+      </details>}
       {manager && (compact ? <>
         {link("/admin/settings/organisation", t("account.adminSettings"), SettingsIcon, true)}
         {link("/users", t("nav.users"), UserIcon, true)}

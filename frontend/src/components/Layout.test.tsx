@@ -56,14 +56,16 @@ describe("the approved EMCargo navigation", () => {
     expect(menu.queryByRole("link", { name: "account.adminSettings" })).toBeNull();
     expect(menu.queryByRole("link", { name: "nav.legal" })).toBeNull();
   });
-  it("keeps all four work pages directly discoverable when storage is off", async () => {
+  it("keeps work pages and the grouped library available when storage is off", async () => {
     config.publicSettings.history_enabled = false;
     renderAt();
+    await userEvent.click(screen.getByText("nav.library"));
     for (const name of ["nav.overview", "nav.shipments", "nav.trips", "nav.articles"]) {
       expect(screen.getByRole("link", { name })).toBeVisible();
     }
     await userEvent.click(screen.getByRole("button", { name: "nav.openMenu" }));
     const menu = within(screen.getByRole("dialog"));
+    await userEvent.click(menu.getByText("nav.library"));
     for (const name of ["nav.overview", "nav.shipments", "nav.trips", "nav.articles"]) {
       expect(menu.getByRole("link", { name })).toBeVisible();
     }

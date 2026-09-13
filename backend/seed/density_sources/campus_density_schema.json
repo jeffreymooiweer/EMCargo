@@ -1,0 +1,23 @@
+{
+  "source_url": "https://www.campusplastics.com/campus/datasheet/e26385de59fb76d9?name=Akulon%C2%AE+A30",
+  "source_sha256": "1109d535b4d2a75f581a97f51ce366b16f1471bad0a8e47c2207f36fe9f96849",
+  "header": [
+    "",
+    {
+      "html": "<span class=\"table-headline\">dry / cond</span>"
+    },
+    {
+      "html": "<span class=\"table-headline\">Unit</span>"
+    },
+    {
+      "html": "<span class=\"table-headline\">Standard</span>"
+    }
+  ],
+  "density_row": [
+    "Density",
+    "1140 / -",
+    "kg/m³",
+    "ISO 1183"
+  ],
+  "property_key": "Spt-578"
+}

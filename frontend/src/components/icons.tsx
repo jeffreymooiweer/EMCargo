@@ -13,6 +13,7 @@ export const HomeIcon = glyph("M3 3h7v7H3z M14 3h7v4h-7z M14 11h7v10h-7z M3 14h7
 export const ShipmentsIcon = glyph("m3 7 9-5 9 5v10l-9 5-9-5z m0 0 9 5 9-5 M12 12v10 M7.5 4.5l9 5v4");
 export const GroupageIcon = glyph("M3 3h6v6H3z M15 3h6v6h-6z M9 15h6v6H9z M6 9v3h12V9 M12 12v3");
 export const TripsIcon = glyph("M5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4 M19 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4 M5 7v5a3 3 0 0 0 3 3h8a3 3 0 0 0 0-6h-5 M19 15v2");
+export const GoodsIcon = glyph("M3 11h8v8H3z M13 11h8v8h-8z M8 3h8v6H8z M3 22h18 M7 11v3 M17 11v3 M12 3v2");
 export const LibraryIcon = glyph("M3 3h4v18H3z M10 3h4v18h-4z m7 0 4 1-1 17-4-1z");
 export const SettingsIcon = glyph("M3 6h4m4 0h10 M3 18h10m4 0h4 M3 12h10m4 0h4 M7 3v6 M13 9v6 M17 15v6");
 export const UserIcon = glyph("M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2");
