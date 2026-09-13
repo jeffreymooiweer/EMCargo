@@ -43,7 +43,7 @@ function renderNudge() {
         <Whereabouts />
         <Routes>
           <Route path="/" element={<p>home</p>} />
-          <Route path="/settings" element={<p>settings page</p>} />
+          <Route path="/account/security" element={<p>settings page</p>} />
         </Routes>
       </ToastProvider>
     </MemoryRouter>,
@@ -111,7 +111,7 @@ describe("TwoFactorNudge", () => {
     expect(screen.getByText("settings page")).toBeInTheDocument();
     // Not just "the settings" — the tab the panel is actually on. Landing on
     // the theme settings would make the button a dead end.
-    expect(screen.getByTestId("where")).toHaveTextContent("/settings?tab=security");
+    expect(screen.getByTestId("where")).toHaveTextContent("/account/security");
   });
 
   it("asks once per sign-in, not on every page load", async () => {
@@ -136,7 +136,7 @@ describe("TwoFactorNudge", () => {
     // nothing else, so every page it lands on ends up here.
     window.dispatchEvent(new CustomEvent(TWO_FACTOR_REQUIRED_EVENT));
     expect(await screen.findByText("settings page")).toBeInTheDocument();
-    expect(screen.getByTestId("where")).toHaveTextContent("/settings?tab=security");
+    expect(screen.getByTestId("where")).toHaveTextContent("/account/security");
     expect(screen.getByText("twoFactor.nudgeRequired")).toBeInTheDocument();
     window.dispatchEvent(new CustomEvent(TWO_FACTOR_REQUIRED_EVENT));
     window.dispatchEvent(new CustomEvent(TWO_FACTOR_REQUIRED_EVENT));

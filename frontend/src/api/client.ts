@@ -145,6 +145,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  myProfile: () => request<PersonalProfile>("/users/me/profile"),
+  saveMyProfile: (payload: PersonalProfile) => request<User>("/users/me/profile", { method: "PUT", body: JSON.stringify(payload) }),
+  changePassword: (currentPassword: string, newPassword: string) => request<{ ok: boolean; reauthenticate: boolean }>("/auth/change-password", {
+    method: "POST", body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  }),
   organisationSettings: () => request<OrganisationSettings>("/settings/organisation"),
   saveOrganisationSettings: (payload: OrganisationSettings) => request<OrganisationSettings>("/settings/organisation", { method: "PUT", body: JSON.stringify(payload) }),
   dgReviews: (status = "", page = 1) => request<{ items: DgReview[]; total: number; page: number }>(`/dg-reviews?status=${encodeURIComponent(status)}&page=${page}`),
@@ -741,6 +746,7 @@ export interface UnCardsAvailability {
 }
 
 export interface User {
+  display_name?: string;
   id: number;
   username: string;
   email: string;
@@ -968,8 +974,16 @@ export interface Branding {
 
 export type ThemeChoice = "light" | "dark" | "system";
 
-/** One user's own settings. Kept on the server, so they follow the account to a
- *  second device instead of staying behind in one browser's localStorage. */
+/** Optional self-service details, separate from identity and permissions. */
+export interface PersonalProfile {
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  job_title: string;
+  phone_number: string;
+}
+
+/** Preferences follow the account to another device. */
 export interface UserPreferences {
   language: string;
   theme: ThemeChoice;

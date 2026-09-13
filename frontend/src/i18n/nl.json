@@ -805,9 +805,10 @@
       "row_refused": "Regel {{row}}: {{reason}}"
     },
     "auth": {
-      "two_factor_required": "Deze installatie vereist tweestapsverificatie voor uw account. Stel die eerst in onder Instellingen, Beveiliging.",
+      "two_factor_required": "Deze installatie vereist tweestapsverificatie voor uw account. Stel die eerst in via uw avatar onder Gebruikersinstellingen, Beveiliging.",
       "two_factor_invalid_code": "Deze verificatiecode is niet geldig.",
-      "two_factor_inactive": "Tweestapsverificatie is niet actief."
+      "two_factor_inactive": "Tweestapsverificatie is niet actief.",
+      "current_password_incorrect": "Uw huidige wachtwoord is onjuist."
     },
     "update": {
       "check_disabled": "Controleren op updates staat uit",
@@ -1838,5 +1839,50 @@
       "blockedHint": "Los de gemelde problemen op vóór vertrek. U kunt de rit wel bewaren."
     },
     "noExemption": "De 1000-puntenvrijstelling geldt volgens deze controle niet voor deze lading. Beoordeel de benodigde ADR-maatregelen vóór vertrek."
+  },
+  "account": {
+    "settings": "Gebruikersinstellingen",
+    "openSettings": "Gebruikersinstellingen openen",
+    "intro": "Uw profiel, beveiliging en persoonlijke voorkeuren.",
+    "adminSettings": "Beheerinstellingen",
+    "adminIntro": "Instellingen voor de organisatie en deze installatie.",
+    "profile": "Mijn profiel",
+    "profileIntro": "Bepaal hoe uw naam wordt getoond en vul uw persoonlijke gegevens aan. Een lege weergavenaam gebruikt uw volledige naam of gebruikersnaam.",
+    "displayName": "Weergavenaam",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "jobTitle": "Functie",
+    "phone": "Telefoonnummer",
+    "profileSaved": "Profiel opgeslagen.",
+    "documentDetails": "Documentgegevens",
+    "accessPolicy": "Toegangsbeleid",
+    "changePassword": "Wachtwoord wijzigen",
+    "passwordIntro": "Bevestig uw huidige wachtwoord en kies een nieuw wachtwoord. Na het wijzigen logt u opnieuw in. Ook andere actieve sessies worden beëindigd.",
+    "currentPassword": "Huidig wachtwoord",
+    "newPassword": "Nieuw wachtwoord",
+    "repeatPassword": "Nieuw wachtwoord herhalen",
+    "showPassword": "Wachtwoorden tonen",
+    "passwordDifferent": "Kies een ander wachtwoord dan uw huidige wachtwoord.",
+    "passwordChanged": "Uw wachtwoord is gewijzigd. Log in met uw nieuwe wachtwoord.",
+    "discardTitle": "Profielwijzigingen verlaten?",
+    "discardBody": "Uw wijzigingen zijn nog niet opgeslagen. Wilt u deze wijzigingen verwerpen?",
+    "discard": "Wijzigingen verwerpen",
+    "about": "Over ons",
+    "aboutTagline": "Van vertrek tot bestemming. Alles bij elkaar.",
+    "aboutIntro": "EMCargo brengt zendingen, vervoersdocumenten en controles samen in één werkplek. Ontwikkeld voor de dagelijkse praktijk van transport en logistiek.",
+    "openSource": "Open source",
+    "selfHosted": "Op uw eigen server",
+    "fourLanguages": "Vier talen",
+    "aboutShipments": "Zendingen & ritten",
+    "aboutShipmentsBody": "Bereid zendingen voor, bundel ze in ritten en houd overzicht.",
+    "aboutDocuments": "Vervoersdocumenten",
+    "aboutDocumentsBody": "Stel uw documenten samen vanuit de gegevens van uw zending.",
+    "aboutChecks": "Gevaarlijke goederen",
+    "aboutChecksBody": "Ondersteuning bij controles en beoordelingen van gevaarlijke goederen.",
+    "termsIntro": "Lees de afspraken over het gebruik van EMCargo.",
+    "sourceCode": "Broncode",
+    "releaseNotes": "Wat is er nieuw?",
+    "feedback": "Idee of probleem melden",
+    "madeBy": "EMCargo · Open source voor de logistiek"
   }
 }

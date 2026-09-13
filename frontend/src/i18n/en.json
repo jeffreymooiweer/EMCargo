@@ -805,9 +805,10 @@
       "row_refused": "Row {{row}}: {{reason}}"
     },
     "auth": {
-      "two_factor_required": "This installation requires two-factor verification for your account. Set it up first under Settings, Security.",
+      "two_factor_required": "This installation requires two-factor verification for your account. Open your avatar and set it up under User settings, Security.",
       "two_factor_invalid_code": "That verification code is not valid.",
-      "two_factor_inactive": "Two-factor verification is not active."
+      "two_factor_inactive": "Two-factor verification is not active.",
+      "current_password_incorrect": "Your current password is incorrect."
     },
     "update": {
       "check_disabled": "Update checks are switched off",
@@ -1838,5 +1839,50 @@
       "blockedHint": "Resolve the reported problems before departure. You can still save the trip."
     },
     "noExemption": "According to this check, the 1000-point exemption does not apply to this load. Assess the required ADR measures before departure."
+  },
+  "account": {
+    "settings": "User settings",
+    "openSettings": "Open user settings",
+    "intro": "Your profile, security and personal preferences.",
+    "adminSettings": "Administration settings",
+    "adminIntro": "Settings for the organisation and this installation.",
+    "profile": "My profile",
+    "profileIntro": "Choose how your name appears and add your personal details. An empty display name uses your full name or username.",
+    "displayName": "Display name",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "jobTitle": "Job title",
+    "phone": "Phone number",
+    "profileSaved": "Profile saved.",
+    "documentDetails": "Document details",
+    "accessPolicy": "Access policy",
+    "changePassword": "Change password",
+    "passwordIntro": "Confirm your current password and choose a new one. You will sign in again after the change. Other active sessions will also end.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "repeatPassword": "Repeat new password",
+    "showPassword": "Show passwords",
+    "passwordDifferent": "Choose a password different from your current password.",
+    "passwordChanged": "Your password has been changed. Sign in with your new password.",
+    "discardTitle": "Leave profile changes?",
+    "discardBody": "Your changes have not been saved. Do you want to discard them?",
+    "discard": "Discard changes",
+    "about": "About us",
+    "aboutTagline": "From departure to destination. All together.",
+    "aboutIntro": "EMCargo brings shipments, transport documents and checks together in one workspace. Built for the daily work of transport and logistics.",
+    "openSource": "Open source",
+    "selfHosted": "On your own server",
+    "fourLanguages": "Four languages",
+    "aboutShipments": "Shipments & trips",
+    "aboutShipmentsBody": "Prepare shipments, combine them into trips and keep an overview.",
+    "aboutDocuments": "Transport documents",
+    "aboutDocumentsBody": "Create your documents from the details of your shipment.",
+    "aboutChecks": "Dangerous goods",
+    "aboutChecksBody": "Support for dangerous goods checks and reviews.",
+    "termsIntro": "Read the terms that apply to using EMCargo.",
+    "sourceCode": "Source code",
+    "releaseNotes": "What’s new?",
+    "feedback": "Share an idea or issue",
+    "madeBy": "EMCargo · Open source for logistics"
   }
 }

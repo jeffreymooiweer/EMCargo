@@ -344,7 +344,7 @@ def change_password(
     db: Session = Depends(get_db),
 ):
     if not verify_password(payload.current_password, user.password_hash):
-        raise HTTPException(status_code=400, detail="Current password incorrect")
+        raise error(400, "auth.current_password_incorrect")
     user.password_hash = hash_password(payload.new_password)
     db.commit()
     audit.record(db, "auth.password_changed", actor=user, request=request)

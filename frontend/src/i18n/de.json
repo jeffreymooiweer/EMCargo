@@ -805,9 +805,10 @@
       "row_refused": "Zeile {{row}}: {{reason}}"
     },
     "auth": {
-      "two_factor_required": "Diese Installation verlangt eine Zwei-Faktor-Bestätigung für Ihr Konto. Richten Sie sie zuerst unter Einstellungen, Sicherheit ein.",
+      "two_factor_required": "Diese Installation verlangt eine Zwei-Faktor-Bestätigung für Ihr Konto. Öffnen Sie Ihren Avatar und richten Sie sie unter Benutzereinstellungen, Sicherheit ein.",
       "two_factor_invalid_code": "Dieser Bestätigungscode ist ungültig.",
-      "two_factor_inactive": "Die Zwei-Faktor-Verifizierung ist nicht aktiv."
+      "two_factor_inactive": "Die Zwei-Faktor-Verifizierung ist nicht aktiv.",
+      "current_password_incorrect": "Ihr aktuelles Passwort ist falsch."
     },
     "update": {
       "check_disabled": "Die Update-Prüfung ist ausgeschaltet",
@@ -1838,5 +1839,50 @@
       "blockedHint": "Beheben Sie die gemeldeten Probleme vor der Abfahrt. Die Fahrt kann gespeichert werden."
     },
     "noExemption": "Laut dieser Prüfung gilt die 1000-Punkte-Freistellung für diese Ladung nicht. Prüfen Sie die erforderlichen ADR-Maßnahmen vor der Abfahrt."
+  },
+  "account": {
+    "settings": "Benutzereinstellungen",
+    "openSettings": "Benutzereinstellungen öffnen",
+    "intro": "Ihr Profil, Ihre Sicherheit und persönlichen Einstellungen.",
+    "adminSettings": "Verwaltungseinstellungen",
+    "adminIntro": "Einstellungen für die Organisation und diese Installation.",
+    "profile": "Mein Profil",
+    "profileIntro": "Legen Sie Ihren angezeigten Namen fest und ergänzen Sie Ihre persönlichen Angaben. Ein leerer Anzeigename verwendet Ihren vollständigen Namen oder Benutzernamen.",
+    "displayName": "Anzeigename",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "jobTitle": "Position",
+    "phone": "Telefonnummer",
+    "profileSaved": "Profil gespeichert.",
+    "documentDetails": "Dokumentangaben",
+    "accessPolicy": "Zugriffsrichtlinien",
+    "changePassword": "Passwort ändern",
+    "passwordIntro": "Bestätigen Sie Ihr aktuelles Passwort und wählen Sie ein neues. Anschließend melden Sie sich erneut an. Andere aktive Sitzungen werden ebenfalls beendet.",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "repeatPassword": "Neues Passwort wiederholen",
+    "showPassword": "Passwörter anzeigen",
+    "passwordDifferent": "Wählen Sie ein anderes Passwort als Ihr aktuelles.",
+    "passwordChanged": "Ihr Passwort wurde geändert. Melden Sie sich mit Ihrem neuen Passwort an.",
+    "discardTitle": "Profiländerungen verlassen?",
+    "discardBody": "Ihre Änderungen wurden noch nicht gespeichert. Möchten Sie sie verwerfen?",
+    "discard": "Änderungen verwerfen",
+    "about": "Über uns",
+    "aboutTagline": "Vom Start bis zum Ziel. Alles an einem Ort.",
+    "aboutIntro": "EMCargo vereint Sendungen, Beförderungsdokumente und Prüfungen in einem Arbeitsbereich. Entwickelt für den Alltag in Transport und Logistik.",
+    "openSource": "Open Source",
+    "selfHosted": "Auf Ihrem eigenen Server",
+    "fourLanguages": "Vier Sprachen",
+    "aboutShipments": "Sendungen & Fahrten",
+    "aboutShipmentsBody": "Sendungen vorbereiten, zu Fahrten bündeln und den Überblick behalten.",
+    "aboutDocuments": "Beförderungsdokumente",
+    "aboutDocumentsBody": "Erstellen Sie Ihre Dokumente aus den Angaben Ihrer Sendung.",
+    "aboutChecks": "Gefahrgut",
+    "aboutChecksBody": "Unterstützung bei Prüfungen und Bewertungen gefährlicher Güter.",
+    "termsIntro": "Lesen Sie die Bedingungen für die Nutzung von EMCargo.",
+    "sourceCode": "Quellcode",
+    "releaseNotes": "Was ist neu?",
+    "feedback": "Idee oder Problem melden",
+    "madeBy": "EMCargo · Open Source für die Logistik"
   }
 }

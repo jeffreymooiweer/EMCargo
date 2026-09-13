@@ -17,7 +17,7 @@
  *   cleared on logout, so refreshing the page mid-work does not renew the
  *   nudge, while the next sign-in does. Nagging on every render would train
  *   people to dismiss it unread, which is worse than not asking.
- * - **The button goes to the panel, not to the page.** `/settings?tab=security`
+ * - **The button goes to the panel, not to the page.** `/account/security`
  *   opens the tab the second factor actually lives on. Landing on the theme
  *   settings with the panel three tabs away is not an answer to the notice
  *   the user just clicked.
@@ -41,7 +41,7 @@ import { api, TWO_FACTOR_REQUIRED_EVENT, User } from "../api/client";
 import { useToast } from "../toast/ToastProvider";
 
 /** Where the second factor is set up. */
-export const TWO_FACTOR_PANEL = "/settings?tab=security";
+export const TWO_FACTOR_PANEL = "/account/security";
 
 export const NUDGED_KEY = "emcargo-2fa-nudged";
 

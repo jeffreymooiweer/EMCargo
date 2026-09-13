@@ -10,7 +10,7 @@ import CommandMenu from "./CommandMenu";
 import UpdateToast from "./UpdateToast";
 import TwoFactorNudge, { clearTwoFactorNudge } from "./TwoFactorNudge";
 import WhatsNewModal from "./WhatsNewModal";
-import { ShieldIcon, ChevronDownIcon, CloseIcon, CollapseIcon, DocumentIcon, LogoutIcon, HistoryIcon, HomeIcon, LibraryIcon, MenuIcon, PlusIcon, RoadIcon, SettingsIcon, ShipmentsIcon, TripsIcon, UserIcon } from "./icons";
+import { ShieldIcon, ChevronDownIcon, CloseIcon, CollapseIcon, LogoutIcon, HistoryIcon, HomeIcon, LibraryIcon, MenuIcon, PlusIcon, RoadIcon, SettingsIcon, ShipmentsIcon, TripsIcon, UserIcon } from "./icons";
 
 interface Props { user: User; onLogout: () => void }
 
@@ -63,9 +63,12 @@ export default function Layout({ user, onLogout }: Props) {
     ...(manager ? [{to: "/materieel", label: t("nav.materieel")}, {to: "/users", label: t("nav.users")}] : []),
     ...(admin ? [{to: "/audit", label: t("nav.audit")}] : []),
     {to: "/dg-reviews", label: t("dgReview.title")},
-    {to: "/settings", label: t("nav.settings")}, {to: "/legal", label: t("nav.legal")},
+    {to: "/account/profile", label: t("account.settings")}, {to: "/account/about", label: t("account.about")},
+    ...(manager ? [{to: "/admin/settings/organisation", label: t("account.adminSettings")}] : []),
   ];
   const currentLabel = location.pathname.startsWith("/wizard") ? t("nav.new")
+    : location.pathname.startsWith("/account/") ? t("account.settings")
+    : location.pathname.startsWith("/admin/settings") ? t("account.adminSettings")
     : location.pathname === "/shipments/report" ? t("dgsa.title")
     : destinations.find(item => item.to === location.pathname)?.label
       || (location.pathname.startsWith("/shipments/") ? t("nav.shipments") : location.pathname.startsWith("/trips/") ? t("nav.trips") : t("studio.workspace"));
@@ -77,7 +80,7 @@ export default function Layout({ user, onLogout }: Props) {
   const linkClass = ({ isActive }: { isActive: boolean }) => `emcargo-nav-link ${isActive ? "emcargo-nav-active" : ""}`;
   type Icon = typeof HomeIcon;
   function link(to: string, label: string, Glyph: Icon, compact: boolean) {
-    return <NavLink key={to} to={to} end={to === "/"} className={linkClass} title={compact ? label : undefined} aria-label={label} onClick={() => setMenuOpen(false)}>
+    return <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => linkClass({ isActive: isActive || (to === "/admin/settings/organisation" && location.pathname.startsWith("/admin/settings/")) })} title={compact ? label : undefined} aria-label={label} onClick={() => setMenuOpen(false)}>
       <Glyph className="h-[22px] w-[22px] shrink-0" />{!compact && <span className="truncate">{label}</span>}
     </NavLink>;
   }
@@ -90,33 +93,34 @@ export default function Layout({ user, onLogout }: Props) {
       {link("/dg-reviews", t("dgReview.title"), ShieldIcon, compact)}
       {link("/articles", t("nav.articles"), LibraryIcon, compact)}
       {manager && link("/materieel", t("nav.materieel"), RoadIcon, compact)}
-      {compact ? <>
-        {link("/settings", t("nav.settings"), SettingsIcon, true)}
-        {manager && link("/users", t("nav.users"), UserIcon, true)}
+      {manager && (compact ? <>
+        {link("/admin/settings/organisation", t("account.adminSettings"), SettingsIcon, true)}
+        {link("/users", t("nav.users"), UserIcon, true)}
         {admin && link("/audit", t("nav.audit"), HistoryIcon, true)}
-        {link("/legal", t("nav.legal"), DocumentIcon, true)}
-      </> : <details className="emcargo-nav-group" open={["/settings", "/users", "/audit", "/legal"].includes(location.pathname) || undefined}>
+      </> : <details className="emcargo-nav-group" open={location.pathname.startsWith("/admin/settings") || ["/users", "/audit"].includes(location.pathname) || undefined}>
         <summary className="emcargo-nav-link"><SettingsIcon className="h-[22px] w-[22px]" /><span>{t("nav.manage")}</span><ChevronDownIcon className="ml-auto h-3.5 w-3.5" /></summary>
         <div className="emcargo-subnav">
-          {link("/settings", t("nav.settings"), SettingsIcon, false)}
-          {manager && link("/users", t("nav.users"), UserIcon, false)}
+          {link("/admin/settings/organisation", t("account.adminSettings"), SettingsIcon, false)}
+          {link("/users", t("nav.users"), UserIcon, false)}
           {admin && link("/audit", t("nav.audit"), HistoryIcon, false)}
-          {link("/legal", t("nav.legal"), DocumentIcon, false)}
         </div>
-      </details>}
+      </details>)}
     </>;
   }
   const account = (compact = false) => <div className="emcargo-account">
-    <NavLink to="/settings?tab=details" className="account-profile-link" aria-label={t("profile.open")} onClick={() => setMenuOpen(false)}>
+    <NavLink to="/account/profile" className="account-profile-link" aria-label={t("profile.open")} title={t("account.settings")} onClick={() => setMenuOpen(false)}>
       <Avatar user={user} />
-      {!compact && <div className="min-w-0"><p className="truncate text-sm">{user.username}</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t(roleLabel(user.role))}</p></div>}
+      {!compact && <div className="min-w-0"><p className="truncate text-sm">{user.display_name || user.username}</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t(roleLabel(user.role))}</p></div>}
     </NavLink>
     <button onClick={() => void logout()} className="mt-3 min-h-[44px] w-full border-t border-slate-200 pt-3 text-left text-sm dark:border-slate-700" aria-label={t("nav.logout")}>{compact ? <LogoutIcon className="h-5 w-5" /> : t("nav.logout")}</button>
   </div>;
 
   return <div className={`emcargo-shell ${railOpen ? "" : "emcargo-shell-folded"}`}>
     <a href="#main-content" className="skip-link">{t("nav.skipContent")}</a>
-    <header className="emcargo-mobile-header">{brand()}<button ref={trigger} className="flex h-11 w-11 items-center justify-center" onClick={() => setMenuOpen(true)} aria-label={t("nav.openMenu")} aria-expanded={menuOpen}><MenuIcon className="h-7 w-7" /></button></header>
+    <header className="emcargo-mobile-header">{brand()}<div className="mobile-account-actions">
+      <NavLink to="/account/profile" className="mobile-avatar-link" aria-label={t("account.openSettings")} title={t("account.settings")}><Avatar user={user} /></NavLink>
+      <button ref={trigger} className="flex h-11 w-11 items-center justify-center" onClick={() => setMenuOpen(true)} aria-label={t("nav.openMenu")} aria-expanded={menuOpen}><MenuIcon className="h-7 w-7" /></button>
+    </div></header>
     <aside className="emcargo-sidebar">
       {brand(!railOpen)}
       <nav id="main-nav" aria-label={t("nav.menu")} className="emcargo-navigation">{navigation(!railOpen)}</nav>

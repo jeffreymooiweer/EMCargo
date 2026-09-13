@@ -1,7 +1,6 @@
-import AvatarSettings from "../components/AvatarSettings";
 import { useEffect, useId, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useSearchParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { useToast } from "../toast/ToastProvider";
 import ConfirmDialog from "../toast/ConfirmDialog";
 import UpdatePanel from "../components/UpdatePanel";
@@ -21,9 +20,15 @@ import SignaturePad from "../components/SignaturePad";
 import TwoFactorPanel from "../components/TwoFactorPanel";
 import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES } from "../i18n/language";
 import { useBranding } from "../branding";
-import { PaletteIcon, ShipmentsIcon, UserIcon, ShieldIcon, BuildingIcon, NetworkIcon, MailIcon, RefreshIcon, DocumentIcon, SettingsIcon, SunIcon, MoonIcon, MonitorIcon } from "../components/icons";
+import { PaletteIcon, ShipmentsIcon, UserIcon, ShieldIcon, BuildingIcon, NetworkIcon, MailIcon, RefreshIcon, DocumentIcon, SettingsIcon, SunIcon, MoonIcon, MonitorIcon, InfoIcon } from "../components/icons";
 import { MODALITIES, AVAILABLE_MODALITIES } from "./ModalitySelectPage";
 import { usePreferences } from "../settings/preferences";
+import { settingsPath, type SettingsArea } from "../settings/routes";
+import ProfilePanel from "./account/ProfilePanel";
+import PasswordPanel from "./account/PasswordPanel";
+import AboutPanel from "./account/AboutPanel";
+import LegalPage from "./LegalPage";
+import "./account/account.css";
 
 const panelClass = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800";
 const inputClass =
@@ -35,17 +40,16 @@ const buttonSecondary =
 
 const THEMES: ThemeChoice[] = ["light", "dark", "system"];
 
-/** The settings, grouped the way someone looks for them: how it looks, what a
- *  new shipment starts with, who I am — and, for an administrator, what
- *  applies to the whole installation and the assistant's model. One long
- *  scroll made the personal fields and the instance-wide ones look like one
- *  list, which they are emphatically not. */
+/** Account settings and installation administration have separate entry points. */
 const TABS = [
+  { key: "profile", label: "account.profile", admin: false, group: "personal", icon: UserIcon },
+  { key: "security", label: "settingsNav.security", admin: false, group: "personal", icon: ShieldIcon },
   { key: "appearance", label: "settings.tabAppearance", admin: false, group: "personal", icon: PaletteIcon },
   { key: "shipment", label: "settings.tabShipment", admin: false, group: "personal", icon: ShipmentsIcon },
-  { key: "details", label: "settings.tabDetails", admin: false, group: "personal", icon: UserIcon },
-  { key: "security", label: "settingsNav.security", admin: false, group: "personal", icon: ShieldIcon },
+  { key: "details", label: "account.documentDetails", admin: false, group: "personal", icon: DocumentIcon },
+  { key: "about", label: "account.about", admin: false, group: "personal", icon: InfoIcon },
   { key: "admin", label: "settingsNav.organisation", admin: true, group: "organisation", icon: BuildingIcon },
+  { key: "access", label: "account.accessPolicy", admin: true, group: "organisation", icon: ShieldIcon },
   { key: "dg", label: "dgReview.settingsTitle", admin: true, group: "organisation", icon: ShieldIcon },
   { key: "branding", label: "settings.adminBranding", admin: true, group: "organisation", icon: PaletteIcon },
   { key: "mail", label: "settings.mailTitle", admin: true, group: "organisation", icon: MailIcon },
@@ -58,30 +62,36 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 /** The personal tabs share one draft and therefore one save button. */
-const ADMIN_TABS: TabKey[] = ["admin", "dg", "branding", "mail", "network", "security", "cards"];
-const PERSONAL_TABS: TabKey[] = ["appearance", "shipment", "details"];
+const ADMIN_TABS: string[] = ["admin", "dg", "branding", "mail", "network", "access", "cards"];
+const PERSONAL_TABS: string[] = ["appearance", "shipment", "details"];
 
 interface Props {
   user: User;
   onUserChange?: (user: User) => void;
+  onPasswordChanged?: () => void;
+  area?: SettingsArea;
+  sectionOverride?: "terms";
 }
 
-export default function SettingsPage({ user, onUserChange }: Props) {
+export default function SettingsPage({ user, onUserChange, onPasswordChanged, area = "account", sectionOverride }: Props) {
   const { t } = useTranslation();
   const { preferences, save, loaded } = usePreferences();
   const [draft, setDraft] = useState<UserPreferences>(preferences);
   const [options, setOptions] = useState<SettingsOptions | null>(null);
   const [version, setVersion] = useState("");
   const [saving, setSaving] = useState(false);
+  const [profileDirty, setProfileDirty] = useState(false);
+  const [pendingTab, setPendingTab] = useState<TabKey | null>(null);
   const toast = useToast();
-  // The open tab lives in the address, so a link can point at one. The
-  // two-factor nudge needs that: "set it up now" landing on the theme
-  // settings, with the panel it meant three tabs away, is not an answer to
-  // the notice the user just clicked.
-  const [params, setParams] = useSearchParams();
-  const requestedTab = params.get("tab") ?? "appearance";
-  const tab_ = (requestedTab === "maintenance" ? "updates" : requestedTab) as TabKey;
-  const setTab = (key: TabKey) => setParams({ tab: key }, { replace: true });
+  const navigate = useNavigate();
+  const { section } = useParams();
+  const requestedTab = sectionOverride || section || (area === "admin" ? "admin" : "profile");
+  const tab_ = requestedTab === "organisation" ? "admin" : requestedTab;
+  const setTab = (key: TabKey) => {
+    if (key === tab_) return;
+    if (profileDirty) { setPendingTab(key); return; }
+    navigate(settingsPath(area, key));
+  };
 
   useEffect(() => setDraft(preferences), [preferences]);
 
@@ -124,16 +134,18 @@ export default function SettingsPage({ user, onUserChange }: Props) {
     }
   };
 
-  const tabs = TABS.filter((tab) => !tab.admin || user.role === "admin" || (user.role === "super_user" && tab.key === "admin"));
-  const active = tabs.some((tab) => tab.key === tab_) ? tab_ : "appearance";
+  const tabs = TABS.filter(tab => area === "account" ? !tab.admin : tab.admin && (user.role === "admin" || (user.role === "super_user" && tab.key === "admin")));
+  const active = area === "account" && tab_ === "terms" ? "terms" : tabs.find(tab => tab.key === tab_)?.key ?? tabs[0]?.key;
+  const selectedTab = active === "terms" ? "about" : active;
+  const title = t(area === "admin" ? "account.adminSettings" : "account.settings");
 
   return (
     <div className="settings-workspace page-enter">
       <div className="page-heading">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{t("settings.title")}</h2>
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          {t("settingsNav.intro")}
+          {t(area === "admin" ? "account.adminIntro" : "account.intro")}
         </p>
       </div>
 
@@ -149,7 +161,7 @@ export default function SettingsPage({ user, onUserChange }: Props) {
         <select
           id="settings-tab"
           className={inputClass}
-          value={active}
+          value={selectedTab}
           onChange={(event) => setTab(event.target.value as TabKey)}
         >
           {tabs.map((tab) => (
@@ -160,13 +172,13 @@ export default function SettingsPage({ user, onUserChange }: Props) {
         </select>
       </div>
 
-      <nav className="settings-nav" aria-label={t("settings.title")}>
+      <nav className="settings-nav" aria-label={title}>
         {(["personal", "organisation", "system"] as const).map((group) => {
           const items = tabs.filter((tab) => tab.group === group);
           return items.length > 0 && <div key={group} className="settings-nav-group">
             <p>{t(`settingsNav.${group}`)}</p>
-            {items.map((tab) => <button key={tab.key} type="button" aria-current={active === tab.key ? "page" : undefined}
-              onClick={() => setTab(tab.key)} className={`settings-nav-item ${active === tab.key ? "is-active" : ""}`}>
+            {items.map((tab) => <button key={tab.key} type="button" aria-current={selectedTab === tab.key ? "page" : undefined}
+              onClick={() => setTab(tab.key)} className={`settings-nav-item ${selectedTab === tab.key ? "is-active" : ""}`}>
               <tab.icon className="h-5 w-5" /><span>{t(tab.label)}</span>
             </button>)}
           </div>;
@@ -174,6 +186,10 @@ export default function SettingsPage({ user, onUserChange }: Props) {
         {version && <p className="settings-version">EMCargo <span>{version}</span></p>}
       </nav>
       <div className="settings-content" key="settings-content">
+
+      {active === "profile" && <ProfilePanel user={user} onUserChange={onUserChange} onDirtyChange={setProfileDirty} />}
+      {active === "about" && <AboutPanel version={version} />}
+      {active === "terms" && <div className="account-terms"><Link to="/account/about" className="account-back">← {t("account.about")}</Link><LegalPage /></div>}
 
       {active === "appearance" && (
       <section className={`${panelClass} p-5 space-y-5`}>
@@ -279,10 +295,9 @@ export default function SettingsPage({ user, onUserChange }: Props) {
 
       {active === "details" && (
       <section className={`${panelClass} p-5 space-y-4`}>
-        <AvatarSettings user={user} onUserChange={onUserChange} />
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            {t("settings.myDetails")}
+            {t("account.documentDetails")}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t("settings.myDetailsHint")}
@@ -340,7 +355,7 @@ export default function SettingsPage({ user, onUserChange }: Props) {
 
       {/* One draft across the personal tabs, so one save button — switching
           tabs never loses what was typed on another. */}
-      {PERSONAL_TABS.includes(active) && (
+      {active && PERSONAL_TABS.includes(active) && (
         <>
           <div className="settings-savebar">
             <span className="settings-save-state">{t(dirty ? "settingsNav.unsaved" : "settingsNav.allSaved")}</span>
@@ -352,14 +367,19 @@ export default function SettingsPage({ user, onUserChange }: Props) {
         </>
       )}
 
-      {active === "security" && <TwoFactorPanel />}
-      {ADMIN_TABS.includes(active) && user.role === "admin" && <AdminSettings section={active} />}
+      {active === "security" && <div className="account-stack"><PasswordPanel onPasswordChanged={onPasswordChanged ?? (() => window.location.assign("/login"))} /><TwoFactorPanel /></div>}
+      {active && active !== "terms" && ADMIN_TABS.includes(active) && user.role === "admin" && <AdminSettings section={active} />}
       {active === "admin" && user.role === "super_user" && <OrganisationPanel />}
       {active === "updates" && user.role === "admin" && <UpdatePanel />}
       {active === "cards" && user.role === "admin" && <UnCardsAdminPanel />}
       {active === "assistant" && user.role === "admin" && <AssistantAdmin />}
       </div>
       </div>
+      <ConfirmDialog open={pendingTab !== null} title={t("account.discardTitle")} body={t("account.discardBody")}
+        confirmLabel={t("account.discard")} onCancel={() => setPendingTab(null)} onConfirm={() => {
+          if (pendingTab) navigate(settingsPath(area, pendingTab));
+          setPendingTab(null);
+        }} />
     </div>
   );
 }
@@ -643,7 +663,7 @@ function AdminSettings({ section }: { section: TabKey }) {
         </div>
       </section>
 
-      <section hidden={section !== "security"} className={`${panelClass} p-5 space-y-5`}>
+      <section hidden={section !== "access"} className={`${panelClass} p-5 space-y-5`}>
         <h4>{t("settingsNav.accessPolicy")}</h4>
         <div>
           <label className="text-sm font-medium text-slate-800 dark:text-slate-200">

@@ -16,10 +16,10 @@ const api = vi.hoisted(() => ({ health: vi.fn(), logout: vi.fn() }));
 vi.mock("../api/client", () => ({ api }));
 const user = { id: 1, username: "tester", role: "admin", active: true } as User;
 
-function renderAt(path = "/wizard/road", custom = false) {
+function renderAt(path = "/wizard/road", custom = false, account = user) {
   return render(<BrandingContext.Provider value={{ branding: { name: custom ? "Example Logistics" : "", logo: custom ? "/custom.svg" : null, modalities: {} }, refresh: async () => {} }}>
-    <MemoryRouter initialEntries={[path]}><Routes><Route element={<Layout user={user} onLogout={() => {}} />}>
-      <Route path="/" element={<p>chooser</p>} /><Route path="/wizard/:modality" element={<p>wizard</p>} /><Route path="/settings" element={<p>settings</p>} />
+    <MemoryRouter initialEntries={[path]}><Routes><Route element={<Layout user={account} onLogout={() => {}} />}>
+      <Route path="/" element={<p>chooser</p>} /><Route path="/wizard/:modality" element={<p>wizard</p>} /><Route path="/admin/settings/organisation" element={<p>settings</p>} />
     </Route></Routes></MemoryRouter>
   </BrandingContext.Provider>);
 }
@@ -27,6 +27,21 @@ function renderAt(path = "/wizard/road", custom = false) {
 beforeEach(() => { vi.spyOn(window, "scrollTo").mockImplementation(() => {}); vi.clearAllMocks(); config.publicSettings.history_enabled = true; api.health.mockResolvedValue({ version: "1.206.2" }); api.logout.mockResolvedValue({ ok: true }); });
 
 describe("the approved EMCargo navigation", () => {
+  it("opens personal settings through either avatar and shows the chosen display name", () => {
+    renderAt("/", false, { ...user, display_name: "Ada L." });
+    expect(screen.getByRole("link", { name: "account.openSettings" })).toHaveAttribute("href", "/account/profile");
+    expect(screen.getByRole("link", { name: "profile.open" })).toHaveAttribute("href", "/account/profile");
+    expect(screen.getByText("Ada L.")).toBeInTheDocument();
+  });
+  it("gives ordinary users the avatar without a management menu", async () => {
+    renderAt("/", false, { ...user, role: "user" });
+    expect(screen.queryByText("nav.manage")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "nav.openMenu" }));
+    const menu = within(screen.getByRole("dialog"));
+    expect(menu.getByRole("link", { name: "profile.open" })).toBeVisible();
+    expect(menu.queryByRole("link", { name: "account.adminSettings" })).toBeNull();
+    expect(menu.queryByRole("link", { name: "nav.legal" })).toBeNull();
+  });
   it("keeps all four work pages directly discoverable when storage is off", async () => {
     config.publicSettings.history_enabled = false;
     renderAt();
@@ -55,15 +70,15 @@ describe("the approved EMCargo navigation", () => {
   it("lets the user fold the rail while preserving direct accessible destinations", async () => {
     renderAt();
     await userEvent.click(screen.getByRole("button", { name: "nav.collapseMenu" }));
-    const settings = screen.getByRole("link", { name: "nav.settings" });
+    const settings = screen.getByRole("link", { name: "account.adminSettings" });
     expect(settings.textContent).toBe("");
-    expect(settings).toHaveAttribute("href", "/settings");
+    expect(settings).toHaveAttribute("href", "/admin/settings/organisation");
     expect(screen.getByRole("button", { name: "nav.expandMenu" })).toHaveAttribute("aria-expanded", "false");
   });
   it("does not fight the user's rail choice on a route change", async () => {
     renderAt();
     await userEvent.click(screen.getByRole("button", { name: "nav.collapseMenu" }));
-    await userEvent.click(screen.getByRole("link", { name: "nav.settings" }));
+    await userEvent.click(screen.getByRole("link", { name: "account.adminSettings" }));
     expect(screen.getByText("settings")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "nav.expandMenu" })).toBeInTheDocument();
   });
@@ -71,7 +86,7 @@ describe("the approved EMCargo navigation", () => {
     renderAt();
     expect(screen.getAllByRole("link", { name: "nav.shipments" })).toHaveLength(1);
     await userEvent.click(screen.getByRole("button", { name: "nav.collapseMenu" }));
-    expect(screen.getAllByRole("link", { name: "nav.settings" })).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: "account.adminSettings" })).toHaveLength(1);
   });
   it("opens the mobile menu, supports Escape, and returns focus", async () => {
     renderAt();
@@ -91,7 +106,7 @@ describe("the approved EMCargo navigation", () => {
   });
   it("always shows the account and sign-out action", () => {
     renderAt();
-    expect(screen.getByRole("link", { name: "profile.open" })).toHaveAttribute("href", "/settings?tab=details");
+    expect(screen.getByRole("link", { name: "profile.open" })).toHaveAttribute("href", "/account/profile");
     expect(screen.getByRole("button", { name: "nav.logout" })).toBeVisible();
     expect(screen.getByText("tester")).toBeInTheDocument();
   });

@@ -111,7 +111,7 @@ export default function AuditPage() {
           <a className={buttonSecondary} href={api.auditExportUrl(query())} download="emcargo-audit.csv">
             {t("audit.export")}
           </a>
-          <Link to="/settings" className={buttonSecondary} title={t("audit.retentionHint")}>
+          <Link to="/admin/settings/organisation" className={buttonSecondary} title={t("audit.retentionHint")}>
             {t("audit.retention")}
           </Link>
         </div>

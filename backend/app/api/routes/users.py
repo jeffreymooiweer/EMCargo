@@ -9,13 +9,14 @@ from app.core.database import get_db
 from app.core.deps import get_current_user, require_manager
 from app.core.messages import error
 from app.core.security import hash_password
-from app.models.user import Department, User, UserAvatar
+from app.models.user import Department, User, UserAvatar, UserProfile
 from app.schemas.users import (
     UserCreate,
     UserCreateResult,
     UserOut,
     UserRole,
     UserUpdate,
+    PersonalProfile,
 )
 from app.services import audit, avatars, mail, mail_templates, password_reset, two_factor
 from app.services.settings_store import instance_settings, language_for
@@ -23,6 +24,27 @@ from app.services.settings_store import instance_settings, language_for
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.get("/me/profile", response_model=PersonalProfile)
+def my_profile(user: User = Depends(get_current_user)):
+    return user.personal_profile or PersonalProfile()
+
+
+@router.put("/me/profile", response_model=UserOut)
+def save_my_profile(payload: PersonalProfile, request: Request,
+                    user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """The signed-in account owns the target; payloads cannot choose another user."""
+    if user.personal_profile is None:
+        user.personal_profile = UserProfile(**payload.model_dump())
+    else:
+        for name, value in payload.model_dump().items():
+            setattr(user.personal_profile, name, value)
+    db.commit()
+    db.refresh(user)
+    audit.record(db, "user.updated", summary="personal profile", actor=user,
+                 target=("user", user.id), request=request)
+    return user
 
 
 @router.post("/me/avatar", response_model=UserOut)
@@ -114,7 +136,7 @@ def _ensure_delete_is_safe(target: User, acting_admin: User, active_admin_count:
 def list_users(admin: User = Depends(require_manager), db: Session = Depends(get_db)):
     # Batch avatar metadata only where it is displayed. Global eager loading
     # would add photo queries to shipment and trip ownership lookups too.
-    return db.query(User).options(selectinload(User.avatar)).order_by(User.id).all()
+    return db.query(User).options(selectinload(User.avatar), selectinload(User.personal_profile)).order_by(User.id).all()
 
 
 @router.post("", response_model=UserCreateResult)

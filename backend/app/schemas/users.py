@@ -54,6 +54,17 @@ class UserOut(BaseModel):
     active: bool
     department_id: int | None = None
     avatar_url: str | None = None
+    display_name: str = ""
+
+
+class PersonalProfile(BaseModel):
+    model_config = ConfigDict(from_attributes=True, extra="forbid", str_strip_whitespace=True)
+
+    display_name: str = Field(default="", max_length=80)
+    first_name: str = Field(default="", max_length=80)
+    last_name: str = Field(default="", max_length=80)
+    job_title: str = Field(default="", max_length=120)
+    phone_number: str = Field(default="", max_length=40)
 
 
 class UserCreateResult(UserOut):

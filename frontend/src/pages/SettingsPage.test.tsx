@@ -1,21 +1,14 @@
-/**
- * The settings, grouped into tabs.
- *
- * One long scroll put the personal fields and the instance-wide ones in a
- * single list, which they are emphatically not: a theme sits beside a switch
- * that decides whether this installation talks to the internet at all. The
- * tabs separate them, the dropdown does the same on a phone where a tab row
- * would wrap or scroll out of sight, and the administrator's groups exist
- * only for an administrator.
- */
+/** Account and administration routes must never share access-policy controls. */
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import SettingsPage from "./SettingsPage";
 import { ToastProvider } from "../toast/ToastProvider";
-import { MemoryRouter } from "react-router";
-import { User } from "../api/client";
+import { MemoryRouter, Navigate, Route, Routes } from "react-router";
+import { api, User } from "../api/client";
+import { LegacySettingsRoute } from "../settings/routes";
+import { canManage } from "../permissions";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -27,6 +20,7 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("../api/client", () => ({
   api: {
+    myProfile: vi.fn().mockResolvedValue({ display_name: "", first_name: "", last_name: "", job_title: "", phone_number: "" }),
     health: vi.fn().mockResolvedValue({ version: "1.115.0" }),
     settingsOptions: vi.fn().mockResolvedValue({ modalities: ["road"], units: [] }),
     instanceSettings: vi.fn().mockResolvedValue({}),
@@ -62,11 +56,16 @@ vi.mock("../settings/preferences", () => ({
 
 /** The open tab lives in the address now, so the page needs a router — and a
  *  test can point at a tab the way the two-factor notice does. */
-function renderAt(user: User, path = "/settings") {
+function renderAt(user: User, path = "/account/appearance") {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <ToastProvider>
-        <SettingsPage user={user} />
+        <Routes>
+          <Route path="/settings" element={<LegacySettingsRoute user={user} />} />
+          <Route path="/account/:section" element={<SettingsPage user={user} />} />
+          <Route path="/account/about/terms" element={<SettingsPage user={user} sectionOverride="terms" />} />
+          <Route path="/admin/settings/:section" element={canManage(user) ? <SettingsPage user={user} area="admin" /> : <Navigate to="/account/profile" replace />} />
+        </Routes>
       </ToastProvider>
     </MemoryRouter>,
   );
@@ -80,14 +79,14 @@ describe("SettingsPage tabs", () => {
   it("opens on appearance and shows only that group", async () => {
     renderAt(userOf("user"));
     expect(await screen.findByText("settings.appearance")).toBeTruthy();
-    expect(screen.queryByText("settings.myDetails")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "account.documentDetails" })).toBeNull();
     expect(screen.queryByText("settings.shipmentDefaults")).toBeNull();
   });
 
   it("switching tabs shows the other group", async () => {
     renderAt(userOf("user"));
-    await userEvent.click(await screen.findByRole("button", { name: "settings.tabDetails" }));
-    expect(screen.getByText("settings.myDetails")).toBeTruthy();
+    await userEvent.click(await screen.findByRole("button", { name: "account.documentDetails" }));
+    expect(screen.getByRole("heading", { name: "account.documentDetails" })).toBeTruthy();
     expect(screen.queryByText("settings.appearance")).toBeNull();
     // The save button travels with the personal tabs; one draft, one button.
     expect(screen.getByRole("button", { name: "settings.save" })).toBeTruthy();
@@ -107,7 +106,7 @@ describe("SettingsPage tabs", () => {
     expect(screen.queryByRole("button", { name: "settings.adminUpdates" })).toBeNull();
     unmount();
 
-    renderAt(userOf("admin"));
+    renderAt(userOf("admin"), "/admin/settings/organisation");
     expect(await screen.findByRole("button", { name: "settingsNav.organisation" })).toBeTruthy();
     // Maintenance actions now have distinct destinations. The update must be
     // discoverable without loading the UN-card store or assistant model.
@@ -126,19 +125,19 @@ describe("SettingsPage tabs", () => {
     // What the two-factor notice relies on: its button lands on the panel it
     // is about, not on the theme settings with the panel three tabs away.
     renderAt(userOf("user"), "/settings?tab=details");
-    expect(await screen.findByText("settings.myDetails")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "account.documentDetails" })).toBeTruthy();
     expect(screen.queryByText("settings.appearance")).toBeNull();
   });
 
   it("an unknown tab in the address falls back rather than showing nothing", async () => {
-    renderAt(userOf("user"), "/settings?tab=nonsense");
-    expect(await screen.findByText("settings.appearance")).toBeTruthy();
+    renderAt(userOf("user"), "/account/nonsense");
+    expect(await screen.findByRole("heading", { name: "account.profile" })).toBeTruthy();
   });
 
   it("a plain user cannot reach an administrator tab through the address", async () => {
     renderAt(userOf("user"), "/settings?tab=admin");
     // The server refuses their writes anyway; this keeps the screen honest.
-    expect(await screen.findByText("settings.appearance")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "account.profile" })).toBeTruthy();
   });
 });
 
@@ -149,6 +148,34 @@ it("gives Super Users organisation defaults without exposing system or DG policy
   for (const label of ["settings.adminBranding", "settings.mailTitle", "settingsNav.connections", "settings.adminUpdates", "settingsNav.assistant", "dgReview.settingsTitle"]) {
     expect(screen.queryByRole("button", { name: label })).toBeNull();
   }
-  await userEvent.click(screen.getByRole("button", { name: "settingsNav.security" }));
+  expect(screen.queryByRole("button", { name: "settingsNav.security" })).toBeNull();
   expect(screen.queryByText("settingsNav.accessPolicy")).toBeNull();
+});
+
+
+it("keeps an administrator's own security separate from access policy", async () => {
+  renderAt(userOf("admin"), "/account/security");
+  expect(await screen.findByLabelText("account.currentPassword")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "account.accessPolicy" })).toBeNull();
+  expect(api.instanceSettings).not.toHaveBeenCalled();
+  expect(api.twoFactorStatus).toHaveBeenCalled();
+});
+
+it("keeps password and profile controls out of administration", async () => {
+  renderAt(userOf("admin"), "/admin/settings/access");
+  expect(await screen.findByText("settingsNav.accessPolicy")).toBeVisible();
+  expect(screen.queryByLabelText("account.currentPassword")).toBeNull();
+  expect(screen.queryByRole("button", { name: "account.profile" })).toBeNull();
+  expect(api.myProfile).not.toHaveBeenCalled();
+  expect(api.twoFactorStatus).not.toHaveBeenCalled();
+});
+
+it("shows product information and opens terms inside account settings", async () => {
+  renderAt(userOf("user"), "/account/about");
+  expect(await screen.findByText("v1.115.0")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "account.sourceCode" })).toHaveAttribute("href", "https://github.com/jeffreymooiweer/emcargo");
+  await userEvent.click(screen.getByRole("link", { name: /legal.title/ }));
+  expect(await screen.findByRole("heading", { name: "legal.title" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /account.about/ })).toHaveAttribute("href", "/account/about");
+  expect(screen.getByRole("button", { name: "account.about" })).toHaveAttribute("aria-current", "page");
 });
