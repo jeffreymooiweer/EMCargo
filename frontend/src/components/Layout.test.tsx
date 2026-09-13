@@ -1,10 +1,12 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Layout from "./Layout";
 import { BrandingContext } from "../branding";
 import type { User } from "../api/client";
+import { ToastProvider } from "../toast/ToastProvider";
+import { clearTwoFactorNudge } from "./TwoFactorNudge";
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: "nl" } }) }));
 vi.mock("./WhatsNewModal", () => ({ default: () => null }));
@@ -16,29 +18,41 @@ const api = vi.hoisted(() => ({ health: vi.fn(), logout: vi.fn() }));
 vi.mock("../api/client", () => ({ api }));
 const user = { id: 1, username: "tester", role: "admin", active: true } as User;
 
-function renderAt(path = "/wizard/road", custom = false, account = user) {
+function renderAt(path = "/wizard/road", custom = false, account = user, onLogout = vi.fn()) {
   return render(<BrandingContext.Provider value={{ branding: { name: custom ? "Example Logistics" : "", logo: custom ? "/custom.svg" : null, modalities: {} }, refresh: async () => {} }}>
-    <MemoryRouter initialEntries={[path]}><Routes><Route element={<Layout user={account} onLogout={() => {}} />}>
+    <ToastProvider><MemoryRouter initialEntries={[path]}><Routes><Route element={<Layout user={account} onLogout={onLogout} />}>
       <Route path="/" element={<p>chooser</p>} /><Route path="/wizard/:modality" element={<p>wizard</p>} /><Route path="/admin/settings/organisation" element={<p>settings</p>} />
-    </Route></Routes></MemoryRouter>
+      <Route path="/account/profile" element={<p>personal settings</p>} />
+    </Route><Route path="/login" element={<p>sign in</p>} /></Routes></MemoryRouter></ToastProvider>
   </BrandingContext.Provider>);
 }
 
 beforeEach(() => { vi.spyOn(window, "scrollTo").mockImplementation(() => {}); vi.clearAllMocks(); config.publicSettings.history_enabled = true; api.health.mockResolvedValue({ version: "1.206.2" }); api.logout.mockResolvedValue({ ok: true }); });
 
 describe("the approved EMCargo navigation", () => {
-  it("opens personal settings through either avatar and shows the chosen display name", () => {
+  it("offers settings and sign-out through the header and toolbar avatars", async () => {
     renderAt("/", false, { ...user, display_name: "Ada L." });
-    expect(screen.getByRole("link", { name: "account.openSettings" })).toHaveAttribute("href", "/account/profile");
-    expect(screen.getByRole("link", { name: "profile.open" })).toHaveAttribute("href", "/account/profile");
-    expect(screen.getByText("Ada L.")).toBeInTheDocument();
+    for (const area of [screen.getByRole("banner"), screen.getByRole("main")]) {
+      const avatar = within(area).getByRole("button", { name: "account.menu" });
+      expect(avatar).toHaveAttribute("title", "Ada L.");
+      await userEvent.click(avatar);
+      const menu = within(screen.getByRole("menu", { name: "account.menu" }));
+      expect(menu.getAllByRole("menuitem")).toHaveLength(2);
+      expect(menu.getByRole("menuitem", { name: "nav.logout" })).toBeEnabled();
+      const settings = menu.getByRole("menuitem", { name: "account.settings" });
+      expect(settings).toHaveAttribute("href", "/account/profile");
+      await userEvent.keyboard(" ");
+      expect(screen.getByText("personal settings")).toBeInTheDocument();
+      expect(screen.queryByRole("menu")).toBeNull();
+    }
   });
   it("gives ordinary users the avatar without a management menu", async () => {
     renderAt("/", false, { ...user, role: "user" });
     expect(screen.queryByText("nav.manage")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "nav.openMenu" }));
     const menu = within(screen.getByRole("dialog"));
-    expect(menu.getByRole("link", { name: "profile.open" })).toBeVisible();
+    expect(menu.queryByRole("link", { name: "profile.open" })).toBeNull();
+    expect(menu.queryByRole("button", { name: "nav.logout" })).toBeNull();
     expect(menu.queryByRole("link", { name: "account.adminSettings" })).toBeNull();
     expect(menu.queryByRole("link", { name: "nav.legal" })).toBeNull();
   });
@@ -104,11 +118,54 @@ describe("the approved EMCargo navigation", () => {
     await userEvent.click(within(screen.getByRole("dialog")).getByRole("link", { name: "nav.new" }));
     expect(screen.queryByRole("dialog")).toBeNull(); expect(screen.getByText("chooser")).toBeInTheDocument();
   });
-  it("always shows the account and sign-out action", () => {
+  it("keeps account controls out of the expanded rail, folded rail and mobile drawer", async () => {
     renderAt();
-    expect(screen.getByRole("link", { name: "profile.open" })).toHaveAttribute("href", "/account/profile");
-    expect(screen.getByRole("button", { name: "nav.logout" })).toBeVisible();
-    expect(screen.getByText("tester")).toBeInTheDocument();
+    const rail = screen.getByRole("complementary");
+    expect(rail.querySelector(".profile-avatar")).toBeNull();
+    expect(within(rail).queryByText("nav.logout")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "nav.collapseMenu" }));
+    expect(rail.querySelector(".profile-avatar")).toBeNull();
+    expect(within(rail).queryByText("nav.logout")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "nav.openMenu" }));
+    const drawer = screen.getByRole("dialog");
+    expect(drawer.querySelector(".profile-avatar")).toBeNull();
+    expect(within(drawer).queryByText("nav.logout")).toBeNull();
+  });
+
+  it("places the hamburger before the brand and closes the account popup when opening navigation", async () => {
+    renderAt();
+    const header = screen.getByRole("banner");
+    const hamburger = within(header).getByRole("button", { name: "nav.openMenu" });
+    const brand = header.querySelector(".emcargo-brand")!;
+    expect(hamburger.compareDocumentPosition(brand) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await userEvent.click(within(header).getByRole("button", { name: "account.menu" }));
+    await userEvent.click(hamburger);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  it("keeps the session after a failed sign-out and prevents duplicate requests during a retry", async () => {
+    const onLogout = vi.fn();
+    api.logout.mockRejectedValueOnce(new Error("Connection unavailable"));
+    renderAt("/", false, user, onLogout);
+    await userEvent.click(within(screen.getByRole("banner")).getByRole("button", { name: "account.menu" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "nav.logout" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Connection unavailable");
+    expect(onLogout).not.toHaveBeenCalled();
+    expect(clearTwoFactorNudge).not.toHaveBeenCalled();
+    expect(screen.getByText("chooser")).toBeInTheDocument();
+    let finish!: () => void;
+    api.logout.mockImplementationOnce(() => new Promise(resolve => { finish = () => resolve({ ok: true }); }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "nav.logout" }));
+    expect(screen.getByRole("menuitem", { name: "nav.logout" })).toBeDisabled();
+    // Both responsive controls share the same pending sign-out request.
+    await userEvent.click(within(screen.getByRole("main")).getByRole("button", { name: "account.menu" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "nav.logout" }));
+    expect(api.logout).toHaveBeenCalledTimes(2);
+    finish();
+    await waitFor(() => expect(onLogout).toHaveBeenCalledOnce());
+    expect(clearTwoFactorNudge).toHaveBeenCalledOnce();
+    expect(await screen.findByText("sign in")).toBeInTheDocument();
   });
   it("keeps a skip link and labels the current destination", () => {
     renderAt("/");

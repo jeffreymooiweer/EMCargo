@@ -20,11 +20,6 @@ body { font-feature-settings: "cv11", "ss01"; }
 .emcargo-sidebar .emcargo-nav-active::before { display: none; }
 .emcargo-sidebar .emcargo-subnav { border-color: #354358; }
 .emcargo-sidebar .emcargo-subnav .emcargo-nav-link { font-size: .875rem; }
-.emcargo-sidebar .emcargo-account { border-color: #304057; padding-bottom: 0; }
-.emcargo-sidebar .emcargo-account p { color: #e8eef8; }
-.emcargo-sidebar .emcargo-account p + p { color: #9faec5; }
-.emcargo-sidebar .emcargo-account button { border-color: #304057; color: #aebdd4; }
-.emcargo-sidebar .emcargo-account .rounded-full { background: #2b3f60; color: #c8dafa; border-radius: 10px; }
 .emcargo-sidebar .emcargo-rail-toggle { color: #aebdd4; }
 .emcargo-shell-folded .emcargo-brand { padding-inline: 21px; }
 .emcargo-main { padding-inline: clamp(20px,3.5vw,56px); }
@@ -395,12 +390,32 @@ body { font-feature-settings: "cv11", "ss01"; }
 .report-heading h2 { font-size:clamp(1.7rem,2.6vw,2.2rem); }
 
 /* Persistent destinations, a readable people directory and personal profiles. */
-.account-profile-link { display: flex; align-items: center; gap: 12px; border-radius: 8px; min-width: 0; }
-.account-profile-link:focus-visible { outline: 2px solid #8cb5ff; outline-offset: 5px; }
-.mobile-account-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.mobile-avatar-link { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; }
-.mobile-avatar-link:focus-visible { outline: 2px solid #245bea; outline-offset: 2px; }
+.workspace-actions { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.workspace-location { min-width: 0; }
+.workspace-location strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mobile-header-leading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mobile-menu-trigger { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 8px; }
 .emcargo-mobile-header .emcargo-brand { min-width: 0; }
+.account-menu { position: relative; flex-shrink: 0; }
+.account-menu-trigger { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; }
+.account-menu-trigger:hover,.account-menu-trigger[aria-expanded=true] { box-shadow: 0 0 0 3px #376be024; }
+.account-menu-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.account-menu-popup { position: absolute; top: calc(100% + 8px); right: 0; z-index: 45; width: max-content; min-width: 224px; max-width: calc(100vw - 32px); padding: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: 0 12px 32px #0002,0 2px 8px #0001; color: var(--ink); }
+.account-menu-popup [role=menuitem] { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 10px 12px; border-radius: 7px; font-size: .875rem; line-height: 1.45; text-align: left; }
+.account-menu-popup [role=menuitem]:hover,.account-menu-popup [role=menuitem]:focus { outline: none; background: #376be014; color: var(--accent); }
+.account-menu-popup [role=menuitem]:disabled { opacity: .55; }
+.account-menu-popup svg { width: 18px; height: 18px; flex-shrink: 0; }
+.account-menu-popup button { margin-top: 4px; border-top: 1px solid var(--line); border-top-left-radius: 0; border-top-right-radius: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .account-menu-popup { animation: account-menu-in 120ms ease-out; transform-origin: top right; }
+  .account-menu-spinner { animation: account-menu-spin 1s linear infinite; }
+}
+@keyframes account-menu-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes account-menu-spin { to { transform: rotate(360deg); } }
+@media (max-width: 767px) {
+  .desktop-account-menu { display: none; }
+  .emcargo-mobile-header { gap: 12px; padding-inline: 16px; }
+}
 .profile-avatar { display: inline-flex; width: 42px; height: 42px; flex-shrink: 0; align-items: center; justify-content: center; overflow: hidden; border-radius: 50%; color: #244a8e; background: #e6edfa; border: 1px solid #bdcfe966; font-weight: 650; font-size: .875rem; }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .profile-avatar-large { width: 80px; height: 80px; font-size: 1.6rem; }
