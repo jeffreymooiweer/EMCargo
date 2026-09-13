@@ -1883,6 +1883,7 @@
     "sourceCode": "Code source",
     "releaseNotes": "Quoi de neuf ?",
     "feedback": "Signaler une idée ou un problème",
-    "madeBy": "EMCargo · Open source pour la logistique"
+    "madeBy": "EMCargo · Open source pour la logistique",
+    "menu": "Menu du compte"
   }
 }

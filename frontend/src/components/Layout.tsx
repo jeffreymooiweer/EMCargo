@@ -1,16 +1,17 @@
-import { canManage, roleLabel } from "../permissions";
+import { canManage } from "../permissions";
 import BrandName from "./BrandName";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { api, User } from "../api/client";
 import { useBranding } from "../branding";
-import Avatar from "./Avatar";
+import AccountMenu from "./AccountMenu";
 import CommandMenu from "./CommandMenu";
 import UpdateToast from "./UpdateToast";
 import TwoFactorNudge, { clearTwoFactorNudge } from "./TwoFactorNudge";
 import WhatsNewModal from "./WhatsNewModal";
-import { ShieldIcon, ChevronDownIcon, CloseIcon, CollapseIcon, LogoutIcon, HistoryIcon, HomeIcon, LibraryIcon, MenuIcon, PlusIcon, RoadIcon, SettingsIcon, ShipmentsIcon, TripsIcon, UserIcon } from "./icons";
+import { useToast } from "../toast/ToastProvider";
+import { ShieldIcon, ChevronDownIcon, CloseIcon, CollapseIcon, HistoryIcon, HomeIcon, LibraryIcon, MenuIcon, PlusIcon, RoadIcon, SettingsIcon, ShipmentsIcon, TripsIcon, UserIcon } from "./icons";
 
 interface Props { user: User; onLogout: () => void }
 
@@ -24,6 +25,9 @@ export default function Layout({ user, onLogout }: Props) {
   const manager = canManage(user);
   const [menuOpen, setMenuOpen] = useState(false);
   const [railOpen, setRailOpen] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const logoutPending = useRef(false);
+  const toast = useToast();
   const trigger = useRef<HTMLButtonElement>(null);
   const drawer = useRef<HTMLElement>(null);
   const previousPath = useRef(location.pathname);
@@ -55,7 +59,15 @@ export default function Layout({ user, onLogout }: Props) {
   }, [menuOpen]);
 
   async function logout() {
-    await api.logout(); clearTwoFactorNudge(); onLogout(); navigate("/login");
+    if (logoutPending.current) return;
+    logoutPending.current = true; setLoggingOut(true);
+    try {
+      await api.logout(); clearTwoFactorNudge(); onLogout(); navigate("/login");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      logoutPending.current = false; setLoggingOut(false);
+    }
   }
   const destinations = [
     {to: "/overzicht", label: t("nav.overview")}, {to: "/shipments", label: t("nav.shipments")}, {to: "/trips", label: t("nav.trips")}, {to: "/articles", label: t("nav.articles")},
@@ -107,33 +119,24 @@ export default function Layout({ user, onLogout }: Props) {
       </details>)}
     </>;
   }
-  const account = (compact = false) => <div className="emcargo-account">
-    <NavLink to="/account/profile" className="account-profile-link" aria-label={t("profile.open")} title={t("account.settings")} onClick={() => setMenuOpen(false)}>
-      <Avatar user={user} />
-      {!compact && <div className="min-w-0"><p className="truncate text-sm">{user.display_name || user.username}</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t(roleLabel(user.role))}</p></div>}
-    </NavLink>
-    <button onClick={() => void logout()} className="mt-3 min-h-[44px] w-full border-t border-slate-200 pt-3 text-left text-sm dark:border-slate-700" aria-label={t("nav.logout")}>{compact ? <LogoutIcon className="h-5 w-5" /> : t("nav.logout")}</button>
-  </div>;
-
   return <div className={`emcargo-shell ${railOpen ? "" : "emcargo-shell-folded"}`}>
     <a href="#main-content" className="skip-link">{t("nav.skipContent")}</a>
-    <header className="emcargo-mobile-header">{brand()}<div className="mobile-account-actions">
-      <NavLink to="/account/profile" className="mobile-avatar-link" aria-label={t("account.openSettings")} title={t("account.settings")}><Avatar user={user} /></NavLink>
-      <button ref={trigger} className="flex h-11 w-11 items-center justify-center" onClick={() => setMenuOpen(true)} aria-label={t("nav.openMenu")} aria-expanded={menuOpen}><MenuIcon className="h-7 w-7" /></button>
-    </div></header>
+    <header className="emcargo-mobile-header"><div className="mobile-header-leading">
+      <button ref={trigger} type="button" className="mobile-menu-trigger" onClick={() => setMenuOpen(true)} aria-label={t("nav.openMenu")} aria-expanded={menuOpen}><MenuIcon className="h-6 w-6" /></button>
+      {brand()}
+    </div><AccountMenu user={user} onLogout={() => void logout()} loggingOut={loggingOut} /></header>
     <aside className="emcargo-sidebar">
       {brand(!railOpen)}
       <nav id="main-nav" aria-label={t("nav.menu")} className="emcargo-navigation">{navigation(!railOpen)}</nav>
-      {account(!railOpen)}
       <button onClick={() => setRailOpen((value) => !value)} className="emcargo-rail-toggle" aria-controls="main-nav" aria-expanded={railOpen} aria-label={railOpen ? t("nav.collapseMenu") : t("nav.expandMenu")}><CollapseIcon className={`h-4 w-4 ${railOpen ? "" : "rotate-180"}`} /></button>
     </aside>
-    <main id="main-content" tabIndex={-1} className="emcargo-main"><div className="workspace-bar"><div className="workspace-location"><span>{t("studio.workspace")}</span><span aria-hidden="true">/</span><strong>{currentLabel}</strong></div><CommandMenu destinations={destinations} /></div><Suspense fallback={<div className="route-loading" role="status">{t("wizard.loading")}</div>}><Outlet /></Suspense></main>
+    <main id="main-content" tabIndex={-1} className="emcargo-main"><div className="workspace-bar"><div className="workspace-location"><span>{t("studio.workspace")}</span><span aria-hidden="true">/</span><strong>{currentLabel}</strong></div><div className="workspace-actions"><CommandMenu destinations={destinations} /><AccountMenu className="desktop-account-menu" user={user} onLogout={() => void logout()} loggingOut={loggingOut} /></div></div><Suspense fallback={<div className="route-loading" role="status">{t("wizard.loading")}</div>}><Outlet /></Suspense></main>
     <WhatsNewModal /><UpdateToast user={user} /><TwoFactorNudge user={user} />
     {menuOpen && <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label={t("nav.menu")}>
       <div className="absolute inset-0 bg-black/60" onClick={() => setMenuOpen(false)} />
       <aside ref={drawer} className="emcargo-mobile-drawer">
         <div className="flex items-center justify-between p-4">{brand()}<button className="h-11 w-11 text-2xl" onClick={() => setMenuOpen(false)} aria-label={t("nav.closeMenu")}><CloseIcon className="mx-auto h-6 w-6" /></button></div>
-        <nav className="emcargo-navigation">{navigation()}</nav>{account()}
+        <nav className="emcargo-navigation">{navigation()}</nav>
       </aside>
     </div>}
   </div>;

@@ -47,7 +47,6 @@
 summary::-webkit-details-marker { display: none; }
 .emcargo-subnav { margin-left: 23px; border-left: 1px solid var(--line); padding-left: 7px; }
 .emcargo-subnav .emcargo-nav-link { font-size: .8125rem; min-height: 44px; gap: 8px; padding: 8px; }
-.emcargo-account { padding: 18px 22px 8px; border-top: 1px solid var(--line); }
 .emcargo-rail-toggle { display: flex; align-items: center; justify-content: center; align-self: flex-end; width: 44px; height: 44px; color: var(--muted); }
 .emcargo-main { margin-left: var(--rail-width); padding: 0 clamp(20px, 3.5vw, 56px) 24px; min-height: 100dvh; }
 .emcargo-main > :not(.workspace-bar) { max-width: 1320px; margin-inline: auto; }
@@ -60,7 +59,6 @@ kbd { font-family: inherit; font-size: .75rem; color: var(--muted); }
 .emcargo-shell-folded .emcargo-brand { padding-inline: 20px; }
 .emcargo-shell-folded .emcargo-navigation { padding-inline: 8px; }
 .emcargo-shell-folded .emcargo-nav-link { padding-inline: 16px; }
-.emcargo-shell-folded .emcargo-account { padding-inline: 18px; }
 /* A working surface, with modes as decisions rather than decorative tiles. */
 .start-workspace { padding-top: 12px; }
 .start-layout { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; }

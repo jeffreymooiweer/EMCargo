@@ -2,6 +2,16 @@
 
 All notable changes are documented here, following [Semantic Versioning](https://semver.org/).
 
+## [2.9.1] — 2026-09-13
+
+### One place for account actions
+
+- Remove the profile avatar and sign-out action from the desktop navigation rail and mobile drawer.
+- Place the mobile hamburger to the left of the EMCargo logo. Keep the account avatar at the top right on mobile and in the desktop toolbar.
+- Open a compact avatar menu with User settings and Sign out. Support outside taps, Escape, arrow keys, Home, End and natural Tab navigation, and close the menu after navigation or a viewport change.
+- Prevent duplicate sign-out requests, show connection failures without discarding the session, and allow retrying.
+- Keep long toolbar labels within the available width and translate the account-menu label into all four interface languages.
+
 ## [2.9.0] — 2026-09-13
 
 ### Personal accounts and separate administration
