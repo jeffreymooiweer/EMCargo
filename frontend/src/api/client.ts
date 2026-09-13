@@ -255,7 +255,7 @@ export const api = {
   /** A fresh look at the release feed, bypassing the six-hour cache. */
   updateCheckNow: () => request<UpdateStatus>("/update-check", { method: "POST" }),
   updateCapability: () => request<UpdateCapability>("/update-capability"),
-  updateState: () => request<UpdateStateAnswer>("/update-state"),
+  updateState: () => request<UpdateStateAnswer>("/update-state", { cache: "no-store" }),
   updateApply: () => request<{ started: boolean; to: string }>(
     "/update-apply", { method: "POST" }),
   // Reads carrier-assigned references (AWB, booking, ENS MRN, AES ITN) out of

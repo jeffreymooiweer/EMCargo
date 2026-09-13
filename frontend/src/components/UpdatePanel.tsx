@@ -21,7 +21,8 @@ export default function UpdatePanel() {
   const [changing, setChanging] = useState(false);
   const [applying, setApplying] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const [target, setTarget] = useState("");
+  const [target, setTarget] = useState<string | null>(null);
+  const observedVersion = useRef("");
   const mounted = useRef(false);
   const requestId = useRef(0);
   const submitting = useRef(false);
@@ -36,10 +37,17 @@ export default function UpdatePanel() {
         if (release.status === "fulfilled") setStatus(release.value);
         if (settings.status === "fulfilled") setInstance(settings.value);
         if (progress.status === "fulfilled") {
+          observedVersion.current = progress.value.current;
           setState(progress.value.state);
           if (progress.value.state && IN_PROGRESS.includes(progress.value.state.phase)) {
-            setTarget(progress.value.state.to || progress.value.state.to_image?.split(":").pop() || "");
-            setApplying(true);
+            const nextVersion = progress.value.state.to || progress.value.state.to_image?.split(":").pop() || "";
+            // The helper can still be finishing its health check, or have left
+            // stale progress behind. A page already on that version must not
+            // resume the observer and reload itself on every mount.
+            if (nextVersion !== progress.value.current) {
+              setTarget(nextVersion);
+              setApplying(true);
+            }
           }
         }
         const failed = [ability, release, progress, settings].find((result) => result.status === "rejected");
@@ -49,7 +57,7 @@ export default function UpdatePanel() {
   }, []);
 
   useEffect(() => {
-    if (!applying) return;
+    if (!applying || target === null) return;
     let cancelled = false;
     let timer: number;
     const started = Date.now();
@@ -57,12 +65,13 @@ export default function UpdatePanel() {
       try {
         const answer = await api.updateState();
         if (cancelled) return;
-        if (answer.state) setState(answer.state);
+        setState(answer.state);
         if (answer.state?.phase === "failed") { setApplying(false); return; }
-        // Another browser may already have read the completion event. The
-        // running target version still proves that this update completed.
-        if (answer.state?.phase === "done" || (target && answer.current === target)) {
-          window.location.reload();
+        // The target must actually answer, even if an old completion record
+        // remains. Older servers consume that record, so it may also be absent.
+        if (target ? answer.current === target : answer.state?.phase === "done") {
+          setApplying(false);
+          if (answer.current !== observedVersion.current) window.location.reload();
           return;
         }
       } catch {
@@ -108,6 +117,9 @@ export default function UpdatePanel() {
     if (submitting.current) return;
     submitting.current = true;
     setConfirm(false); setApplying(true); setError("");
+    // Do not poll a previous attempt while this request is still pending.
+    setTarget(null);
+    observedVersion.current = status?.current || observedVersion.current;
     setState({ phase: "pulling", to: status?.latest });
     try {
       const answer = await api.updateApply();
@@ -153,7 +165,7 @@ export default function UpdatePanel() {
       </div>
       {error && <p className="update-error" role="alert">{error}</p>}
       {state?.phase === "failed" && <p className="update-error" role="alert">{t("settings.updateFailed", { error: state.error || "" })}</p>}
-      {state?.phase === "done" && <p className="update-status" role="status">{t("settings.updateDone", { version: status?.current || "" })}</p>}
+      {!applying && state?.phase === "done" && <p className="update-status" role="status">{t("settings.updateDone", { version: status?.current || "" })}</p>}
     </section>
 
     <section className="surface update-preferences">

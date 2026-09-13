@@ -433,3 +433,53 @@ def test_apply_records_unexpected_worker_failure_and_releases_lock(data_dir, mon
     assert updater.read_state()['phase'] == 'failed'
     assert 'socket disconnected' in updater.read_state()['error']
     assert not meta._apply_lock.locked()
+
+
+@pytest.mark.parametrize("phase", ["done", "failed"])
+def test_progress_is_fresh_and_survives_multiple_readers(data_dir, monkeypatch, phase):
+    """The refresh loop reported since v2.8.0 depended on progress surviving
+    navigation. All administrators must see the same uncached operation; one
+    browser must not consume completion before another browser reconnects.
+    Failure details must likewise remain available after a restart.
+    """
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from app.api.routes import meta
+    from app.core.deps import require_admin
+
+    app = FastAPI()
+    app.include_router(meta.router, prefix="/api")
+    app.dependency_overrides[require_admin] = lambda: SimpleNamespace(role="admin")
+    monkeypatch.setattr(meta, "get_version", lambda: "2.9.2")
+    updater.write_state({"phase": phase, "to": "2.9.2", **({"error": "Health check failed"} if phase == "failed" else {})})
+    recorded = updater.read_state()
+    with TestClient(app) as client:
+        for _ in range(3):
+            response = client.get("/api/update-state")
+            assert response.status_code == 200
+            assert response.headers["cache-control"] == "private, no-store"
+            assert response.json() == {"state": recorded, "current": "2.9.2"}
+    assert updater.read_state() == recorded
+
+
+def test_reading_completion_cannot_erase_a_concurrent_update(data_dir, monkeypatch):
+    """Clearing a done record on GET used to unlink the progress file even
+    when a newly accepted update had replaced it between the read and unlink.
+    Observing an old snapshot must leave the next operation intact.
+    """
+    from fastapi import Response
+    from app.api.routes import meta
+
+    read_state = updater.read_state
+    updater.write_state({"phase": "done", "to": "2.9.1"})
+
+    def accept_next_update_during_read():
+        previous = read_state()
+        updater.write_state({"phase": "pulling", "to": "2.9.2"})
+        return previous
+
+    monkeypatch.setattr(updater, "read_state", accept_next_update_during_read)
+    answer = meta.update_state(Response(), admin=SimpleNamespace(role="admin"))
+    assert answer["state"]["phase"] == "done"
+    assert read_state()["phase"] == "pulling"
+    assert read_state()["to"] == "2.9.2"

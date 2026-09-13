@@ -16,6 +16,7 @@ vi.mock('../api/client', () => ({ api: {
 const ability = { available: true, apply_enabled: true, socket: true, container: 'local', image: 'emcargo:2.1.1', reason: null };
 const release = { enabled: true, reachable: true, current: '2.1.1', latest: '2.2.0', update_available: true };
 const instance = { update_check_enabled: true, organisation_name: 'Example' };
+const reload = vi.fn();
 async function setup() {
   let view!: ReturnType<typeof render>;
   await act(async () => { view = render(<UpdatePanel />); });
@@ -23,13 +24,33 @@ async function setup() {
 }
 beforeEach(() => {
   vi.useFakeTimers(); vi.clearAllMocks();
+  vi.stubGlobal('location', { reload });
   vi.mocked(api.updateCapability).mockResolvedValue(ability);
   vi.mocked(api.updateStatus).mockResolvedValue(release);
   vi.mocked(api.updateCheckNow).mockResolvedValue(release);
   vi.mocked(api.updateState).mockResolvedValue({ current: '2.1.1', state: null });
   vi.mocked(api.instanceSettings).mockResolvedValue(instance as any);
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+/** Since v2.8.0 administrators reported an endless refresh after updating.
+ * The helper can still report an active phase after the target is serving
+ * requests. Each new page must recognise that version instead of resuming
+ * the same observer and reloading itself again 1.5 seconds later. */
+it.each(['pulling', 'handed_over', 'stopping'] as const)('does not resume %s for the version already running, including after a refresh', async (phase) => {
+  vi.mocked(api.updateStatus).mockResolvedValue({ ...release, current: '2.2.0', update_available: false });
+  vi.mocked(api.updateState).mockResolvedValue({ current: '2.2.0', state: {
+    phase, ...(phase === 'stopping' ? { to_image: 'ghcr.io/jeffreymooiweer/emcargo:2.2.0' } : { to: '2.2.0' }),
+  } });
+  for (let visit = 0; visit < 3; visit += 1) {
+    const view = await setup();
+    await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+    expect(reload).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'settings.updateCheckNow' })).toBeEnabled();
+    view.unmount();
+  }
+  expect(api.updateState).toHaveBeenCalledTimes(3);
+});
 
 it('keeps an unreachable release check distinct from an up-to-date installation', async () => {
   vi.mocked(api.updateStatus).mockResolvedValue({ enabled: true, reachable: false, current: '2.1.1' });
@@ -81,6 +102,49 @@ it('resumes an active update and stops observing when the administrator leaves',
   expect(api.updateState).toHaveBeenCalledTimes(2);
 });
 
+/** A real restart still needs one reload to load the new assets. The helper
+ * may not have finished, or another browser on an older server may have
+ * consumed completion. Neither can restart the loop after that reload. */
+it.each(['stopping', 'done', null] as const)('reloads once across downtime with %s progress, then remains usable', async (phase) => {
+  const completed = { current: '2.2.0', state: phase ? {
+    phase, to_image: 'ghcr.io/jeffreymooiweer/emcargo:2.2.0',
+  } : null };
+  vi.mocked(api.updateState)
+    .mockResolvedValueOnce({ current: '2.1.1', state: { phase: 'handed_over', to: '2.2.0' } })
+    .mockRejectedValueOnce(new Error('Server restarting'))
+    .mockResolvedValue(completed);
+  const view = await setup();
+  await act(async () => { await vi.advanceTimersByTimeAsync(1600); });
+  expect(reload).not.toHaveBeenCalled();
+  expect(screen.getByRole('status')).toHaveTextContent('settings.updatePhaseRestarting');
+  await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+  expect(reload).toHaveBeenCalledTimes(1);
+  expect(api.updateState).toHaveBeenCalledTimes(3);
+  view.unmount();
+
+  vi.mocked(api.updateStatus).mockResolvedValue({ ...release, current: '2.2.0', update_available: false });
+  await setup();
+  await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+  expect(reload).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('button', { name: 'settings.updateCheckNow' })).toBeEnabled();
+  expect(api.updateState).toHaveBeenCalledTimes(4);
+});
+
+/** A retained completion event describes the previous operation. It cannot
+ * replace proof that the target of the update being observed is now serving. */
+it('waits for the target version when a previous completion is still returned', async () => {
+  vi.mocked(api.updateState)
+    .mockResolvedValueOnce({ current: '2.1.1', state: { phase: 'pulling', to: '2.2.0' } })
+    .mockResolvedValue({ current: '2.1.1', state: { phase: 'done', to: '2.1.1' } });
+  await setup();
+  await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+  expect(reload).not.toHaveBeenCalled();
+  expect(screen.getByRole('button', { name: 'settings.updateCheckNow' })).toBeDisabled();
+  vi.mocked(api.updateState).mockResolvedValue({ current: '2.2.0', state: null });
+  await act(async () => { await vi.advanceTimersByTimeAsync(2500); });
+  expect(reload).toHaveBeenCalledTimes(1);
+});
+
 it('keeps a failed update visible and permits a deliberate retry', async () => {
   vi.mocked(api.updateState).mockResolvedValueOnce({ current: '2.1.1', state: { phase: 'pulling', to: '2.2.0' } })
     .mockResolvedValue({ current: '2.1.1', state: { phase: 'failed', error: 'Registry unavailable' } });
@@ -99,4 +163,23 @@ it('requires confirmation and prevents repeated apply clicks during the request'
   fireEvent.click(confirmation);
   expect(api.updateApply).toHaveBeenCalledTimes(1);
   expect(screen.getByRole('button', { name: 'settings.updateApplyNow' })).toBeDisabled();
+});
+
+/** A slow apply response must not let the old operation stop the observer
+ * before the new target has even been accepted by the server. */
+it('starts observing only after the apply request accepts the target', async () => {
+  let accept!: (answer: { started: boolean; to: string }) => void;
+  vi.mocked(api.updateApply).mockImplementation(() => new Promise(resolve => { accept = resolve; }));
+  vi.mocked(api.updateState).mockResolvedValue({ current: '2.1.1', state: { phase: 'done', to: '2.1.1' } });
+  await setup();
+  fireEvent.click(screen.getByRole('button', { name: 'settings.updateApplyNow' }));
+  fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'settings.updateApplyNow' }));
+  await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+  expect(api.updateState).toHaveBeenCalledTimes(1);
+  expect(reload).not.toHaveBeenCalled();
+  await act(async () => { accept({ started: true, to: '2.2.0' }); });
+  vi.mocked(api.updateState).mockResolvedValue({ current: '2.2.0', state: { phase: 'stopping', to: '2.2.0' } });
+  await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+  expect(reload).toHaveBeenCalledTimes(1);
+  expect(api.updateState).toHaveBeenCalledTimes(2);
 });

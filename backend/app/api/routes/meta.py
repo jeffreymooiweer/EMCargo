@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timezone
 import threading
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -97,17 +97,16 @@ def update_capability(admin: User = Depends(require_admin)):
 
 
 @router.get("/update-state")
-def update_state(admin: User = Depends(require_admin)):
+def update_state(response: Response, admin: User = Depends(require_admin)):
     """How the last in-app update went, surviving the restart it caused.
 
-    A ``done`` state whose work is visible (the running version) is
-    cleared on read, so the message shows once; a ``failed`` state stays
-    until the next attempt overwrites it — an error that vanishes on
-    refresh was never reported.
+    Reads must neither consume completion for other browsers nor clear a
+    newer operation written after this request read the file. The next update
+    replaces the record. Progress and the running version must not be cached
+    across the restart, or an old browser can keep resuming an old operation.
     """
     state = updater.read_state()
-    if state and state.get("phase") == "done":
-        updater.clear_state()
+    response.headers["Cache-Control"] = "private, no-store"
     return {"state": state, "current": get_version()}
 
 

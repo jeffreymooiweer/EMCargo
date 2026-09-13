@@ -65,6 +65,14 @@ path, without adding the socket twice. A configured Docker health check must
 be healthy before the previous container is removed. Startup failure invokes
 the existing container rollback; failure details remain on the Updates page.
 
+The page compares the running version before resuming saved progress. Once the
+target answers, the existing observer reloads the page once to load the new UI;
+opening that version again does not resume an old restart message. A delayed
+helper record therefore cannot cause a refresh loop. A completion record from
+an earlier operation cannot trigger a reload before the current target answers.
+Progress responses and the HTML entry point are not cached across updates, and
+reading progress does not consume completion or erase a concurrent update.
+
 Maintain ordinary data backups. A container rollback is not a database backup
 or a general migration rollback. Complex network or container configurations
 should continue to use their operator-managed update procedure. Native and
