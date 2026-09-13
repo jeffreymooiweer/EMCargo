@@ -1,4 +1,4 @@
-import { canUseDgsa, canOversee } from "../permissions";
+import { canOversee } from "../permissions";
 import HistoryStatus from "../components/HistoryStatus";
 /**
  * The shipments this installation kept.
@@ -11,7 +11,7 @@ import HistoryStatus from "../components/HistoryStatus";
  * one does with a kept shipment: open it in the wizard, download its
  * documents again, or remove it.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
 
@@ -21,18 +21,14 @@ import ConfirmDialog from "../toast/ConfirmDialog";
 import { useToast } from "../toast/ToastProvider";
 import { localDateFilters } from "../utils/dateRanges";
 import { MODALITIES } from "./ModalitySelectPage";
+import { ArrowRightIcon, CloseIcon, CodeIcon, CopyIcon, DownloadIcon, PenIcon, RefreshIcon, RoadIcon, SearchIcon, SettingsIcon, TrashIcon } from "../components/icons";
+import "./shipments.css";
 
 const panelClass = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800";
 const inputClass =
   "w-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2.5 text-sm min-h-[44px]";
-const buttonPrimary =
-  "bg-brand-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 min-h-[44px] text-sm";
-const buttonSecondary =
-  "px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 min-h-[44px] text-sm inline-flex items-center";
 const actionClass =
   "font-medium text-brand-700 underline hover:text-brand-800 disabled:opacity-50 dark:text-brand-300";
-const buttonDanger =
-  "px-4 py-2.5 rounded-lg border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50 min-h-[44px] text-sm";
 
 const PER_PAGE = 25;
 
@@ -60,18 +56,17 @@ export default function ShipmentsPage({ user }: { user?: User | null }) {
   const { t, i18n } = useTranslation();
   const { publicSettings } = usePreferences();
   const { id } = useParams();
-  // Only an administrator sees more than one department, so only an
-  // administrator gets the filter; for anybody else the server answers
-  // with their own department whatever is asked.
+  // Roles with oversight can filter departments. The server restricts
+  // other viewers to their own department regardless of query parameters.
   const admin = canOversee(user);
 
   if (!publicSettings?.history_enabled) return <HistoryStatus title={t("history.title")} admin={user?.role === "admin"} />;
 
   if (id) return <ShipmentView id={Number(id)} language={i18n.language} />;
-  return <ShipmentList language={i18n.language} admin={admin} dgsa={canUseDgsa(user, publicSettings)} />;
+  return <ShipmentList language={i18n.language} admin={admin} />;
 }
 
-function ShipmentList({ language, admin, dgsa }: { language: string; admin: boolean; dgsa: boolean }) {
+function ShipmentList({ language, admin }: { language: string; admin: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
@@ -85,6 +80,11 @@ function ShipmentList({ language, admin, dgsa }: { language: string; admin: bool
   const [loading, setLoading] = useState(true);
   const [department, setDepartment] = useState("");
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<ShipmentSummary | null>(null);
+  const requestVersion = useRef(0);
+  const actionRunning = useRef(false);
   // The entry this viewer is in the middle of. It is not a kept shipment and
   // the list does not hold it — but it is the thing they are most likely to
   // have come here for, so it stands above the list with the way back into it.
@@ -102,6 +102,7 @@ function ShipmentList({ language, admin, dgsa }: { language: string; admin: bool
   }, []);
 
   const load = useCallback(async () => {
+    const version = ++requestVersion.current;
     setLoading(true);
     try {
       const answer = await api.shipments({
@@ -112,21 +113,36 @@ function ShipmentList({ language, admin, dgsa }: { language: string; admin: bool
         per_page: PER_PAGE,
         department: admin ? department : undefined,
       });
+      if (version !== requestVersion.current) return;
+      setLoadFailed(false);
+      const lastPage = Math.max(1, Math.ceil(answer.total / PER_PAGE));
+      if (page > lastPage) {
+        setPage(lastPage);
+        return;
+      }
       setItems(answer.items);
       setTotal(answer.total);
     } catch (e) {
-      toast.error(String(e));
+      if (version === requestVersion.current) {
+        setLoadFailed(true);
+        toast.error(String(e));
+      }
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
     // toast is stable for the provider's lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, modality, from, to, page, department, admin]);
+  const latestLoad = useRef(load);
+  latestLoad.current = load;
 
   // The search waits for the typing to stop; the other filters act at once.
   useEffect(() => {
     const handle = setTimeout(() => void load(), q ? 250 : 0);
-    return () => clearTimeout(handle);
+    return () => {
+      clearTimeout(handle);
+      requestVersion.current += 1;
+    };
   }, [load, q]);
 
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
@@ -135,88 +151,146 @@ function ShipmentList({ language, admin, dgsa }: { language: string; admin: bool
     setPicked((current) => (current.includes(id) ? current.filter((one) => one !== id) : [...current, id]));
   const [busy, setBusy] = useState(false);
   const documentsAgain = async (shipment: ShipmentSummary) => {
+    if (actionRunning.current) return;
+    actionRunning.current = true;
     setBusy(true);
     try {
       await api.shipmentDocuments(shipment.id);
     } catch (e) {
       toast.error(String(e));
     } finally {
+      actionRunning.current = false;
+      setBusy(false);
+    }
+  };
+  const remove = async () => {
+    if (!confirmRemove || actionRunning.current) return;
+    const shipment = confirmRemove;
+    actionRunning.current = true;
+    setConfirmRemove(null);
+    setBusy(true);
+    try {
+      await api.forgetShipment(shipment.id);
+      requestVersion.current += 1;
+      setItems(current => current.filter(item => item.id !== shipment.id));
+      setTotal(current => Math.max(0, current - 1));
+      setPicked(current => current.filter(id => id !== shipment.id));
+      toast.success(t("history.removed"));
+      await latestLoad.current();
+    } catch (e) {
+      toast.error(String(e));
+    } finally {
+      actionRunning.current = false;
       setBusy(false);
     }
   };
   const reference = (s: ShipmentSummary) => s.reference || t("history.noReference");
   const parties = (s: ShipmentSummary) => [s.consignor_name, s.consignee_name].filter(Boolean).join(" → ") || "—";
+  const activeFilters = [modality, from, to, department].filter(Boolean).length;
+  const clearFilters = () => {
+    setModality("");
+    setFrom("");
+    setTo("");
+    setDepartment("");
+    setPage(1);
+  };
 
   return (
-    <div className="collection-page page-enter space-y-4 sm:space-y-6">
-      <div className={`${panelClass} p-5 sm:p-8 flex flex-wrap items-start justify-between gap-3`}>
-        <div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">{t("history.title")}</h2>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-2xl">{t("history.intro")}</p>
-        </div>
-        {dgsa && <Link to="/shipments/report" className={buttonSecondary} title={t("dgsa.intro")}>
-          {t("dgsa.title")}
-        </Link>}
-      </div>
+    <div className="shipments-page page-enter">
+      <header className="shipments-heading">
+        <h2>{t("history.title")}</h2>
+      </header>
 
-      <div className={`${panelClass} p-4 sm:p-5 grid items-end gap-3 md:grid-cols-[2fr_1fr_1fr_1fr]`}>
-        <input
-          className={inputClass}
-          placeholder={t("history.search")}
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setPage(1);
-          }}
-          aria-label={t("history.search")}
-        />
-        <select
-          className={inputClass}
-          value={modality}
-          onChange={(e) => {
-            setModality(e.target.value);
-            setPage(1);
-          }}
-          aria-label={t("history.modality")}
-        >
-          <option value="">{t("history.allModalities")}</option>
-          {MODALITIES.map((key) => (
-            <option key={key} value={key}>
-              {t(`modality.${key}`)}
-            </option>
-          ))}
-        </select>
-        <label className="text-xs text-slate-500 dark:text-slate-400">
-          {t("history.from")}
-          <input type="date" className={`${inputClass} mt-1`} value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
-        </label>
-        <label className="text-xs text-slate-500 dark:text-slate-400">
-          {t("history.to")}
-          <input type="date" className={`${inputClass} mt-1`} value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
-        </label>
-        {admin && departments.length > 0 && (
-          <select
-            className={inputClass}
-            value={department}
-            onChange={(e) => {
-              setDepartment(e.target.value);
-              setPage(1);
-            }}
-            aria-label={t("departments.userDepartment")}
-          >
-            <option value="">{t("departments.all")}</option>
-            <option value="none">{t("departments.unassigned")}</option>
-            {departments.map((d) => (
-              <option key={d.id} value={String(d.id)}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-        )}
-        <p className="text-xs text-slate-500 dark:text-slate-400 md:col-span-4">
-          {t("history.count", { count: items.length, total })}
-        </p>
-      </div>
+      <section className="shipments-controls" aria-label={t("history.filters")}>
+        <div className="shipments-search-row">
+          <div className="shipments-search">
+            <SearchIcon />
+            <input
+              type="search"
+              maxLength={120}
+              placeholder={t("history.searchShort")}
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+              aria-label={t("history.search")}
+            />
+          </div>
+          <button type="button" className="shipment-action shipments-filter-toggle" aria-label={t("history.filters")}
+            title={t("history.filters")} aria-expanded={filtersOpen} aria-controls="shipment-filters"
+            data-active={activeFilters > 0} onClick={() => setFiltersOpen(current => !current)}>
+            <SettingsIcon />
+            {activeFilters > 0 && <span className="shipments-filter-count">{activeFilters}</span>}
+          </button>
+        </div>
+        <div id="shipment-filters" hidden={!filtersOpen} className="shipments-filters">
+          <label className="shipments-mode-filter">
+            {t("history.modality")}
+            <select
+              className={inputClass}
+              value={modality}
+              onChange={(e) => {
+                setModality(e.target.value);
+                setPage(1);
+              }}
+              aria-label={t("history.modality")}
+            >
+              <option value="">{t("history.allModalities")}</option>
+              {MODALITIES.map((key) => (
+                <option key={key} value={key}>
+                  {t(`modality.${key}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {t("history.from")}
+            <input type="date" className={`${inputClass} mt-1`} value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
+          </label>
+          <label>
+            {t("history.to")}
+            <input type="date" className={`${inputClass} mt-1`} value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
+          </label>
+          {admin && departments.length > 0 && (
+            <label className="shipments-department-filter">
+              {t("departments.userDepartment")}
+              <select
+                className={inputClass}
+                value={department}
+                onChange={(e) => {
+                  setDepartment(e.target.value);
+                  setPage(1);
+                }}
+                aria-label={t("departments.userDepartment")}
+              >
+                <option value="">{t("departments.all")}</option>
+                <option value="none">{t("departments.unassigned")}</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={String(d.id)}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {activeFilters > 0 && <button type="button" className="shipments-reset" onClick={clearFilters}>
+            <CloseIcon />{t("history.clearFilters")}
+          </button>}
+        </div>
+        <div className="shipments-listbar" data-selected={picked.length > 0}>
+          <span role="status">{picked.length > 0 ? t("history.selectedShort", { count: picked.length })
+            : loading ? t("history.loading") : t("history.count", { count: items.length, total })}</span>
+          {picked.length > 0 && <div className="shipments-selection-actions">
+            <Link to={`/trips?shipments=${picked.join(",")}`} className="shipment-action shipment-action-primary"
+              aria-label={t("history.toTrip", { count: picked.length })} title={t("history.toTrip", { count: picked.length })}>
+              <RoadIcon />
+            </Link>
+            <button type="button" className="shipment-action" onClick={() => setPicked([])}
+              aria-label={t("history.clearPicked")} title={t("history.clearPicked")}><CloseIcon /></button>
+          </div>}
+        </div>
+      </section>
 
       {draft && (
         <div className={`${panelClass} flex flex-wrap items-center gap-x-3 gap-y-2 p-4`}>
@@ -233,65 +307,47 @@ function ShipmentList({ language, admin, dgsa }: { language: string; admin: bool
         </div>
       )}
 
-      {picked.length > 0 && (
-        <div className={`${panelClass} flex flex-wrap items-center gap-3 p-4`}>
-          <span className="text-sm text-slate-700 dark:text-slate-200">
-            {t("history.picked", { count: picked.length })}
-          </span>
-          <Link to={`/trips?shipments=${picked.join(",")}`} className={`${buttonPrimary} ml-auto`}>
-            {t("history.toTrip", { count: picked.length })}
-          </Link>
-          <button type="button" className={buttonSecondary} onClick={() => setPicked([])}>
-            {t("history.clearPicked")}
-          </button>
-        </div>
-      )}
-
-      {!loading && items.length === 0 && (
+      {loadFailed && <div className="shipments-load-error" role="alert">
+        <span>{t("history.loadFailed")}</span>
+        <button type="button" className="shipment-action" disabled={loading} onClick={() => void load()}
+          aria-label={t("history.retry")} title={t("history.retry")}><RefreshIcon /></button>
+      </div>}
+      {!loading && !loadFailed && items.length === 0 && (
         <p className={`${panelClass} p-5 text-sm text-slate-600 dark:text-slate-300`}>{t("history.empty")}</p>
       )}
 
       {/* Phone: cards */}
-      <div className="space-y-3 md:hidden">
+      <div className="shipments-cards lg:hidden" aria-busy={loading}>
         {items.map((s) => (
-          <div key={s.id} className={`${panelClass} shadow-sm p-4 space-y-2`}>
-            <button type="button" onClick={() => open(s)} className="w-full space-y-1 text-left">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="min-w-0 truncate font-semibold text-slate-900 dark:text-slate-100">{reference(s)}</span>
+          <article key={s.id} className="shipment-card" data-selected={picked.includes(s.id)}>
+            <div className="shipment-card-heading">
+              <Link to={`/shipments/${s.id}`} className="shipment-card-reference">{reference(s)}</Link>
+              <label className="shipment-pick" title={t("history.pick")}>
+                <input type="checkbox" checked={picked.includes(s.id)} onChange={() => toggle(s.id)}
+                  aria-label={`${t("history.pick")} — ${reference(s)}`} />
+              </label>
+            </div>
+            <p className="shipment-card-parties">{parties(s)}</p>
+            <div className="shipment-card-meta">
+              <span>{t(`modality.${s.modality}`)} · {when(s.created_at, language)}</span>
+              <span>
+                {s.created_by || ""}{s.department ? ` · ${s.department}` : ""}
+              </span>
+            </div>
+            <div className="shipment-card-footer">
+              <div className="shipment-card-badges">
                 <Status shipment={s} />
                 <Badges shipment={s} />
               </div>
-              <p className="text-sm text-slate-700 dark:text-slate-200 truncate">{parties(s)}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t(`modality.${s.modality}`)} · {when(s.created_at, language)}
-                {s.created_by ? ` · ${s.created_by}` : ""}
-                {s.department ? ` · ${s.department}` : ""}
-              </p>
-            </button>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={picked.includes(s.id)}
-                  onChange={() => toggle(s.id)}
-                  // The same name the table's box carries. Without it every
-                  // card on a phone offers "Select", five times over, with
-                  // nothing saying which shipment each one selects — which is
-                  // exactly what somebody using a screen reader would hear.
-                  aria-label={`${t("history.pick")} — ${reference(s)}`}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                />
-                {t("history.pick")}
-              </label>
-              <RowActions shipment={s} onAgain={documentsAgain} busy={busy} />
+              <RowActions shipment={s} onAgain={documentsAgain} onRemove={setConfirmRemove} busy={busy} />
             </div>
-          </div>
+          </article>
         ))}
       </div>
 
       {/* Desktop: table */}
       {items.length > 0 && (
-        <div className={`${panelClass} hidden overflow-x-auto md:block`}>
+        <div className={`${panelClass} hidden overflow-x-auto lg:block`} aria-busy={loading}>
           <table className="w-full text-sm text-slate-800 dark:text-slate-200">
             <thead className="bg-slate-50 dark:bg-slate-800/80">
               <tr>
@@ -343,7 +399,7 @@ function ShipmentList({ language, admin, dgsa }: { language: string; admin: bool
                   {admin && departments.length > 0 && <td className="px-3 py-2">{s.department || "—"}</td>}
                   <td className="px-3 py-2 text-right">{s.goods_count}</td>
                   <td className="px-3 py-2">
-                    <RowActions shipment={s} onAgain={documentsAgain} busy={busy} />
+                    <RowActions shipment={s} onAgain={documentsAgain} onRemove={setConfirmRemove} busy={busy} />
                   </td>
                 </tr>
               ))}
@@ -354,15 +410,20 @@ function ShipmentList({ language, admin, dgsa }: { language: string; admin: bool
 
       {pages > 1 && (
         <div className="flex items-center justify-between gap-3">
-          <button type="button" className={buttonSecondary} disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-            {t("history.previous")}
+          <button type="button" className="shipment-action" disabled={loading || page <= 1} onClick={() => setPage((p) => p - 1)}
+            aria-label={t("history.previous")} title={t("history.previous")}>
+            <ArrowRightIcon className="rotate-180" />
           </button>
           <span className="text-sm text-slate-500 dark:text-slate-400">{t("history.page", { page, pages })}</span>
-          <button type="button" className={buttonSecondary} disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
-            {t("history.next")}
+          <button type="button" className="shipment-action" disabled={loading || page >= pages} onClick={() => setPage((p) => p + 1)}
+            aria-label={t("history.next")} title={t("history.next")}>
+            <ArrowRightIcon />
           </button>
         </div>
       )}
+      <ConfirmDialog open={!!confirmRemove} title={t("history.remove")}
+        body={<><p className="mb-2 break-words font-semibold">{confirmRemove && reference(confirmRemove)}</p>{t("history.confirmRemove")}</>}
+        confirmLabel={t("history.remove")} onConfirm={remove} onCancel={() => setConfirmRemove(null)} />
     </div>
   );
 }
@@ -370,22 +431,25 @@ function ShipmentList({ language, admin, dgsa }: { language: string; admin: bool
 /** What one does with a kept shipment, on the row it is about.
  *
  *  The baseline found no reuse action on the list at all: opening the detail
- *  page was compulsory before anything could be done. These are the same three
- *  things that page offers, where the shipment is. */
-function RowActions({ shipment, onAgain, busy }: {
+ *  page was compulsory before anything could be done. Keep these actions on
+ *  each row, including removal with an explicit confirmation. */
+function RowActions({ shipment, onAgain, onRemove, busy }: {
   shipment: ShipmentSummary;
   onAgain: (shipment: ShipmentSummary) => void;
+  onRemove: (shipment: ShipmentSummary) => void;
   busy: boolean;
 }) {
   const { t } = useTranslation();
   const stop = (event: { stopPropagation: () => void }) => event.stopPropagation();
   return (
-    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-      <Link to={wizardLinkFor(shipment)} onClick={stop} className={actionClass}>
-        {t("history.edit")}
+    <div className="shipment-row-actions" role="group" aria-label={`${t("history.actions")} — ${shipment.reference || t("history.noReference")}`}>
+      <Link to={wizardLinkFor(shipment)} onClick={stop} className="shipment-action"
+        aria-label={t("history.edit")} title={t("history.edit")}>
+        <PenIcon />
       </Link>
-      <Link to={templateLinkFor(shipment)} onClick={stop} className={actionClass}>
-        {t("history.useTemplate")}
+      <Link to={templateLinkFor(shipment)} onClick={stop} className="shipment-action"
+        aria-label={t("history.useTemplate")} title={t("history.useTemplate")}>
+        <CopyIcon />
       </Link>
       {shipment.has_documents && (
         <button
@@ -395,12 +459,15 @@ function RowActions({ shipment, onAgain, busy }: {
             stop(event);
             onAgain(shipment);
           }}
-          className={actionClass}
+          className="shipment-action" aria-label={t("history.documents")} title={t("history.documents")}
         >
-          {t("history.documents")}
+          <DownloadIcon />
         </button>
       )}
-    </span>
+      <button type="button" className="shipment-action shipment-action-danger" disabled={busy}
+        aria-label={t("history.remove")} title={t("history.remove")}
+        onClick={event => { stop(event); onRemove(shipment); }}><TrashIcon /></button>
+    </div>
   );
 }
 
@@ -527,23 +594,23 @@ function ShipmentView({ id, language }: { id: number; language: string }) {
           {shipment.updated_at !== shipment.created_at && row(t("history.updated"), when(shipment.updated_at, language))}
         </div>
 
-        <div className="flex flex-wrap gap-2 pt-2">
-          <Link to={wizardLinkFor(shipment)} className={buttonPrimary}>
-            {t("history.open")}
+        <div className="shipment-detail-actions">
+          <Link to={wizardLinkFor(shipment)} className="shipment-action shipment-action-primary" aria-label={t("history.open")} title={t("history.open")}>
+            <PenIcon /><span className="shipment-action-label">{t("history.open")}</span>
           </Link>
-          <Link to={templateLinkFor(shipment)} className={buttonSecondary} title={t("history.useTemplateHint")}>
-            {t("history.useTemplate")}
+          <Link to={templateLinkFor(shipment)} className="shipment-action" aria-label={t("history.useTemplate")} title={t("history.useTemplate")}>
+            <CopyIcon /><span className="shipment-action-label">{t("history.useTemplate")}</span>
           </Link>
           {shipment.has_documents ? (
-            <button type="button" className={buttonSecondary} disabled={busy} onClick={downloadAgain}>
-              {t("history.documents")}
+            <button type="button" className="shipment-action" disabled={busy} onClick={downloadAgain} aria-label={t("history.documents")} title={t("history.documents")}>
+              <DownloadIcon /><span className="shipment-action-label">{t("history.documents")}</span>
             </button>
           ) : null}
-          <a className={buttonSecondary} href={api.shipmentExportUrl(shipment.id)} download>
-            {t("history.exportJson")}
+          <a className="shipment-action" href={api.shipmentExportUrl(shipment.id)} download aria-label={t("history.exportJson")} title={t("history.exportJson")}>
+            <CodeIcon /><span className="shipment-action-label">{t("history.exportJson")}</span>
           </a>
-          <button type="button" className={buttonDanger} disabled={busy} onClick={() => setConfirmRemove(true)}>
-            {t("history.remove")}
+          <button type="button" className="shipment-action shipment-action-danger" disabled={busy} onClick={() => setConfirmRemove(true)} aria-label={t("history.remove")} title={t("history.remove")}>
+            <TrashIcon /><span className="shipment-action-label">{t("history.remove")}</span>
           </button>
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400">

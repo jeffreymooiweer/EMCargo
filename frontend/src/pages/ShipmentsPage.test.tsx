@@ -2,7 +2,7 @@
  * The shipments page: what it lists, what it says when there is nothing to
  * list, and the one action that must ask first.
  */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -81,6 +81,7 @@ beforeEach(() => {
 it("sends selected local shipment dates as complete UTC day bounds", async () => {
   renderAt("/shipments");
   await screen.findAllByText("CP-2026-100");
+  await userEvent.click(screen.getByRole("button", { name: "history.filters" }));
   fireEvent.change(screen.getByLabelText("history.from"), { target: { value: "2026-03-29" } });
   fireEvent.change(screen.getByLabelText("history.to"), { target: { value: "2026-03-29" } });
   await waitFor(() => expect(api.shipments).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -146,7 +147,7 @@ describe("de zendingenpagina", () => {
     // over, with nothing saying which shipment each one selected.
     await userEvent.click(screen.getAllByLabelText("history.pick — CP-2026-100")[0]);
     await userEvent.click(screen.getAllByLabelText("history.pick — history.noReference")[0]);
-    expect(screen.getByText(/history\.picked:2/)).toBeInTheDocument();
+    expect(screen.getByText(/history\.selectedShort:2/)).toBeInTheDocument();
     // The trip is opened with the selection in the address; the server
     // decides per shipment whether this viewer may read it.
     expect(screen.getByRole("link", { name: /history\.toTrip:2/ })).toHaveAttribute(
@@ -167,6 +168,7 @@ describe("de zendingenpagina", () => {
   it("stuurt de zoekopdracht en de modaliteit als filters mee", async () => {
     renderAt("/shipments");
     await screen.findAllByText("CP-2026-100");
+    await userEvent.click(screen.getByRole("button", { name: "history.filters" }));
     await userEvent.selectOptions(screen.getByLabelText("history.modality"), "sea");
     await waitFor(() =>
       expect(api.shipments).toHaveBeenLastCalledWith(expect.objectContaining({ modality: "sea", page: 1 })),
@@ -205,6 +207,7 @@ describe("de zendingenpagina", () => {
     expect(api.departments).not.toHaveBeenCalled();
 
     renderAt("/shipments", { id: 1, username: "root", email: "r@example.com", role: "admin", active: true });
+    await userEvent.click(screen.getAllByRole("button", { name: "history.filters" })[1]);
     const filter = await screen.findByLabelText("departments.userDepartment");
     await userEvent.selectOptions(filter, "none");
     await waitFor(() =>
@@ -218,5 +221,145 @@ describe("de zendingenpagina", () => {
 
   it("opent een zending in de wizard van haar eigen modaliteit", () => {
     expect(wizardLinkFor(kept[1])).toBe("/wizard/sea?shipment=8");
+  });
+});
+
+describe("compact shipment actions", () => {
+  it("keeps active filters when collapsed and resets them explicitly", async () => {
+    // A collapsed filter must not silently lose its value or hide the fact
+    // that the list is filtered. Search stays independent of the reset.
+    renderAt("/shipments");
+    await screen.findAllByText("CP-2026-100");
+    const filters = screen.getByRole("button", { name: "history.filters" });
+    expect(filters).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByLabelText("history.modality")).not.toBeVisible();
+    await userEvent.click(filters);
+    await userEvent.selectOptions(screen.getByLabelText("history.modality"), "road");
+    await userEvent.click(filters);
+    expect(filters).toHaveAttribute("data-active", "true");
+    expect(screen.getByLabelText("history.modality")).toHaveValue("road");
+    await userEvent.click(filters);
+    await userEvent.click(screen.getByRole("button", { name: "history.clearFilters" }));
+    await waitFor(() => expect(api.shipments).toHaveBeenLastCalledWith(expect.objectContaining({ modality: "", page: 1 })));
+    expect(filters).toHaveAttribute("data-active", "false");
+  });
+
+  it("removes a selected shipment directly from its card only after confirmation", async () => {
+    // Deletion was missing from the list. Its replacement must name the
+    // shipment, allow cancellation and remove the deleted id from the trip
+    // selection without accidentally following the row's navigation.
+    renderAt("/shipments");
+    await screen.findAllByText("CP-2026-100");
+    await userEvent.click(screen.getAllByLabelText("history.pick — CP-2026-100")[0]);
+    const actions = screen.getAllByRole("group", { name: "history.actions — CP-2026-100" })[0];
+    await userEvent.click(within(actions).getByRole("button", { name: "history.remove" }));
+    let dialog = screen.getByRole("alertdialog");
+    expect(within(dialog).getByText("CP-2026-100")).toBeInTheDocument();
+    expect(api.forgetShipment).not.toHaveBeenCalled();
+    expect(api.shipment).not.toHaveBeenCalled();
+    await userEvent.click(within(dialog).getByRole("button", { name: "toast.cancel" }));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(api.forgetShipment).not.toHaveBeenCalled();
+    await userEvent.click(within(actions).getByRole("button", { name: "history.remove" }));
+    dialog = screen.getByRole("alertdialog");
+    api.shipments.mockResolvedValue({ items: [kept[1]], total: 1, page: 1, per_page: 25 });
+    await userEvent.click(within(dialog).getByRole("button", { name: "history.remove" }));
+    await waitFor(() => expect(api.forgetShipment).toHaveBeenCalledOnce());
+    expect(api.forgetShipment).toHaveBeenCalledWith(7);
+    await waitFor(() => expect(screen.queryByText("CP-2026-100")).toBeNull());
+    expect(screen.queryByRole("link", { name: /history\.toTrip/ })).toBeNull();
+    expect(await screen.findByText("history.count:1/1")).toBeInTheDocument();
+  });
+
+  it("preserves the row and its selection when deleting from the desktop table fails", async () => {
+    // A server-side rejection must not look like successful removal, and a
+    // delete button inside a clickable table row must not open that row.
+    api.forgetShipment.mockRejectedValueOnce(new Error("Deletion unavailable"));
+    renderAt("/shipments");
+    await screen.findAllByText("CP-2026-100");
+    await userEvent.click(screen.getAllByLabelText("history.pick — CP-2026-100")[1]);
+    const actions = screen.getAllByRole("group", { name: "history.actions — CP-2026-100" })[1];
+    await userEvent.click(within(actions).getByRole("button", { name: "history.remove" }));
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "history.remove" }));
+    expect(await screen.findByText("Error: Deletion unavailable")).toBeInTheDocument();
+    expect(screen.getAllByText("CP-2026-100")).toHaveLength(2);
+    expect(screen.getByRole("link", { name: /history\.toTrip:1/ })).toHaveAttribute("href", "/trips?shipments=7");
+    expect(api.shipment).not.toHaveBeenCalled();
+  });
+
+  it("returns to the previous page after deleting the final row on the last page", async () => {
+    // After deletion, a valid page can cease to exist. Staying there used
+    // to leave the planner looking at an empty list despite remaining data.
+    const firstPage = Array.from({ length: 25 }, (_, index) => ({ ...kept[0], id: index + 20, reference: `SHIP-${index}` }));
+    let deleted = false;
+    api.shipments.mockImplementation(async ({ page }: { page: number }) => ({
+      items: page === 1 ? firstPage : deleted ? [] : [kept[0]],
+      total: deleted ? 25 : 26, page, per_page: 25,
+    }));
+    api.forgetShipment.mockImplementationOnce(async () => { deleted = true; return { ok: true }; });
+    renderAt("/shipments");
+    await screen.findAllByText("SHIP-0");
+    await userEvent.click(screen.getByRole("button", { name: "history.next" }));
+    await screen.findAllByText("CP-2026-100");
+    const actions = screen.getAllByRole("group", { name: "history.actions — CP-2026-100" })[0];
+    await userEvent.click(within(actions).getByRole("button", { name: "history.remove" }));
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "history.remove" }));
+    await screen.findAllByText("SHIP-0");
+    expect(api.shipments).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 }));
+    expect(screen.queryByText("history.empty")).toBeNull();
+  });
+
+  it("ignores a slow response for a filter that is no longer selected", async () => {
+    // Collapsible filters remain live; an older request completing later
+    // must never put shipments from a different filter back on screen.
+    let finishOld: (value: unknown) => void = () => {};
+    api.shipments.mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve; }));
+    renderAt("/shipments");
+    await waitFor(() => expect(api.shipments).toHaveBeenCalledOnce());
+    api.shipments.mockResolvedValue({ items: [kept[1]], total: 1, page: 1, per_page: 25 });
+    await userEvent.click(screen.getByRole("button", { name: "history.filters" }));
+    await userEvent.selectOptions(screen.getByLabelText("history.modality"), "sea");
+    await screen.findAllByText("history.noReference");
+    await act(async () => finishOld({ items: [kept[0]], total: 1, page: 1, per_page: 25 }));
+    expect(screen.queryByText("CP-2026-100")).toBeNull();
+  });
+
+  it("leaves the DGSA entry in DG control instead of duplicating it in shipments", async () => {
+    renderAt("/shipments", { id: 1, username: "root", email: "r@example.com", role: "admin", active: true });
+    await screen.findAllByText("CP-2026-100");
+    expect(screen.queryByRole("link", { name: "dgsa.title" })).toBeNull();
+  });
+
+  it("refreshes the current filters when a pending deletion finishes", async () => {
+    // A planner can change filters while the server is deleting a row.
+    // Refreshing the delete handler's old closure would restore the previous
+    // filter's data underneath the newly selected filter controls.
+    let finishDelete: (value: unknown) => void = () => {};
+    api.forgetShipment.mockImplementationOnce(() => new Promise(resolve => { finishDelete = resolve; }));
+    renderAt("/shipments");
+    await screen.findAllByText("CP-2026-100");
+    await userEvent.click(screen.getAllByRole("button", { name: "history.remove" })[0]);
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "history.remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "history.filters" }));
+    api.shipments.mockResolvedValue({ items: [kept[1]], total: 1, page: 1, per_page: 25 });
+    await userEvent.selectOptions(screen.getByLabelText("history.modality"), "sea");
+    await waitFor(() => expect(api.shipments).toHaveBeenLastCalledWith(expect.objectContaining({ modality: "sea" })));
+    const calls = api.shipments.mock.calls.length;
+    await act(async () => finishDelete({ ok: true }));
+    await waitFor(() => expect(api.shipments).toHaveBeenCalledTimes(calls + 1));
+    expect(api.shipments).toHaveBeenLastCalledWith(expect.objectContaining({ modality: "sea" }));
+    expect(screen.queryByText("CP-2026-100")).toBeNull();
+  });
+
+  it("offers a retry instead of reporting an empty history after a load failure", async () => {
+    // An unavailable server is not evidence that the installation kept no
+    // shipments. The recovery action should restore the list in place.
+    api.shipments.mockRejectedValueOnce(new Error("History unavailable"));
+    renderAt("/shipments");
+    expect(await screen.findByText("history.loadFailed")).toBeInTheDocument();
+    expect(screen.queryByText("history.empty")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "history.retry" }));
+    await screen.findAllByText("CP-2026-100");
+    expect(screen.queryByText("history.loadFailed")).toBeNull();
   });
 });

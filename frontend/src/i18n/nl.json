@@ -1276,7 +1276,13 @@
     "resumeDraft": "Verder invullen",
     "stateDraft": "Concept",
     "stateOpen": "Nog aanvullen",
-    "stateReady": "Gereed"
+    "stateReady": "Gereed",
+    "filters": "Filters",
+    "searchShort": "Zoek zendingen…",
+    "clearFilters": "Filters wissen",
+    "selectedShort": "{{count}} geselecteerd",
+    "loading": "Zendingen laden…",
+    "retry": "Opnieuw proberen"
   },
   "addressBook": {
     "title": "Adresboek",

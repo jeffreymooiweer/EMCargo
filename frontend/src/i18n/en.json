@@ -1276,7 +1276,13 @@
     "resumeDraft": "Carry on",
     "stateDraft": "Draft",
     "stateOpen": "Still to complete",
-    "stateReady": "Ready"
+    "stateReady": "Ready",
+    "filters": "Filters",
+    "searchShort": "Search shipments…",
+    "clearFilters": "Clear filters",
+    "selectedShort": "{{count}} selected",
+    "loading": "Loading shipments…",
+    "retry": "Try again"
   },
   "addressBook": {
     "title": "Address book",

@@ -1,0 +1,65 @@
+/* Compact shipment controls retain a full touch target around each icon. */
+.shipments-page { display: grid; gap: 16px; min-width: 0; padding-bottom: 24px; }
+.shipments-heading h2 { color: var(--ink); font-size: clamp(1.7rem, 2.6vw, 2.2rem); font-weight: 650; letter-spacing: -.04em; line-height: 1.3; }
+.shipments-controls { min-width: 0; }
+.shipments-search-row { display: flex; align-items: center; gap: 8px; }
+.shipments-search { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding-inline: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.shipments-search > svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--muted); }
+.shipments-search:focus-within { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 2px; }
+.shipments-search input { width: 100%; min-width: 0; min-height: 44px; padding: 8px 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 1rem; }
+.shipments-search input::placeholder { color: var(--muted); opacity: 1; }
+.shipments-search input:focus-visible { outline: none; }
+.shipment-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: 0 0 auto; width: 44px; height: 44px; min-height: 44px; padding: 0; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--muted); text-decoration: none; cursor: pointer; }
+.shipment-action > svg { width: 19px; height: 19px; flex: 0 0 auto; }
+.shipment-action:hover { color: var(--ink); background: var(--soft-accent); }
+.shipment-action:focus-visible, .shipment-pick:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shipment-action:disabled { opacity: .45; cursor: not-allowed; }
+.shipment-action.shipment-action-primary { color: #fff; background: #245bea; border-color: #245bea; }
+.shipment-action.shipment-action-primary:hover { background: #194dd0; }
+.shipment-action.shipment-action-danger { color: #b83b43; }
+.dark .shipment-action.shipment-action-danger { color: #f2949b; }
+.shipment-action.shipment-action-danger:hover { background: #e9425012; }
+.shipments-filter-toggle { position: relative; border-color: var(--line); background: var(--panel); }
+.shipments-filter-toggle[aria-expanded=true], .shipments-filter-toggle[data-active=true] { color: var(--accent); border-color: var(--accent); background: var(--soft-accent); }
+.shipments-filter-count { position: absolute; top: -5px; right: -4px; display: grid; place-content: center; min-width: 18px; height: 18px; padding-inline: 4px; border: 2px solid var(--canvas); border-radius: 12px; color: white; background: #245bea; font-size: 10px; font-weight: 650; }
+.shipments-filters:not([hidden]) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.shipments-filters > label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-size: .75rem; }
+.shipments-filters :is(input, select) { min-width: 0; max-width: 100%; margin-top: 0; font-size: 1rem; }
+.shipments-mode-filter, .shipments-department-filter { grid-column: 1 / -1; }
+.shipments-reset { grid-column: 1 / -1; display: inline-flex; align-items: center; justify-self: start; gap: 6px; min-height: 44px; color: var(--accent); font-size: .8125rem; }
+.shipments-listbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; padding-top: 4px; color: var(--muted); font-size: .8125rem; }
+.shipments-listbar[data-selected=true] > span { color: var(--ink); font-weight: 550; }
+.shipments-selection-actions, .shipment-row-actions { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
+.shipments-cards { display: grid; gap: 12px; }
+.shipment-card { min-width: 0; padding: 8px 12px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); transition: border-color 150ms; }
+.shipment-card[data-selected=true] { border-color: var(--accent); }
+.shipment-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.shipment-card-reference { display: flex; align-items: center; min-height: 44px; min-width: 0; color: var(--ink); font-size: .9375rem; font-weight: 650; overflow-wrap: anywhere; }
+.shipment-card-reference:hover { color: var(--accent); }
+.shipment-pick { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; margin-right: -6px; border-radius: 8px; cursor: pointer; }
+.shipment-pick input { width: 18px; height: 18px; margin: 0; accent-color: #245bea; cursor: pointer; }
+.shipment-card-parties { color: var(--ink); font-size: .875rem; line-height: 1.5; overflow-wrap: anywhere; }
+.shipment-card-meta { display: flex; flex-wrap: wrap; column-gap: 8px; margin-block: 4px 10px; color: var(--muted); font-size: .75rem; line-height: 1.6; overflow-wrap: anywhere; }
+.shipment-card-meta > span:empty { display: none; }
+.shipment-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-width: 0; padding-block: 3px; border-top: 1px solid var(--line); }
+.shipment-card-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.shipment-card-badges > span { overflow-wrap: anywhere; }
+.shipments-load-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ink); font-size: .875rem; }
+.shipment-detail-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-top: 8px; }
+.shipment-detail-actions .shipment-action { border-color: var(--line); }
+.shipment-action-label { display: none; }
+@media (min-width: 640px) {
+  .shipments-filters:not([hidden]) { grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)); }
+  .shipments-mode-filter { grid-column: auto; }
+  .shipment-detail-actions .shipment-action { width: auto; padding-inline: 12px; font-size: .8125rem; }
+  .shipment-action-label { display: inline; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .shipments-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .shipments-page { gap: 20px; }
+  .shipments-page .shipments-cards { display: none; }
+  .shipments-page table th { font-size: .75rem; font-weight: 550; color: var(--muted); }
+  .shipments-page table :is(td, th) { padding-block: 12px; }
+}

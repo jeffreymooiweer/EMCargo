@@ -1276,7 +1276,13 @@
     "resumeDraft": "Continuer",
     "stateDraft": "Brouillon",
     "stateOpen": "À compléter",
-    "stateReady": "Prêt"
+    "stateReady": "Prêt",
+    "filters": "Filtres",
+    "searchShort": "Rechercher des envois…",
+    "clearFilters": "Effacer les filtres",
+    "selectedShort": "{{count}} sélectionné(s)",
+    "loading": "Chargement des envois…",
+    "retry": "Réessayer"
   },
   "addressBook": {
     "title": "Carnet d’adresses",
