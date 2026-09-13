@@ -1276,7 +1276,13 @@
     "resumeDraft": "Weiter ausfüllen",
     "stateDraft": "Entwurf",
     "stateOpen": "Noch zu ergänzen",
-    "stateReady": "Fertig"
+    "stateReady": "Fertig",
+    "filters": "Filter",
+    "searchShort": "Sendungen suchen…",
+    "clearFilters": "Filter zurücksetzen",
+    "selectedShort": "{{count}} ausgewählt",
+    "loading": "Sendungen werden geladen…",
+    "retry": "Erneut versuchen"
   },
   "addressBook": {
     "title": "Adressbuch",

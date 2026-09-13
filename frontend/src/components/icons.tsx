@@ -54,4 +54,5 @@ export const ErrorIcon = glyph("M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0 m-13-3 
 export const PenIcon = glyph("m4 16 12-12 4 4-12 12-5 1z M14 6l4 4 M3 21h8");
 export const UploadIcon = glyph("M12 16V3 m-5 5 5-5 5 5 M3 16v5h18v-5");
 export const CopyIcon = glyph("M9 9h12v12H9z M15 9V3H3v12h6");
+export const CodeIcon = glyph("m8 6-6 6 6 6 M16 6l6 6-6 6 m-3-15-2 18");
 export const TrashIcon = glyph("M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7");

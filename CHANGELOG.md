@@ -2,6 +2,18 @@
 
 All notable changes are documented here, following [Semantic Versioning](https://semver.org/).
 
+## [2.8.2] — 2026-09-13
+
+### Compact shipment management
+
+- Replace large shipment actions with compact icons, accessible labels and full touch targets. Apply the same mobile treatment to shipment details and pagination.
+- Keep search immediately available and collapse modality, date and department filters behind one button, with an active-filter count and explicit reset.
+- Place selection and trip actions on one compact line. Move mobile selection to the card header and retain shipment status and dangerous-goods badges.
+- Delete shipments directly from a card or table row after a confirmation naming the shipment. Preserve the row and selection on failure, clear deleted selections and return to a valid page after deleting the final row.
+- Ignore outdated list responses and keep the existing departmental access checks for deletion.
+- Remove the duplicate DGSA report shortcut from Shipments; the report remains available through DG control.
+- Provide new interface text in Dutch, English, German and French.
+
 ## [2.8.1] — 2026-09-12
 
 ### Available UN card sets
