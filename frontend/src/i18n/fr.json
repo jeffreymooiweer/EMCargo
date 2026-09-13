@@ -805,9 +805,10 @@
       "row_refused": "Ligne {{row}} : {{reason}}"
     },
     "auth": {
-      "two_factor_required": "Cette installation exige la vérification en deux étapes pour votre compte. Configurez-la d'abord sous Paramètres, Sécurité.",
+      "two_factor_required": "Cette installation exige la vérification en deux étapes pour votre compte. Ouvrez votre avatar et configurez-la sous Paramètres utilisateur, Sécurité.",
       "two_factor_invalid_code": "Ce code de vérification est invalide.",
-      "two_factor_inactive": "La vérification en deux étapes n’est pas active."
+      "two_factor_inactive": "La vérification en deux étapes n’est pas active.",
+      "current_password_incorrect": "Votre mot de passe actuel est incorrect."
     },
     "update": {
       "check_disabled": "La vérification des mises à jour est désactivée",
@@ -1838,5 +1839,50 @@
       "blockedHint": "Résolvez les problèmes signalés avant le départ. Vous pouvez enregistrer le trajet."
     },
     "noExemption": "Selon ce contrôle, l’exemption des 1000 points ne s’applique pas à ce chargement. Évaluez les mesures ADR nécessaires avant le départ."
+  },
+  "account": {
+    "settings": "Paramètres utilisateur",
+    "openSettings": "Ouvrir les paramètres utilisateur",
+    "intro": "Votre profil, votre sécurité et vos préférences personnelles.",
+    "adminSettings": "Paramètres d’administration",
+    "adminIntro": "Paramètres de l’organisation et de cette installation.",
+    "profile": "Mon profil",
+    "profileIntro": "Choisissez le nom affiché et complétez vos informations personnelles. Si le nom affiché est vide, votre nom complet ou votre identifiant sera utilisé.",
+    "displayName": "Nom affiché",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "jobTitle": "Fonction",
+    "phone": "Numéro de téléphone",
+    "profileSaved": "Profil enregistré.",
+    "documentDetails": "Données des documents",
+    "accessPolicy": "Politique d’accès",
+    "changePassword": "Modifier le mot de passe",
+    "passwordIntro": "Confirmez votre mot de passe actuel et choisissez-en un nouveau. Vous devrez ensuite vous reconnecter. Les autres sessions actives seront également fermées.",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "repeatPassword": "Confirmer le nouveau mot de passe",
+    "showPassword": "Afficher les mots de passe",
+    "passwordDifferent": "Choisissez un mot de passe différent du mot de passe actuel.",
+    "passwordChanged": "Votre mot de passe a été modifié. Connectez-vous avec votre nouveau mot de passe.",
+    "discardTitle": "Quitter les modifications du profil ?",
+    "discardBody": "Vos modifications ne sont pas enregistrées. Voulez-vous les abandonner ?",
+    "discard": "Abandonner les modifications",
+    "about": "À propos de nous",
+    "aboutTagline": "Du départ à destination. Tout au même endroit.",
+    "aboutIntro": "EMCargo rassemble les expéditions, les documents de transport et les contrôles dans un seul espace de travail. Conçu pour le quotidien du transport et de la logistique.",
+    "openSource": "Open source",
+    "selfHosted": "Sur votre propre serveur",
+    "fourLanguages": "Quatre langues",
+    "aboutShipments": "Expéditions et trajets",
+    "aboutShipmentsBody": "Préparez vos expéditions, regroupez-les en trajets et gardez une vue d’ensemble.",
+    "aboutDocuments": "Documents de transport",
+    "aboutDocumentsBody": "Créez vos documents à partir des informations de votre expédition.",
+    "aboutChecks": "Marchandises dangereuses",
+    "aboutChecksBody": "Une aide aux contrôles et aux évaluations des marchandises dangereuses.",
+    "termsIntro": "Consultez les conditions d’utilisation d’EMCargo.",
+    "sourceCode": "Code source",
+    "releaseNotes": "Quoi de neuf ?",
+    "feedback": "Signaler une idée ou un problème",
+    "madeBy": "EMCargo · Open source pour la logistique"
   }
 }

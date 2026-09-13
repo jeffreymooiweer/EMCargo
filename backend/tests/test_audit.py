@@ -121,6 +121,29 @@ def test_a_password_change_is_written_without_the_password(db):
     assert "another" not in rows(db)[0].summary
 
 
+def test_self_service_password_change_requires_current_password_and_expires_sessions(db):
+    """The account form must preserve access on a failed change and force a
+    fresh sign-in after success, including cookies held on another device."""
+    with application(db) as client:
+        credentials = {"username": "bob", "password": PASSWORD}
+        assert client.post("/api/auth/login", json=credentials).status_code == 200
+        previous_token = client.cookies.get("access_token")
+        failed = client.post("/api/auth/change-password", json={"current_password": "incorrect", "new_password": "new synthetic password"})
+        assert failed.status_code == 400
+        assert failed.json()["detail"]["code"] == "auth.current_password_incorrect"
+        assert client.get("/api/auth/me").status_code == 200
+        assert "auth.password_changed" not in actions(db)
+        changed = client.post("/api/auth/change-password", json={"current_password": PASSWORD, "new_password": "new synthetic password"})
+        assert changed.json() == {"ok": True, "reauthenticate": True}
+        assert client.get("/api/auth/me").status_code == 401
+        client.cookies.clear()
+        client.cookies.set("access_token", previous_token)
+        assert client.get("/api/auth/me").status_code == 401
+        assert client.post("/api/auth/login", json=credentials).status_code == 401
+        assert client.post("/api/auth/login", json={**credentials, "password": "new synthetic password"}).status_code == 200
+        assert client.get("/api/auth/me").status_code == 200
+
+
 def test_account_management_names_the_account_and_the_fields(db):
     with application(db, as_user=1) as client:
         made = client.post("/api/users", json={

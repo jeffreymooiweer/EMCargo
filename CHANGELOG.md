@@ -2,6 +2,18 @@
 
 All notable changes are documented here, following [Semantic Versioning](https://semver.org/).
 
+## [2.9.0] — 2026-09-13
+
+### Personal accounts and separate administration
+
+- Open personal settings from the account avatar, including a direct avatar shortcut on mobile. Keep organisation and installation settings under the Management menu, respecting administrator and Super User permissions.
+- Add an editable display name, first name, last name, job title and phone number alongside the existing profile photo. Show the selected name in the navigation and overview; retain the username for sign-in and account identification.
+- Store personal details in a separate account-owned table created automatically on upgrades. Keep contact fields out of the user directory, reject identity or privilege changes through the profile endpoint, and remove profile data when an account is deleted.
+- Add a current-password-protected password change form with confirmation, translated errors and a clear return to sign-in. Existing sessions expire after a successful password change; personal two-factor verification remains separate from installation access policy.
+- Add an About us page with the EMCargo logo, installed version, product information, source code, release notes and feedback links. Make the existing terms and credits available within personal settings through this page.
+- Preserve personal document defaults, appearance settings and existing bookmarks while moving update, security and history shortcuts to their new destinations.
+- Translate all new interface text into Dutch, English, German and French.
+
 ## [2.8.2] — 2026-09-13
 
 ### Compact shipment management

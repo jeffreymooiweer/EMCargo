@@ -50,6 +50,7 @@ class ApiError(HTTPException):
 #: Kept here rather than at the raise sites so that the set of codes is
 #: countable — a translation guard cannot check what it cannot enumerate.
 MESSAGES: dict[str, str] = {
+    "auth.current_password_incorrect": "Your current password is incorrect.",
     "un_cards.no_release": "No UN card set has been published yet. Check for a new set later or import a ZIP file.",
     "un_cards.download_failed": "The card set could not be downloaded. Try again or import a ZIP file.",
     "trips.empty": "Add at least one shipment to the trip.",
@@ -95,7 +96,7 @@ MESSAGES: dict[str, str] = {
     # Signing in
     "auth.two_factor_required": (
         "This installation requires two-factor verification for your account. "
-        "Set it up under Settings, Security, before doing anything else"
+        "Set it up under User settings, Security, before doing anything else"
     ),
     "auth.two_factor_invalid_code": "That verification code is not valid",
     "auth.two_factor_inactive": "Two-factor verification is not switched on",

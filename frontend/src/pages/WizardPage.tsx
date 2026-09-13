@@ -1950,7 +1950,7 @@ export default function WizardPage() {
             )}
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
               {t("wizardDocs.exportNotice")}{" "}
-              <Link to="/legal" className="font-medium underline">
+              <Link to="/account/about/terms" className="font-medium underline">
                 {t("nav.legal")}
               </Link>
             </p>

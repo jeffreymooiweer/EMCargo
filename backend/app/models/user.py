@@ -40,10 +40,37 @@ class User(Base):
     department: Mapped[Department | None] = relationship()
     avatar: Mapped["UserAvatar | None"] = relationship(
         cascade="all, delete-orphan", uselist=False)
+    personal_profile: Mapped["UserProfile | None"] = relationship(
+        cascade="all, delete-orphan", uselist=False)
+
+    @property
+    def display_name(self) -> str:
+        profile = self.personal_profile
+        if profile is None:
+            return ""
+        return profile.display_name or " ".join(
+            part for part in (profile.first_name, profile.last_name) if part)
 
     @property
     def avatar_url(self) -> str | None:
         return f"/api/users/{self.id}/avatar?v={self.avatar.etag}" if self.avatar else None
+
+
+class UserProfile(Base):
+    """Optional personal details, separate from account identity and privileges.
+
+    A new table lets existing installations upgrade through create_all without
+    changing their users table. Account deletion also removes these details.
+    Only the display name is included in the user directory's public DTO.
+    """
+
+    __tablename__ = "user_profiles"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    display_name: Mapped[str] = mapped_column(String(80), default="")
+    first_name: Mapped[str] = mapped_column(String(80), default="")
+    last_name: Mapped[str] = mapped_column(String(80), default="")
+    job_title: Mapped[str] = mapped_column(String(120), default="")
+    phone_number: Mapped[str] = mapped_column(String(40), default="")
 
 
 class UserAvatar(Base):

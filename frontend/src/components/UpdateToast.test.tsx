@@ -58,7 +58,7 @@ describe("UpdateToast", () => {
     expect(await screen.findByRole("status")).toBeInTheDocument();
     expect(screen.getByText(/update\.available 1\.126\.0/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "updates.open" }));
-    expect(screen.getByTestId("location")).toHaveTextContent("/settings?tab=updates");
+    expect(screen.getByTestId("location")).toHaveTextContent("/admin/settings/updates");
   });
 
   it("never even asks for a regular user", async () => {

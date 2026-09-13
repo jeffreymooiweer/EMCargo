@@ -17,6 +17,7 @@ vi.mock("./pages/ModalitySelectPage", () => ({ default: () => <p>Transport choic
 vi.mock("./pages/OverviewPage", () => ({ default: () => <p>Overview</p> }));
 vi.mock("./pages/CardsPage", () => ({ default: () => <p>Public UN cards</p> }));
 vi.mock("./pages/ShipmentsPage", () => ({ default: () => <p>Saved shipment</p> }));
+vi.mock("./pages/SettingsPage", () => ({ default: ({ area = "account", sectionOverride }: { area?: string; sectionOverride?: string }) => <p>{area}:{sectionOverride || "settings"}</p> }));
 
 const account = { id: 1, username: "Ada", email: "ada@example.com", role: "admin", active: true };
 beforeEach(() => {
@@ -34,7 +35,7 @@ function page(path: string) {
   render(<MemoryRouter initialEntries={[path]}><App /><Position /></MemoryRouter>);
 }
 
-it.each(["/", "/overzicht", "/wizard/road", "/settings"])("requires a session for %s", async path => {
+it.each(["/", "/overzicht", "/wizard/road", "/settings", "/account/profile", "/account/about/terms", "/admin/settings/organisation"])("requires a session for %s", async path => {
   page(path);
   expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
   expect(screen.getByTestId("position")).toHaveTextContent("/login");
@@ -62,4 +63,24 @@ it("returns to the requested application page after signing in", async () => {
   await userEvent.click(await screen.findByRole("button", { name: "Sign in" }));
   expect(await screen.findByText("Saved shipment")).toBeInTheDocument();
   expect(screen.getByTestId("position")).toHaveTextContent("/shipments/17?view=documents#details");
+});
+
+it.each(["user", "dg_specialist"])("keeps %s out of installation settings even with a direct link", async role => {
+  api.me.mockResolvedValue({ user: { ...account, role } });
+  page("/admin/settings/access");
+  expect(await screen.findByText("account:settings")).toBeInTheDocument();
+  expect(screen.getByTestId("position")).toHaveTextContent("/account/profile");
+  expect(screen.queryByText("admin:settings")).toBeNull();
+});
+
+it.each([
+  ["/settings?tab=security", "/account/security", "account:settings"],
+  ["/settings?tab=maintenance", "/admin/settings/updates", "admin:settings"],
+  ["/settings?tab=admin", "/admin/settings/organisation", "admin:settings"],
+  ["/legal", "/account/about/terms", "account:terms"],
+])("preserves the old bookmark %s", async (path, target, content) => {
+  api.me.mockResolvedValue({ user: account });
+  page(path);
+  expect(await screen.findByText(content)).toBeInTheDocument();
+  expect(screen.getByTestId("position")).toHaveTextContent(target);
 });

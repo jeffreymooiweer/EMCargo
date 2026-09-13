@@ -60,7 +60,7 @@ export default function OverviewPage({ user }: { user?: User }) {
     <div className="overview-workspace collection-page page-enter space-y-6">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">{t("nav.overview")}</p><h2>{t(`overview.${greeting}`)}{user?.username && <span className="overview-name"> {user.username}</span>}</h2>
+          <p className="eyebrow">{t("nav.overview")}</p><h2>{t(`overview.${greeting}`)}{user?.username && <span className="overview-name"> {user.display_name || user.username}</span>}</h2>
           <p>{history ? t("overview.intro") : t("overview.introNoHistory")}</p>
         </div>
         <Link to="/" className="action-primary"><PlusIcon className="h-5 w-5" />{t("nav.new")}</Link>

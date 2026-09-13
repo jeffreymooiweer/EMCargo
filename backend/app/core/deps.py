@@ -65,7 +65,7 @@ def get_current_user(
         raise ApiError(
             status.HTTP_403_FORBIDDEN, "auth.two_factor_required",
             "This installation requires two-factor verification for your account. "
-            "Set it up under Settings, My details, before doing anything else")
+            "Set it up under User settings, Security, before doing anything else")
     return user
 
 

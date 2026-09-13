@@ -41,7 +41,7 @@ export default function UpdateToast({ user }: { user: User }) {
         pushed.current = true;
         toast.info(`${t("update.available", { version: latest })} ${t("update.hint")}`, {
           sticky: true,
-          actions: [{ label: t("updates.open"), run: () => navigate("/settings?tab=updates") }],
+          actions: [{ label: t("updates.open"), run: () => navigate("/admin/settings/updates") }],
           onDismiss: () => { try { localStorage.setItem(DISMISSED_KEY, latest); } catch { /* Optional persistence. */ } },
         });
       })

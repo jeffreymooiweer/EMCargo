@@ -21,7 +21,7 @@ const ArticlesPage = lazy(() => import("./pages/ArticlesPage"));
 const AuditPage = lazy(() => import("./pages/AuditPage"));
 const TripsPage = lazy(() => import("./pages/TripsPage"));
 const LegacyTripRoute = lazy(() => import("./pages/TripsPage").then(module => ({ default: module.LegacyTripRoute })));
-const LegalPage = lazy(() => import("./pages/LegalPage"));
+import { LegacySettingsRoute } from "./settings/routes";
 import { BrandingProvider } from "./branding";
 import { PreferencesProvider } from "./settings/preferences";
 import { ToastProvider } from "./toast/ToastProvider";
@@ -101,8 +101,13 @@ export default function App() {
           <Route path="/dg-reviews/:id" element={<DgReviewsPage user={user} />} />
           {canManage(user) && <Route path="/users" element={<UsersPage user={user} />} />}
           {user.role === "admin" && <Route path="/audit" element={<AuditPage />} />}
-          <Route path="/settings" element={<SettingsPage user={user} onUserChange={setUser} />} />
-          <Route path="/legal" element={<LegalPage />} />
+          <Route path="/account" element={<Navigate to="/account/profile" replace />} />
+          <Route path="/account/:section" element={<SettingsPage key="account" user={user} onUserChange={setUser} onPasswordChanged={() => setUser(null)} />} />
+          <Route path="/account/about/terms" element={<SettingsPage key="account" user={user} sectionOverride="terms" />} />
+          <Route path="/admin/settings" element={<Navigate to={canManage(user) ? "/admin/settings/organisation" : "/account/profile"} replace />} />
+          <Route path="/admin/settings/:section" element={canManage(user) ? <SettingsPage key="admin" area="admin" user={user} /> : <Navigate to="/account/profile" replace />} />
+          <Route path="/settings" element={<LegacySettingsRoute user={user} />} />
+          <Route path="/legal" element={<Navigate to="/account/about/terms" replace />} />
         </Route>
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/cards" element={<CardsPage />} />
