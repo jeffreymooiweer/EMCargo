@@ -95,6 +95,8 @@ kbd { font-family: inherit; font-size: .75rem; color: var(--muted); }
 .wizard-header { display: grid; grid-template-columns: minmax(0,1fr) 220px; gap: 22px; padding-top: 6px; }
 .wizard-title-block { grid-column: 1; }
 .wizard-title-block h2 { font-size: 1.6rem; letter-spacing: -.035em; }
+.wizard-reference { display: grid; gap: 6px; width: 100%; max-width: 360px; margin-top: 12px; font-size: .8125rem; font-weight: 500; color: var(--muted); }
+.wizard-reference input { min-width: 0; width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font-size: 1rem; font-weight: 400; }
 .wizard-mode-block { grid-column: 2; grid-row: 1; }
 .wizard-progress-wrap { grid-column: 1 / -1; grid-row: 2; border-bottom: 1px solid var(--line); }
 .wizard-steps { display: flex; gap: 28px; }

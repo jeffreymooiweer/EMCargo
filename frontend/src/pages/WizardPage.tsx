@@ -146,6 +146,8 @@ const PREFILL_FIELDS: Record<string, keyof UserPreferences> = {
   loading_point: "loading_point",
 };
 
+const HEADER_FIELDS = ["shipment_reference"];
+
 const MODALITY_DG_PROFILES: Record<string, string[]> = {
   road: ["ADR"],
   rail: ["RID"],
@@ -178,6 +180,13 @@ export default function WizardPage() {
   // the user touches it, and from that moment it is theirs.
   const [selectedDocs, setSelectedDocs] = useState<string[] | null>(null);
   const [docValues, setDocValues] = useState<Record<string, string>>({});
+  const setShipmentReference = (value: string) => setDocValues((current) => ({
+    ...current,
+    shipment_reference: value,
+    // Keep an imported legacy alias in sync so clearing the field cannot
+    // make the old reference reappear in the shipment list.
+    ...("reference" in current ? { reference: value } : {}),
+  }));
   // Questions skipped in the assistant. Part of the travelling state: the
   // server is stateless, so forgetting these here re-asks them every turn.
   const [skippedQuestions, setSkippedQuestions] = useState<string[]>([]);
@@ -357,6 +366,12 @@ export default function WizardPage() {
   }, [stepKey]);
 
   const goToField = (key: string) => {
+    if (key === "shipment_reference") {
+      const field = document.getElementById("field-shipment_reference");
+      field?.focus();
+      field?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+      return;
+    }
     if (key === "goods_complete") { setStepKey("lines"); return; }
     setReturnTo(stepKey);
     setFocusField(key);
@@ -1527,6 +1542,14 @@ export default function WizardPage() {
   return (
     <WizardShell
       title={shipmentTitle}
+      reference={<label className="wizard-reference" htmlFor="field-shipment_reference">
+        <span>{t("wizard.referenceLabel")}</span>
+        <input id="field-shipment_reference" type="text" maxLength={120} autoComplete="off"
+          value={docValues.shipment_reference || docValues.reference || ""}
+          placeholder={t("wizard.referencePlaceholder")} disabled={closing}
+          onChange={(event) => setShipmentReference(event.target.value)}
+          onBlur={(event) => setShipmentReference(event.target.value.trim())} />
+      </label>}
       modality={modality}
       modalities={AVAILABLE_MODALITIES}
       onModality={switchModality}
@@ -1707,6 +1730,7 @@ export default function WizardPage() {
           )}
           <DocumentFieldsStep
             registry={registry}
+            excludedFields={HEADER_FIELDS}
             documents={genericDocs}
             values={docValues}
             onChange={setDocValues}

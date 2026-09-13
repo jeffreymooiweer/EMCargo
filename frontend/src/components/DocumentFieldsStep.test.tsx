@@ -118,6 +118,24 @@ function Harness({ documents = [CMR], focusField, returnLabel, onReturn, onDone,
 }
 
 describe("the questions, grouped by what they mean", () => {
+  // Moving the reference to the persistent wizard header must not leave a
+  // second editor in the optional fields or erase it when other details change.
+  it("preserves the header reference while editing the remaining document fields", async () => {
+    const onChange = vi.fn();
+    const document: DocumentDefinition = { ...CMR, sections: [{
+      key: "references", label: text("References"), fields: [
+        { key: "shipment_reference", label: text("Shipment reference"), type: "text", status: "USER_OPTIONAL" },
+        { key: "booking_number", label: text("Booking number"), type: "text", status: "USER_OPTIONAL" },
+      ],
+    }] };
+    render(<DocumentFieldsStep registry={REGISTRY} documents={[document]}
+      values={{ shipment_reference: "ORDER-42" }} onChange={onChange} excludedFields={["shipment_reference"]} />);
+    for (const button of screen.getAllByRole("button", { name: "docgroups.change" })) await userEvent.click(button);
+    expect(screen.queryByLabelText("Shipment reference")).not.toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Booking number"), "B");
+    expect(onChange).toHaveBeenCalledWith({ shipment_reference: "ORDER-42", booking_number: "B" });
+  });
+
   it("shows the translated choice in the folded summary", () => {
     const document: DocumentDefinition = { ...CMR, sections: [{
       key: "payment", label: text("Betaling"), fields: [{
