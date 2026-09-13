@@ -5,10 +5,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.languages import pick
 from app.models.user import Equipment, Material, Profile, ReferenceItem
+from app.services.density_references import MEASURED_SOURCES, material_candidates
 from app.services.parser.dimension_extractor import extract_dimensions
 from app.services.parser.product_detector import detect_product_type
 
@@ -136,7 +138,9 @@ def _db_synonyms(db: Session) -> dict[str, str]:
     # table and somebody else's alias takes it after all.
     reserved: set[str] = set()
 
-    materials = db.query(Material).filter(Material.active.is_(True)).all()
+    # Qualified source labels already carry the selected identity and state.
+    # They have no aliases to expand and must not dominate the synonym map.
+    materials = db.query(Material).filter(Material.active.is_(True), or_(Material.source.is_(None), Material.source.notin_(MEASURED_SOURCES))).all()
     references = db.query(ReferenceItem).filter(ReferenceItem.active.is_(True)).all()
 
     def register(keys: list[str], target: str, *, is_name: bool) -> None:
@@ -396,7 +400,7 @@ def _material_names(material: Material) -> set[str]:
 def _search_materials(db: Session, query: str, query_tokens: set[str]) -> list[tuple[Material, float]]:
     lower = query.lower()
     matched: list[tuple[Material, float]] = []
-    for material in db.query(Material).filter(Material.active.is_(True)).all():
+    for material in material_candidates(db, query):
         terms = _material_terms(material)
         score = max(_score_tokens(query_tokens, _collect_terms(*terms)), _substring_alias_score(lower, terms))
         # Whoever types exactly the name of a commodity means that commodity.

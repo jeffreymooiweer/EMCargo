@@ -482,6 +482,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ rows, mapping, has_header: hasHeader }),
     }),
+  densities: (q = "", offset = 0, limit = 30, category = "") =>
+    request<DensityPage>(`/catalog/densities?q=${encodeURIComponent(q)}&offset=${offset}&limit=${limit}&category=${encodeURIComponent(category)}&language=${encodeURIComponent(i18n.language || "nl")}`),
   catalogSearch: (q: string, limit = 25, language = "nl") =>
     request<{ results: CatalogSearchHit[] }>(
       `/catalog/search?q=${encodeURIComponent(q)}&limit=${limit}&language=${language}`,
@@ -1294,6 +1296,34 @@ export interface SettingsOptions {
   units: { code: string; symbol: string }[];
 }
 
+export interface DensityReferenceData {
+  canonical_name: string;
+  label: string;
+  density_kg_m3: number;
+  density_min_kg_m3: number | null;
+  density_max_kg_m3: number | null;
+  kind: "measurement_mean" | "measurement" | "manufacturer_specification" | "literature_reference" | "published_reference" | "unverified";
+  basis: string | null;
+  source_name: string | null;
+  source_url: string | null;
+  record_count: number | null;
+  condition_key: string | null;
+  temperature_c?: number | null;
+  pressure_kpa?: number | null;
+  phase?: string | null;
+  method?: string | null;
+  expanded_uncertainty_kg_m3?: number | null;
+  original_value?: number | null;
+  original_unit?: string | null;
+  manufacturer?: string | null;
+}
+
+export interface DensityPage {
+  total: number;
+  offset: number;
+  results: DensityReferenceData[];
+}
+
 export interface LineItem {
   line_id: number;
   raw: string;
@@ -1305,6 +1335,7 @@ export interface LineItem {
   /** Category of the recognised commodity, "liquid" or "bulk_material" for
    *  instance. Determines which units and forms the dropdowns suggest first. */
   material_category?: string | null;
+  density_reference?: DensityReferenceData | null;
   /** The form computed with: solid, stacked, loose bulk. */
   cargo_form?: string | null;
   product_type: string | null;

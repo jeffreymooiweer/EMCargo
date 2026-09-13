@@ -1,4 +1,5 @@
 import HistoryStatus from "../components/HistoryStatus";
+import DensityCatalogue from "../components/DensityCatalogue";
 import type { User } from "../api/client";
 import { PlusIcon, ChevronDownIcon } from "../components/icons";
 /** The articles library: the organisation's own codes for what it ships.
@@ -38,6 +39,19 @@ function empty(): ArticleIn {
 }
 
 export default function ArticlesPage({ user }: { user?: User }) {
+  const { t } = useTranslation();
+  const [tab, setTab] = useState<"own" | "densities">("own");
+  return <div className="collection-page page-enter space-y-4 sm:space-y-6">
+    <h2 className="text-2xl font-semibold">{t("articles.title")}</h2>
+    <div className="flex gap-2" role="group" aria-label={t("nav.library")}>
+      {(["own", "densities"] as const).map(value => <button key={value} type="button" aria-pressed={tab === value} onClick={() => setTab(value)} className={tab === value ? buttonPrimary : buttonSecondary}>{t(`densities.tabs.${value}`)}</button>)}
+    </div>
+    <div hidden={tab !== "own"}><OwnGoods user={user} /></div>
+    {tab === "densities" && <DensityCatalogue />}
+  </div>;
+}
+
+function OwnGoods({ user }: { user?: User }) {
   const { t } = useTranslation();
   const toast = useToast();
   const { publicSettings } = usePreferences();
@@ -107,12 +121,11 @@ export default function ArticlesPage({ user }: { user?: User }) {
     }
   };
 
-  if (!historyOn) return <HistoryStatus title={t("articles.title")} admin={user?.role === "admin"} />;
+  if (!historyOn) return <HistoryStatus title={t("densities.tabs.own")} admin={user?.role === "admin"} />;
 
   return (
     <div className="collection-page page-enter space-y-4 sm:space-y-6">
       <div className={`${panelClass} p-5 sm:p-8`}>
-        <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">{t("articles.title")}</h2>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-3xl">{t("articles.intro")}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="button" className={buttonSecondary} onClick={() => api.downloadArticleTemplate().catch((e) => toast.error(String(e)))}>

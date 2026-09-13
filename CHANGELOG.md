@@ -2,6 +2,17 @@
 
 All notable changes are documented here, following [Semantic Versioning](https://semver.org/).
 
+## [2.10.0] — 2026-09-13
+
+### Library navigation and traceable density references
+
+- Group Goods and Equipment under Library on desktop and mobile, using the previous books icon for Library and a new goods icon. Rename the Articles page to Goods in all four languages.
+- Add 22,864 source-backed density references: 10,150 moisture-qualified wood references covering 8,842 species; 1,974 direct chemical measurements covering 1,969 compounds; 8,603 named plastic grades from CAMPUS and Ensinger; 130 copper alloys; 352 foods; five insulation grades; and 1,650 explicitly labelled bulk estimates. With the 1,093 legacy rows, the catalogue contains 23,957 entries. Measurement states are not counted as separate species or compounds, and product grades are not represented as different generic substances.
+- Preserve source record IDs, original measurements, units, moisture, observed ranges and citations. Exclude basic densities, model estimates, back-converted values, uncertain taxa, unresolved measurement groups, inconsistent unit columns and ambiguous duplicate bulk names.
+- Add a searchable, paginated density view inside Goods with a goods-category filter and expandable sources, measurement methods, temperature, pressure and uncertainty. Distinguish original measurements, manufacturer specifications, literature tables, bulk estimates and unverified values. Retain unfinished own-goods forms when switching views. Reference data remains accessible when shipment history is off.
+- Add bundled records to existing installations even with online sync disabled, preserving existing edits and inactive rows. Do not attribute modified or legacy values to a verified source.
+- Use each verified reference's physical basis in calculations, including solid wood and solid chemical samples, without hidden stacking factors. Flag weights derived from published bulk estimates for review and expose their source conditions in the goods details.
+
 ## [2.9.3] — 2026-09-13
 
 ### Centred mobile branding and visible shipment references

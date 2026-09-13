@@ -1,0 +1,201 @@
+{
+  "wood_references": 10150,
+  "wood_species": 8842,
+  "wood_source_records": 24400,
+  "bulk_references": 1650,
+  "total_added": 11800,
+  "excluded_wood_records": {
+    "backtransformed": 6968,
+    "basic_density": 71746,
+    "uncertain_or_non_species_taxon": 3156,
+    "value_requires_individual_review": 5,
+    "experimental_treatment": 654,
+    "group_requires_individual_review": 2697
+  },
+  "excluded_bulk_rows": [
+    {
+      "source_record_id": "41",
+      "name": "Aluminum Chlor-Hydrate",
+      "reason": "unit_columns_disagree"
+    },
+    {
+      "source_record_id": "95",
+      "name": "Bacon Bits",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "96",
+      "name": "Bacon Bits",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "198",
+      "name": "Calcium Carboante Slurry",
+      "reason": "non_physical_value"
+    },
+    {
+      "source_record_id": "294",
+      "name": "Cheese, Grated",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "295",
+      "name": "Cheese, Grated",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "311",
+      "name": "Chlorine",
+      "reason": "ambiguous_physical_state"
+    },
+    {
+      "source_record_id": "312",
+      "name": "Chlorine",
+      "reason": "ambiguous_physical_state"
+    },
+    {
+      "source_record_id": "437",
+      "name": "Corn Starch",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "438",
+      "name": "Corn Starch",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "439",
+      "name": "Corn Starch",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "514",
+      "name": "Disodium Phosphate",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "515",
+      "name": "Disodium Phosphate",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "517",
+      "name": "Distilled Monoglyceride",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "518",
+      "name": "Distilled Monoglyceride",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "570",
+      "name": "Egg Shell Calcium",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "571",
+      "name": "Egg Shell Calcium",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "665",
+      "name": "Frozen Sausage",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "666",
+      "name": "Frozen Sausage",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "773",
+      "name": "Gum Premix",
+      "reason": "missing_or_invalid_value"
+    },
+    {
+      "source_record_id": "922",
+      "name": "Marvinol",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "923",
+      "name": "Marvinol",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "950",
+      "name": "Midlings (Ground Copper Wire & Insulation)",
+      "reason": "unit_columns_disagree"
+    },
+    {
+      "source_record_id": "1115",
+      "name": "Plastic Regrind (.025\")",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "1116",
+      "name": "Plastic Regrind (.025\")",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "1300",
+      "name": "Salt Granulated General Purpose",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "1308",
+      "name": "Salt-Granulated General Purpose",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "1400",
+      "name": "Sodium Stearate",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "1401",
+      "name": "Sodium Stearate",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "1430",
+      "name": "Soy Nuts",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "1431",
+      "name": "Soy Nuts",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "1447",
+      "name": "Starch (Corn)",
+      "reason": "unit_columns_disagree"
+    },
+    {
+      "source_record_id": "1461",
+      "name": "Steel Wool Fibers",
+      "reason": "unit_columns_disagree"
+    },
+    {
+      "source_record_id": "1495",
+      "name": "Susta",
+      "reason": "unit_columns_disagree"
+    },
+    {
+      "source_record_id": "1590",
+      "name": "Water Dispersible",
+      "reason": "ambiguous_duplicate_name"
+    },
+    {
+      "source_record_id": "1591",
+      "name": "Water Dispersible",
+      "reason": "ambiguous_duplicate_name"
+    }
+  ],
+  "source_sha256": {
+    "gwdd_v2.2.csv": "ea8deb283ad2e3aecf08736baad2cac0a96d1eed105f14c2ca23fc2bce7606f0",
+    "hapman.html": "22d73488c70c455ef81fffae0f2eec7e8b6a9b3c3685d16cbba5373a1aade646"
+  }
+}

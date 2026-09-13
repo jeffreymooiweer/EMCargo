@@ -30,6 +30,7 @@ const paint: Article = {
 };
 
 const api = vi.hoisted(() => ({
+  densities: vi.fn(),
   articles: vi.fn(),
   saveArticle: vi.fn(),
   updateArticle: vi.fn(),
@@ -44,6 +45,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   settings.history_enabled = true;
   api.articles.mockResolvedValue([paint]);
+  api.densities.mockResolvedValue({ results: [], total: 0, offset: 0 });
   api.saveArticle.mockImplementation(async (payload: Article) => ({ ...payload, id: 2 }));
   api.updateArticle.mockImplementation(async (id: number, payload: Article) => ({ ...payload, id }));
   api.importArticlesFile.mockResolvedValue({ created: 2, updated: 1, skipped: 0, errors: [] });
@@ -58,6 +60,25 @@ function renderPage() {
 }
 
 describe("de artikelenbibliotheek", () => {
+  it("keeps reference densities available with history off", async () => {
+    settings.history_enabled = false;
+    renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "densities.tabs.densities" }));
+    expect(await screen.findByRole("searchbox")).toBeVisible();
+    await waitFor(() => expect(api.densities).toHaveBeenCalled());
+    expect(api.articles).not.toHaveBeenCalled();
+  });
+
+  it("preserves an unfinished own-goods form when looking up a density", async () => {
+    renderPage();
+    await screen.findByText("PAINT-25");
+    await userEvent.click(screen.getByText("articles.add"));
+    await userEvent.type(screen.getAllByRole("textbox")[0], "DRAFT-42");
+    await userEvent.click(screen.getByRole("button", { name: "densities.tabs.densities" }));
+    await screen.findByRole("searchbox");
+    await userEvent.click(screen.getByRole("button", { name: "densities.tabs.own" }));
+    expect(screen.getByDisplayValue("DRAFT-42")).toBeVisible();
+  });
   it("zegt waar de historie uitstaat dat er niets is om artikelen naast te bewaren", () => {
     settings.history_enabled = false;
     renderPage();

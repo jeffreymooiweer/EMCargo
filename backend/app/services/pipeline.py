@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.models.user import Equipment, Material, Profile, ReferenceItem
+from app.services.density_references import density_reference, material_candidates
 from app.services.calculator.engine import (
     STEEL_DENSITY,
     calc_angle_profile,
@@ -66,6 +67,7 @@ class LineResult:
     unit: str | None
     material: str | None = None
     material_density: float | None = None
+    density_reference: dict[str, Any] | None = None
     # The category of the recognised commodity. The interface uses it to suggest
     # the units belonging to this kind of cargo: litres for liquids, tonnes for
     # bulk, pieces for general cargo.
@@ -113,7 +115,7 @@ def match_material(text: str, db: Session) -> tuple[Material | None, float]:
     lower = text.lower()
     best: Material | None = None
     best_len = 0
-    for material in db.query(Material).filter(Material.active.is_(True)).all():
+    for material in material_candidates(db, text):
         aliases = [material.canonical_name.lower(), *_load_aliases_json(material.aliases_json)]
         labels = json.loads(material.language_labels_json or "{}")
         aliases.extend(v.lower() for v in labels.values())
@@ -483,10 +485,12 @@ def process_line(
             if content_unit is not None and row_unit is not None \
                     and row_unit.dimension == Dimension.COUNT:
                 convert_qty, convert_unit, packed = qty * content_amount, content_unit.code, True
+            source_reference = density_reference(material_obj) if not overrides.get("material_density") else None
             converted = convert_units(
                 convert_qty, convert_unit, density, material_obj.category,
                 canonical_name=material_obj.canonical_name,
                 form=overrides.get("cargo_form"),
+                source_basis=source_reference.get("basis") if source_reference else None,
             )
             if converted.mass_kg is not None or converted.volume_m3 is not None:
                 weight_total = converted.mass_kg
@@ -540,6 +544,14 @@ def process_line(
     if transport_vol is None and qty and row_unit and row_unit.dimension == Dimension.COUNT and all((length_cm, width_cm, height_cm)):
         transport_vol = length_cm * width_cm * height_cm * qty / 1_000_000
 
+    reference = density_reference(material_obj, output_language) if material_obj and not overrides.get("material_density") else None
+    if (reference and reference["kind"] == "published_reference" and weight_total is not None
+            and row_unit and row_unit.dimension != Dimension.MASS
+            and overrides.get("weight_total_kg") is None and overrides.get("weight_each_kg") is None):
+        messages.append("density_reference_estimate")
+        if status == "ok":
+            status = "needs_review"
+
     return LineResult(
         line_id=line_id,
         raw=row.raw,
@@ -551,6 +563,7 @@ def process_line(
         material_category=material_obj.category if material_obj else None,
         cargo_form=cargo_form,
         material_density=density,
+        density_reference=reference,
         product_type=product_type,
         dimensions={
             "values_m": dims.values_m,

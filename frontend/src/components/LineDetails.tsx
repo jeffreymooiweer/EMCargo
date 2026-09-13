@@ -36,6 +36,7 @@ import EquipmentCombobox from "./EquipmentCombobox";
 import { usePreferences } from "../settings/preferences";
 import NumberInput from "./NumberInput";
 import UnitSelect from "./UnitSelect";
+import DensityReference from "./DensityReference";
 
 /**
  * Cross-sections with a wall, where length-width-height does not determine the
@@ -113,6 +114,10 @@ export default function LineDetails({
       className="mt-2 rounded-xl border border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-950/40"
     >
         <div className="space-y-4 px-3 py-3 sm:px-4">
+          {result?.density_reference && <details className="text-sm">
+            <summary className="cursor-pointer font-medium">{t("densities.sourceDetails")}</summary>
+            <div className="pt-2"><DensityReference value={result.density_reference} /></div>
+          </details>}
           {hasArticles && (
             <div>
               <span className={labelClass}>{t("articles.onLine")}</span>

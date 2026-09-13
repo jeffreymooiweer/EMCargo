@@ -1,6 +1,7 @@
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from functools import lru_cache
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -38,10 +39,16 @@ class MaterialRecord:
 def load_seed_material_records(seed_path: Path) -> list[MaterialRecord]:
     if not seed_path.exists():
         return []
-    return parse_bundled_materials(
-        seed_path.read_text(encoding="utf-8"),
-        default_source="seed:materials.json",
-    )
+    records = list(_read_seed(str(seed_path), seed_path.stat().st_mtime_ns))
+    for measured in sorted(seed_path.parent.glob("materials_measured*.json")):
+        records.extend(_read_seed(str(measured), measured.stat().st_mtime_ns))
+    # Synchronisation enriches records in place. Never mutate the cached seed.
+    return [replace(record, aliases=list(record.aliases or []), language_labels=dict(record.language_labels or {})) for record in records]
+
+
+@lru_cache(maxsize=8)
+def _read_seed(path: str, modified: int) -> tuple[MaterialRecord, ...]:
+    return tuple(parse_bundled_materials(Path(path).read_text(encoding="utf-8"), default_source="seed:materials.json"))
 
 
 def parse_bundled_materials(raw: str, *, default_source: str | None = None) -> list[MaterialRecord]:
@@ -153,13 +160,22 @@ def _is_external_managed(material: Material) -> bool:
     return lower.startswith(EXTERNAL_SOURCE_PREFIXES) or "eurocode" in lower or "github" in lower
 
 
-def upsert_materials(db: Session, records: list[MaterialRecord]) -> tuple[int, int]:
+def upsert_materials(db: Session, records: list[MaterialRecord], *, only_missing: bool = False) -> tuple[int, int]:
     added = 0
     updated = 0
+    if only_missing:
+        existing_names = {name for (name,) in db.query(Material.canonical_name).all()}
+        records = [record for record in records if record.canonical_name not in existing_names]
+        # Seed upgrades only insert missing rows. Batch them without thousands
+        # of transient ORM objects, keeping existing local rows untouched.
+        if records:
+            db.bulk_insert_mappings(Material, [_material_values(record) for record in records], render_nulls=True)
+        return len(records), 0
+    by_name = {material.canonical_name: material for material in db.query(Material).all()}
     for record in records:
-        existing = db.query(Material).filter(Material.canonical_name == record.canonical_name).first()
+        existing = by_name.get(record.canonical_name)
         if existing:
-            if not _is_external_managed(existing):
+            if only_missing or not _is_external_managed(existing):
                 continue
             existing.category = record.category
             existing.density_kg_m3 = record.density_kg_m3
@@ -167,31 +183,33 @@ def upsert_materials(db: Session, records: list[MaterialRecord]) -> tuple[int, i
             existing.density_max_kg_m3 = record.density_max_kg_m3
             existing.condition = record.condition
             if record.language_labels:
-                existing.language_labels_json = json.dumps(record.language_labels)
+                existing.language_labels_json = json.dumps(record.language_labels, ensure_ascii=False)
             if record.aliases:
-                existing.aliases_json = json.dumps(record.aliases)
+                existing.aliases_json = json.dumps(record.aliases, ensure_ascii=False)
             existing.source = record.source
             existing.notes = record.notes
             existing.active = True
             updated += 1
         else:
-            db.add(
-                Material(
-                    canonical_name=record.canonical_name,
-                    category=record.category,
-                    density_kg_m3=record.density_kg_m3,
-                    density_min_kg_m3=record.density_min_kg_m3,
-                    density_max_kg_m3=record.density_max_kg_m3,
-                    condition=record.condition,
-                    language_labels_json=json.dumps(record.language_labels or {}),
-                    aliases_json=json.dumps(record.aliases or []),
-                    source=record.source,
-                    notes=record.notes,
-                    active=True,
-                )
-            )
+            db.add(Material(**_material_values(record)))
             added += 1
     return added, updated
+
+
+def _material_values(record: MaterialRecord) -> dict:
+    return {
+        "canonical_name": record.canonical_name,
+        "category": record.category,
+        "density_kg_m3": record.density_kg_m3,
+        "density_min_kg_m3": record.density_min_kg_m3,
+        "density_max_kg_m3": record.density_max_kg_m3,
+        "condition": record.condition,
+        "language_labels_json": json.dumps(record.language_labels or {}, ensure_ascii=False),
+        "aliases_json": json.dumps(record.aliases or [], ensure_ascii=False),
+        "source": record.source,
+        "notes": record.notes,
+        "active": True,
+    }
 
 
 def merge_seed_material_aliases(db: Session, records: list[MaterialRecord]) -> None:
