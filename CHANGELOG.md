@@ -2,6 +2,15 @@
 
 All notable changes are documented here, following [Semantic Versioning](https://semver.org/).
 
+## [2.9.2] — 2026-09-13
+
+### Stop the refresh loop after updates
+
+- Do not resume saved update progress when its target version is already running. Reload once when an observed update reaches its target, then keep the newly loaded page usable even if the helper still reports a restart.
+- Wait for the accepted target and its running version before completing an update. Ignore previous completion records during a new attempt, retain failure reporting and tolerate the connection dropping during restart.
+- Serve update progress and the HTML entry point without caching across releases. Retain the last result for every administrator, and prevent progress reads from erasing a concurrent update.
+- Add regression coverage for repeated page loads, restart downtime, delayed or consumed completion records, pending installation requests and frontend delivery after an update.
+
 ## [2.9.1] — 2026-09-13
 
 ### One place for account actions

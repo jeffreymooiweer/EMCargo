@@ -190,10 +190,13 @@ def create_app() -> FastAPI:
             if full_path:
                 candidate = (static_dir / full_path).resolve()
                 if candidate.is_file() and candidate.is_relative_to(static_root):
-                    return FileResponse(candidate)
+                    headers = {"Cache-Control": "no-store"} if candidate == static_root / "index.html" else None
+                    return FileResponse(candidate, headers=headers)
             index = static_dir / "index.html"
             if index.exists():
-                return FileResponse(index)
+                # Every post-update navigation must load the entry point that
+                # references this release's hashed JavaScript and stylesheets.
+                return FileResponse(index, headers={"Cache-Control": "no-store"})
             return JSONResponse({"detail": "Frontend not built"}, status_code=404)
 
     return app
