@@ -2,6 +2,13 @@
 
 All notable changes are documented here, following [Semantic Versioning](https://semver.org/).
 
+## [2.11.2] — 2026-09-14
+
+### Keep the complete EMCargo wordmark visible
+
+- Restore the brand font's natural line height so the bottom of the Cal Sans g is not clipped in navigation, sign-in, public UN cards or About.
+- Preserve the mark's capital-E height and baseline, the exact #245BEA colour, and horizontal ellipsis for long organisation names.
+
 ## [2.11.1] — 2026-09-14
 
 ### Match the new website branding
