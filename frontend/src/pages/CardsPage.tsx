@@ -1,4 +1,5 @@
 import { DocumentIcon, DownloadIcon } from "../components/icons";
+import BrandLockup from "../components/BrandLockup";
 /** The page a QR code on a transport document opens.
  *
  *  Public, and the only page in the application that is. The people this is
@@ -49,7 +50,7 @@ export default function CardsPage() {
 
   return (
     <main className="public-cards page-enter">
-      <div className="public-cards-brand"><img src="/emcargo.svg" alt="" /><span>EMCargo</span></div>
+      <div className="public-cards-brand"><BrandLockup /></div>
       <DocumentIcon className="mb-5 h-8 w-8 text-brand-600" />
       <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
         {t("cards.title")}

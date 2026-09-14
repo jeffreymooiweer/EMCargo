@@ -1,0 +1,37 @@
+@font-face {
+  font-family: "Cal Sans";
+  src: url("/fonts/cal-sans-regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .2em;
+  min-width: 0;
+  max-width: 100%;
+  font-family: "Cal Sans", Arial, sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1;
+  letter-spacing: -.015em;
+  white-space: nowrap;
+}
+.brand-wordmark { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.emcargo-initials { color: #245bea; }
+
+/* The cropped website mark is 1124 × 869. Cal Sans caps are .7em high. */
+.brand-symbol {
+  display: block;
+  flex: none;
+  width: .90540967em;
+  width: calc(1cap * 1.293442);
+  height: .7em;
+  height: 1cap;
+}
+.brand-lockup-custom { font-family: inherit; font-weight: 600; letter-spacing: -.03em; }
+.brand-symbol-custom { width: 1.5em; height: 1.2em; object-fit: contain; }
+.brand-lockup-compact .brand-symbol { width: 34px; height: auto; }
+.brand-lockup-compact .brand-symbol-custom { height: 34px; }

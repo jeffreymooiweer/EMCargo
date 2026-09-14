@@ -1,5 +1,5 @@
 import { canManage } from "../permissions";
-import BrandName from "./BrandName";
+import BrandLockup from "./BrandLockup";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -86,8 +86,7 @@ export default function Layout({ user, onLogout }: Props) {
       || (location.pathname.startsWith("/shipments/") ? t("nav.shipments") : location.pathname.startsWith("/trips/") ? t("nav.trips") : t("studio.workspace"));
   const name = branding.name || t("app.name");
   const brand = (compact = false) => <div className="emcargo-brand">
-    <img src={branding.logo || "/emcargo.svg"} alt="" className="h-9 w-9 shrink-0 object-contain" />
-    {!compact && <span className="truncate text-2xl font-semibold tracking-tight"><BrandName name={name} /></span>}
+    <BrandLockup name={name} logo={branding.logo} compact={compact} />
   </div>;
   const linkClass = ({ isActive }: { isActive: boolean }) => `emcargo-nav-link ${isActive ? "emcargo-nav-active" : ""}`;
   type Icon = typeof HomeIcon;

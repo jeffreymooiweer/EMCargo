@@ -2,6 +2,14 @@
 
 All notable changes are documented here, following [Semantic Versioning](https://semver.org/).
 
+## [2.11.1] — 2026-09-14
+
+### Match the new website branding
+
+- Use the website's new transparent EMCargo mark and Cal Sans lettering throughout the app, including navigation, sign-in, public UN cards, About and the browser icon.
+- Give the mark and the first two letters, EM, the exact brand colour #245BEA in both themes. Match the visible mark to the capital E's height and baseline, with the website's compact spacing.
+- Preserve organisation names and uploaded logos. Regenerate the default mail/document logo with transparency and keep its source and rendering command in the repository.
+
 ## [2.11.0] — 2026-09-14
 
 ### Daily work and local packing-list intake
