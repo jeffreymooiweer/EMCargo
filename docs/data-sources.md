@@ -275,6 +275,18 @@ Run the script with `--logo` to also regenerate the mail logo from
 `frontend/public/emcargo.svg`. Both are attached PNGs, so mail clients do not
 need SVG support or an outbound image request.
 
+Since v2.11.1 the product mark is the owner-supplied logo used on the EMCargo
+website, with its cropped bounds and SVG colour/alpha filter retained. The
+mark and EM lettering use #245BEA in both themes. Cal Sans is bundled locally
+with its SIL Open Font License in `frontend/public/fonts/cal-sans-LICENSE.txt`.
+Its 700/1000 cap height aligns the mark with the capital E.
+
+The default mail/document PNG is rendered with Sharp's SVG filter support;
+MuPDF does not apply this filter. Run `npm ci` in `frontend` before using
+`scripts/render_mail_icons.py --logo`, or run
+`node frontend/scripts/render-brand.mjs` directly. Sharp is a build-time
+dependency only; deployed servers use the committed PNG.
+
 ### Previous icon sets (before v2.2.0)
 
 Most icons in the interface are drawn in this repository — the copy, delete,

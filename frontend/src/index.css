@@ -35,8 +35,6 @@
 .emcargo-shell-folded { --rail-width: 72px; }
 .emcargo-sidebar { position: fixed; inset: 0 auto 0 0; width: var(--rail-width); display: flex; flex-direction: column; z-index: 40; background: var(--panel); border-right: 1px solid var(--line); }
 .emcargo-brand { display: flex; align-items: center; gap: 10px; min-height: 88px; padding: 24px; min-width: 0; }
-.emcargo-brand > span { font-size: 21px; letter-spacing: -.045em; }
-.emcargo-brand > img { width: 29px; height: 29px; }
 .emcargo-navigation { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 12px; }
 .emcargo-nav-link { position: relative; display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 10px 14px; margin-block: 3px; border-radius: 7px; font-size: .875rem; font-weight: 500; color: var(--muted); }
 .emcargo-nav-link:hover { background: #7a8a9f10; color: var(--ink); }
@@ -192,7 +190,6 @@ kbd { font-family: inherit; font-size: .75rem; color: var(--muted); }
 .auth-page { min-height: 100dvh; display: grid; place-items: center; padding: 32px 20px; }
 .auth-card { width: 100%; max-width: 420px; }
 .auth-brand { display: flex; gap: 10px; align-items: center; margin-bottom: 44px; font-size: 22px; font-weight: 600; letter-spacing: -.035em; }
-.auth-brand img { width: 30px; height: 30px; }
 .auth-card h1 { font-size: 1.9rem; font-weight: 550; letter-spacing: -.045em; }
 .auth-card .auth-intro { color: var(--muted); margin-block: 12px 32px; line-height: 1.6; font-size: .9375rem; }
 .auth-card input { min-height: 48px; }

@@ -88,7 +88,7 @@ export default function ResetPasswordPage() {
       <div className="auth-card page-enter space-y-5">
         <div className="text-center">
           <img
-            src={branding.logo ?? "/emcargo.svg"}
+            src={branding.logo ?? "/emcargo.svg?v=2.11.1"}
             alt=""
             aria-hidden="true"
             className={`mx-auto h-16 w-16 object-contain ${branding.logo ? "" : ""}`}

@@ -180,6 +180,6 @@ describe("the approved EMCargo navigation", () => {
     for (const image of document.querySelectorAll("img")) { expect(image).toHaveAttribute("src", "/custom.svg"); expect(image.className).not.toContain("invert"); }
   });
   it("uses EMCargo's own mark by default", () => {
-    renderAt(); expect(document.querySelector("img")).toHaveAttribute("src", "/emcargo.svg");
+    renderAt(); expect(document.querySelector("img")).toHaveAttribute("src", "/emcargo.svg?v=2.11.1");
   });
 });

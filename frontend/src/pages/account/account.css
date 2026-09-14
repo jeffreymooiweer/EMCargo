@@ -24,8 +24,7 @@
 .account-back { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-size: .875rem; margin-bottom: 12px; }
 .account-about { display: grid; gap: 20px; }
 .settings-content .about-hero { position: relative; overflow: hidden; isolation: isolate; padding: 40px; border: 1px solid var(--line); border-top: 3px solid #245bea; border-radius: 18px; }
-.about-product { display: flex; align-items: center; gap: 20px; }
-.about-product img { flex-shrink: 0; filter: drop-shadow(0 7px 12px #245bea20); }
+.about-product { display: flex; flex-direction: column; align-items: flex-start; }
 .settings-content .about-product h3 { font-size: clamp(1.75rem,4vw,2.5rem); line-height: 1.15; letter-spacing: -.05em; font-weight: 700; }
 .about-version { display: inline-flex; align-items: center; gap: 7px; margin-top: 9px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); background: var(--panel); font: 500 .75rem ui-monospace,monospace; }
 .about-version::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #245bea; }
@@ -69,8 +68,6 @@
   .account-password .account-fields { grid-template-columns: minmax(0,1fr); }
   .account-password-options { align-items: flex-start; flex-direction: column; gap: 4px; }
   .settings-content .about-hero { padding: 26px 22px; }
-  .about-product { gap: 16px; }
-  .about-product img { width: 64px; height: 64px; }
   .about-statement { margin-top: 28px; }
   .about-features { grid-template-columns: minmax(0,1fr); gap: 10px; }
   .settings-content .about-features section { display: grid; grid-template-columns: 26px minmax(0,1fr); gap: 5px 12px; padding: 18px; }

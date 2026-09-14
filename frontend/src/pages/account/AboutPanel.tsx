@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import BrandName from "../../components/BrandName";
+import BrandLockup from "../../components/BrandLockup";
 import { ArrowRightIcon, CodeIcon, DocumentIcon, HistoryIcon, RoadIcon, ShieldIcon, ShipmentsIcon } from "../../components/icons";
 import { version as buildVersion } from "../../../package.json";
 
@@ -16,8 +16,8 @@ export default function AboutPanel({ version }: { version: string }) {
   return <div className="account-about">
     <section className="about-hero">
       <div className="about-route-art" aria-hidden="true"><span /><span /><span /><RoadIcon /></div>
-      <div className="about-product"><img src="/emcargo.svg" alt="" width="88" height="88" />
-        <div><h3><BrandName /></h3><span className="about-version">v{(version || buildVersion).trim().replace(/^v/, "")}</span></div>
+      <div className="about-product">
+        <h3><BrandLockup /></h3><span className="about-version">v{(version || buildVersion).trim().replace(/^v/, "")}</span>
       </div>
       <p className="about-statement">{t("account.aboutTagline")}</p>
       <p className="about-description">{t("account.aboutIntro")}</p>

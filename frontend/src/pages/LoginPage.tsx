@@ -1,4 +1,5 @@
 import AuthLayout from "../components/AuthLayout";
+import BrandLockup from "../components/BrandLockup";
 import { ArrowRightIcon } from "../components/icons";
 import { useState } from "react";
 import { useLocation } from "react-router";
@@ -94,7 +95,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
         >
           <div className="text-center">
             <img
-              src={branding.logo ?? "/emcargo.svg"}
+              src={branding.logo ?? "/emcargo.svg?v=2.11.1"}
               alt=""
               aria-hidden="true"
               className={`mx-auto h-16 w-16 object-contain ${branding.logo ? "" : ""}`}
@@ -153,7 +154,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
   return (
     <AuthLayout>
       <form onSubmit={submit} className="auth-card page-enter space-y-5">
-        <div className="auth-brand"><img src={branding.logo || "/emcargo.svg"} alt="" /><span>{branding.name || t("app.name")}</span></div>
+        <div className="auth-brand"><BrandLockup name={branding.name} logo={branding.logo} /></div>
         <div><h1>{t("studio.loginTitle")}</h1><p className="auth-intro">{t("studio.loginHint")}</p></div>
         {location.state?.passwordChanged && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">{t("account.passwordChanged")}</p>}
         {setupWarning && <p className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm">{setupWarning}</p>}

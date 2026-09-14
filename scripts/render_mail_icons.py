@@ -24,6 +24,7 @@ which for an icon that only has to be recognised is the right trade.
 from __future__ import annotations
 
 import argparse
+import subprocess
 from pathlib import Path
 
 import fitz
@@ -62,15 +63,12 @@ def render(destination: Path = OUT) -> Path:
 
 
 def render_logo() -> Path:
-    """Keep the mail attachment reproducible from the application's SVG mark."""
-    source = REPO / "frontend" / "public" / "emcargo.svg"
+    """Render the website's SVG filter, which MuPDF does not implement."""
     destination = OUT.with_name("logo.png")
-    with fitz.open(stream=source.read_bytes(), filetype="svg") as document:
-        page = document[0]
-        zoom = 192 / page.rect.width
-        pixmap = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=True)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    pixmap.save(destination)
+    subprocess.run(
+        ["node", str(REPO / "frontend" / "scripts" / "render-brand.mjs"), str(destination)],
+        check=True,
+    )
     return destination
 
 
