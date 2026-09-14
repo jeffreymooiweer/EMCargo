@@ -15,7 +15,8 @@
   font-family: "Cal Sans", Arial, sans-serif;
   font-weight: 400;
   font-synthesis: none;
-  line-height: 1;
+  /* Keep the font's full descent inside the wordmark's ellipsis clip. */
+  line-height: normal;
   letter-spacing: -.015em;
   white-space: nowrap;
 }
