@@ -137,6 +137,33 @@ def _008_shipment_drafts(conn: Connection) -> None:
         "CREATE INDEX IF NOT EXISTS ix_shipments_is_draft ON shipments (is_draft)"))
 
 
+def _009_work_queue(conn: Connection) -> None:
+    """Index existing office work without changing its content or approvals."""
+    from app.models.dg_review import DgReview
+    from app.services.work_queue import backfill
+
+    DgReview.__table__.create(conn, checkfirst=True)
+    for definition in (
+        "work_status VARCHAR(24) NOT NULL DEFAULT 'prepare'",
+        "work_due_date VARCHAR(10)",
+        "work_owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
+        "work_issues_json TEXT NOT NULL DEFAULT '[]'",
+        "work_review_id VARCHAR(36)",
+        "work_fingerprint VARCHAR(64) NOT NULL DEFAULT ''",
+        "work_completed_at DATETIME",
+        "work_version INTEGER NOT NULL DEFAULT 0",
+    ):
+        add_column(conn, "shipments", definition)
+    for definition in ("work_due_date VARCHAR(10)",
+                       "work_draft_fingerprint VARCHAR(64) NOT NULL DEFAULT ''",
+                       "work_consignee VARCHAR(255) NOT NULL DEFAULT ''",
+                       "work_completed_at DATETIME"):
+        add_column(conn, "dg_reviews", definition)
+    for name in ("work_status", "work_due_date", "work_owner_id"):
+        conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_shipments_{name} ON shipments ({name})"))
+    backfill(conn)
+
+
 #: In order. Append; never renumber, never remove.
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "shipments", _001_shipments),
@@ -147,6 +174,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (6, "audit_events", _006_audit_events),
     (7, "trips", _007_trips),
     (8, "shipment_drafts", _008_shipment_drafts),
+    (9, "work_queue", _009_work_queue),
 ]
 
 

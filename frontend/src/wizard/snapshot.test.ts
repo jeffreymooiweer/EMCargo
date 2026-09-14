@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { SNAPSHOT_VERSION, readSnapshot, templateValues } from "./snapshot";
 
+it("retains accepted document evidence on reopening and ignores malformed evidence", () => {
+  const evidence = { name: "packing.pdf", sha256: "a".repeat(64), pages: [1, 2], excerpt: "12 boxes 240 kg", method: "ocr", target: "goods:1", value: "12 boxes · 240 kg (total)" };
+  const read = readSnapshot({ version: 1, documentEvidence: [evidence, { ...evidence, pages: [999] }, null] });
+  expect(read?.documentEvidence).toEqual([evidence]);
+  expect(readSnapshot({ version: 1 })).not.toHaveProperty("documentEvidence");
+});
+
 describe("een bewaarde wizardtoestand teruglezen", () => {
   it("geeft de brontoestand terug zoals hij was", () => {
     const stored = {

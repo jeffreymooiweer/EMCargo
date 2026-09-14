@@ -48,8 +48,13 @@ preferences are supported. See the [design review](docs/design/review-2.2.0.md)
 and [in-app update setup](docs/in-app-updates.md).
 
 Overview, Shipments, Trips and Articles have permanent entries in organisation
-navigation. When shipment storage is disabled, those pages explain how an
-administrator can enable it. Users can set their profile photo under Settings /
+navigation. The overview lists work needing attention, pending specialist reviews,
+today's stated loading dates and ready documents. Assign kept shipments to an
+authorised colleague and record office completion. Private drafts stay private;
+specialist work remains available when optional shipment history is off. See the
+[implementation plan and remaining scope](docs/workflow-document-intake-plan.md).
+When shipment storage is disabled, its pages explain how an administrator can
+enable it. Users can set their profile photo under Settings /
 My details; administrators manage accounts in a searchable directory with a
 separate edit dialog.
 
@@ -174,6 +179,18 @@ button that really goes back, and the same address and location suggestions
 the wizard's own fields have. What the sentence already said is never asked
 again: the count, the contents per package and the totals compute by
 themselves.
+
+The assistant also reads packing lists from PDF, JPEG and PNG (up to 20 MB,
+10 pages). Text extraction and Tesseract OCR run locally. Inspect the source page,
+correct recognised text and review editable goods and shipment facts before
+accepting them. Existing fields are preserved until explicitly selected for
+replacement. Missing quantities remain open; a stated weight requires a choice
+between per item and total. Accepted source excerpts travel with the draft, while
+original uploads and page previews are temporary. Always compare the proposal
+with the complete source: OCR and model extraction can miss or misread facts.
+
+Docker includes OCR for Dutch, English, German and French. Native installations
+need [Tesseract and its language data](docs/installation-native.md#document-ocr).
 
 **The assistant requires a local language model.** An administrator installs
 the official Qwen3-1.7B (Apache-2.0) in *Settings*. Its llama.cpp runtime and

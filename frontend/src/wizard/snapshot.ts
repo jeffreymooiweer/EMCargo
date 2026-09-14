@@ -13,7 +13,7 @@
  * must open as far as it can rather than crash the wizard: every field has
  * a fallback and the version is checked for a major break only.
  */
-import type { CalcResult, DgEntry } from "../api/client";
+import type { CalcResult, DgEntry, DocumentEvidence } from "../api/client";
 import type { DraftLine } from "../components/ReviewLinesPanel";
 
 export const SNAPSHOT_VERSION = 1;
@@ -33,6 +33,7 @@ export interface WizardSnapshot {
   result: CalcResult | null;
   dgEntries: DgEntry[];
   signature: string | null;
+  documentEvidence?: DocumentEvidence[];
 }
 
 const STEPS = new Set(["lines", "dg", "details", "export"]);
@@ -85,6 +86,11 @@ export function readSnapshot(raw: unknown): WizardSnapshot | null {
     result: isRecord(raw.result) && Array.isArray(raw.result.lines) ? (raw.result as unknown as CalcResult) : null,
     dgEntries: Array.isArray(raw.dgEntries) ? (raw.dgEntries.filter(isRecord) as unknown as DgEntry[]) : [],
     signature: typeof raw.signature === "string" && raw.signature ? raw.signature : null,
+    ...(Array.isArray(raw.documentEvidence) ? { documentEvidence: raw.documentEvidence.filter((item): item is DocumentEvidence =>
+      isRecord(item) && typeof item.name === "string" && typeof item.sha256 === "string" && typeof item.target === "string"
+      && typeof item.value === "string" && typeof item.excerpt === "string" && item.excerpt.length <= 6000
+      && ["text", "ocr", "corrected"].includes(String(item.method)) && Array.isArray(item.pages)
+      && item.pages.every(page => typeof page === "number" && Number.isInteger(page) && page > 0 && page <= 10)).slice(0, 500) } : {}),
   };
 }
 

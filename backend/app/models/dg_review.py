@@ -20,3 +20,7 @@ class DgReview(Base):
     comment: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    work_due_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    work_draft_fingerprint: Mapped[str] = mapped_column(String(64), default="")
+    work_consignee: Mapped[str] = mapped_column(String(255), default="")
+    work_completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

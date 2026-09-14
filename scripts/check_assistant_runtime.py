@@ -13,6 +13,8 @@ from app.services.assistant import runtime
 
 
 def main() -> None:
+    languages = subprocess.run(["tesseract", "--list-langs"], capture_output=True, text=True, check=True, timeout=10)
+    assert {"nld", "eng", "deu", "fra"}.issubset(set(languages.stdout.splitlines()))
     pin = runtime.sources()["server"][runtime._arch()]
     with tempfile.TemporaryDirectory(prefix="assistant-runtime-") as folder:
         server = runtime.install_server(pin, Path(folder))

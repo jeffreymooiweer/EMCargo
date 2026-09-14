@@ -2,6 +2,17 @@
 
 All notable changes are documented here, following [Semantic Versioning](https://semver.org/).
 
+## [2.11.0] — 2026-09-14
+
+### Daily work and local packing-list intake
+
+- Replace the overview with an actionable, paginated work list: attention, specialist review, stated loading dates, ready documents and completed office work. Link each task to its next step, allow assignment to authorised colleagues and reject stale concurrent edits.
+- Index and backfill existing shipments without loading document bodies in every overview request. Keep drafts private, enforce department visibility and specialist approval, and retain DG review work when optional shipment history is disabled. Office completion does not record departure or delivery.
+- Read text PDFs, scanned PDFs, JPEG and PNG locally in the assistant. Present page previews, correctable recognised text and editable proposals before adding goods or changing shipment fields. Preserve existing values unless their replacement is explicitly selected.
+- Require source support for proposed facts and explicit confirmation of per-item versus total mass. Keep missing quantities unresolved and carry accepted source excerpts through saving, reopening and undo. Retain work after reading, model or connection failures; ignore cancelled requests.
+- Include Tesseract and all four interface languages in Docker, document native OCR requirements, and bound upload size, pages, rendered pixels, extracted text and processing time.
+- Update the roadmap and implementation plan: own goods covers only the organisation's traded articles; visual load planning remains a companion module; a carrier app is excluded; integration work builds on existing IFTDGN, shipment JSON and eFTI mapping.
+
 ## [2.10.0] — 2026-09-13
 
 ### Library navigation and traceable density references

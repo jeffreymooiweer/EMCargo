@@ -1,148 +1,164 @@
-import { ShieldIcon } from "../components/icons";
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
-import { api, ShipmentDetail, ShipmentSummary, type User } from "../api/client";
-import { ModalityIcon } from "../components/WizardShell";
-import { MoreIcon, ArrowRightIcon, PlusIcon, ShipmentsIcon, TripsIcon, ImportIcon } from "../components/icons";
-import { usePreferences } from "../settings/preferences";
+import { api, type User, type WorkBucket, type WorkItem, type WorkPage } from "../api/client";
+import { ArrowRightIcon, CheckIcon, CloseIcon, ImportIcon, MoreIcon, PlusIcon, RefreshIcon } from "../components/icons";
 import HistoryStatus from "../components/HistoryStatus";
-import { readSnapshot } from "../wizard/snapshot";
-import { localDayRange } from "../utils/dateRanges";
-import { AVAILABLE_MODALITIES, isModalityAvailable } from "./ModalitySelectPage";
+import { usePreferences } from "../settings/preferences";
+import { isModalityAvailable } from "./ModalitySelectPage";
+import "./overview.css";
+
+function localDate() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+export function workDestination(item: WorkItem): string {
+  if (!isModalityAvailable(item.modality)) return item.kind === "review" ? `/dg-reviews/${item.id}` : "/shipments";
+  if (item.kind === "review") return item.status === "review" || item.status === "waiting"
+    ? `/dg-reviews/${item.id}` : `/wizard/${item.modality}?review=${item.id}`;
+  return item.is_draft ? `/wizard/${item.modality}` : `/wizard/${item.modality}?shipment=${item.id}`;
+}
 
 export default function OverviewPage({ user }: { user?: User }) {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
   const { publicSettings, preferences } = usePreferences();
-  const history = !!publicSettings?.history_enabled;
-  const [draft, setDraft] = useState<ShipmentDetail | null>(null);
-  const [recent, setRecent] = useState<ShipmentSummary[]>([]);
-  const [counts, setCounts] = useState<{ shipments: number; trips: number } | null>(null);
+  const [bucket, setBucket] = useState<WorkBucket>("attention");
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(history);
-  const [error, setError] = useState(false);
-  const [discarding, setDiscarding] = useState(false);
-  const [reload, setReload] = useState(0);
+  const [mine, setMine] = useState(false);
+  const [page, setPage] = useState(1);
+  const [day, setDay] = useState(localDate);
+  const [data, setData] = useState<WorkPage | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [failure, setFailure] = useState("");
+  const [refresh, setRefresh] = useState(0);
+  const [editing, setEditing] = useState<WorkItem | null>(null);
+  const [people, setPeople] = useState<{ id: number; name: string }[]>([]);
+  const [owner, setOwner] = useState("");
+  const [peopleLoading, setPeopleLoading] = useState(false);
+  const [peopleFailure, setPeopleFailure] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState("");
+  const sequence = useRef(0);
+  const editor = useRef<HTMLDivElement>(null);
+  const mounted = useRef(true);
+  const preferred = isModalityAvailable(preferences.default_modality) ? preferences.default_modality : "road";
+
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => {
+    const update = () => { setDay(localDate()); setRefresh(value => value + 1); };
+    const visible = () => { if (!document.hidden) update(); };
+    const interval = setInterval(visible, 60_000);
+    document.addEventListener("visibilitychange", visible);
+    return () => { clearInterval(interval); document.removeEventListener("visibilitychange", visible); };
+  }, []);
+  useEffect(() => {
+    const current = ++sequence.current;
+    setLoading(true); setFailure("");
+    void api.work({ day, bucket, q: query, mine, page }).then(result => {
+      if (sequence.current !== current) return;
+      const last = Math.max(1, Math.ceil(result.total / result.per_page));
+      if (page > last) { setPage(last); return; }
+      setData(result);
+    }).catch(() => { if (sequence.current === current) setFailure(t("work.loadFailed")); })
+      .finally(() => { if (sequence.current === current) setLoading(false); });
+    return () => { ++sequence.current; };
+  }, [day, bucket, query, mine, page, refresh, i18n.language]);
 
   useEffect(() => {
-    if (!history) { setDraft(null); setRecent([]); setCounts(null); setLoading(false); setError(false); return; }
+    if (!editing) return;
     let alive = true;
-    setLoading(true); setError(false); setDraft(null); setRecent([]); setCounts(null);
-    const day = localDayRange();
-    const fail = () => { if (alive) setError(true); };
-    api.runningDraft().then((value) => { if (alive) setDraft(value); }).catch(fail);
-    api.shipments({ per_page: 5, page: 1 })
-      .then((page) => { if (alive) setRecent(page.items.filter((item) => !item.is_draft)); })
-      .catch(fail).finally(() => { if (alive) setLoading(false); });
-    Promise.all([
-      api.shipments({ date_from: day.from, date_to: day.to, per_page: 1 }),
-      api.trips({ date_from: day.from, date_to: day.to, per_page: 1 }),
-    ]).then(([shipments, trips]) => { if (alive) setCounts({ shipments: shipments.total, trips: trips.total }); }).catch(fail);
-    return () => { alive = false; };
-  }, [history, reload]);
+    setPeople([]); setPeopleLoading(true); setPeopleFailure(""); setOwner(String(editing.owner_id ?? ""));
+    void api.workPeople(Number(editing.id)).then(result => { if (alive) setPeople(result); })
+      .catch(() => { if (alive) setPeopleFailure(t("work.peopleFailed")); })
+      .finally(() => { if (alive) setPeopleLoading(false); });
+    const trigger = document.activeElement as HTMLElement | null;
+    editor.current?.querySelector<HTMLElement>("button")?.focus();
+    const keys = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setEditing(null);
+      if (event.key !== "Tab") return;
+      const controls = Array.from(editor.current?.querySelectorAll<HTMLElement>("button:not(:disabled), select:not(:disabled)") || []);
+      if (event.shiftKey && document.activeElement === controls[0]) { event.preventDefault(); controls[controls.length - 1]?.focus(); }
+      else if (!event.shiftKey && document.activeElement === controls[controls.length - 1]) { event.preventDefault(); controls[0]?.focus(); }
+    };
+    document.addEventListener("keydown", keys);
+    return () => { alive = false; document.removeEventListener("keydown", keys); trigger?.focus(); };
+  }, [editing, i18n.language]);
 
-  const draftModality = draft ? readSnapshot(draft.snapshot)?.modality || draft.modality : "";
-  const draftTime = draft ? new Date(draft.updated_at).toLocaleTimeString(i18n.language, { timeStyle: "short" }) : "";
-  const filtered = recent.filter((item) => [item.reference, item.consignor_name, item.consignee_name].some((value) => value?.toLocaleLowerCase().includes(query.toLocaleLowerCase())));
-  const preferred = isModalityAvailable(preferences.default_modality) ? preferences.default_modality : "road";
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
-
-  async function discard() {
-    setDiscarding(true);
-    try { await api.discardDraft(); setDraft(null); }
-    catch { setError(true); }
-    finally { setDiscarding(false); }
+  function filter(next: WorkBucket) { setBucket(next); setPage(1); }
+  async function change(item: WorkItem, update: { owner_id?: number; completed?: boolean }) {
+    if (saving) return;
+    setSaving(true); setPeopleFailure(""); setSaved("");
+    try {
+      await api.changeWork(Number(item.id), { version: item.version, ...update });
+      if (!mounted.current) return;
+      setEditing(null); setRefresh(value => value + 1); setSaved(t("work.saved"));
+    } catch (cause) {
+      if (mounted.current) setPeopleFailure(String(cause));
+    } finally { if (mounted.current) setSaving(false); }
   }
 
-  return (
-    <div className="overview-workspace collection-page page-enter space-y-6">
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">{t("nav.overview")}</p><h2>{t(`overview.${greeting}`)}{user?.username && <span className="overview-name"> {user.display_name || user.username}</span>}</h2>
-          <p>{history ? t("overview.intro") : t("overview.introNoHistory")}</p>
-        </div>
-        <Link to="/" className="action-primary"><PlusIcon className="h-5 w-5" />{t("nav.new")}</Link>
-      </div>
-      <Link to="/dg-reviews" className="surface review-summary"><ShieldIcon className="h-7 w-7" /><div><h3 className="font-semibold">{t("dgReview.title")}</h3><p>{t(user?.role === "dg_specialist" || user?.role === "admin" ? "dgReview.queueHint" : "dgReview.mineHint")}</p></div></Link>
-      {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-        <span>{t("overview.loadError")}</span>
-        <button className="action-secondary" onClick={() => setReload((value) => value + 1)}>{t("overview.retry")}</button>
-      </div>}
-      {history && <section className="surface overview-today">
-        <h3 className="surface-title">{t("overview.todayTitle")}</h3>
-        <div className="overview-metrics">
-          {[{ label: "overview.todayShipments", value: counts?.shipments, icon: ShipmentsIcon, to: "/shipments" }, { label: "overview.todayTrips", value: counts?.trips, icon: TripsIcon, to: "/trips" }].map(({ label, value, icon: Icon, to }) => <Link key={label} to={to} className="overview-metric">
-            <span className="icon-tile"><Icon className="h-5 w-5" /></span>
-            <div><p className="text-2xl font-semibold tabular-nums">{value ?? "—"}</p><p className="text-xs text-slate-500 dark:text-slate-400">{t(label)}</p></div>
-          </Link>)}
-        </div>
-      </section>}
+  const actionKey = (item: WorkItem) => item.completed_at ? "open" : !isModalityAvailable(item.modality) ? "view"
+    : item.is_draft ? "continue" : ({ prepare: "complete", documents: "documents", ready: "open",
+        review_required: "release", review: "review", waiting: "view", changes: "correct", approved: "documents" } as const)[item.status];
+  const name = (item: WorkItem) => item.reference || item.consignee || t("work.unnamed");
+  const total = data?.total ?? 0;
+  const perPage = data?.per_page ?? 20;
+  const hour = new Date().getHours();
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="min-w-0 space-y-6">
-          {history && draft && <section data-testid="resume-entry" className="surface overview-resume p-5 sm:p-6">
-            <h3 className="surface-title">{t("overview.resumeTitle")}</h3>
-            <div className="overview-resume-content">
-              <span className="icon-tile"><ModalityIcon modality={draftModality} className="h-6 w-6" /></span>
-              <div className="min-w-0 flex-1 basis-44">
-                <p className="break-words font-semibold">{draft.reference || draft.consignee_name || t("wizard.newShipment")}</p>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t(`modality.${draftModality}`)} · {t("draft.savedAt", { time: draftTime })}</p>
-              </div>
-              <Link className="action-primary" to={`/wizard/${draftModality || "road"}`}>{t("overview.resume")}<ArrowRightIcon className="inline h-4 w-4" /></Link>
-            </div>
-            <div className="mt-2 text-right"><button disabled={discarding} className="min-h-[44px] px-2 text-xs text-slate-500 hover:underline dark:text-slate-400" onClick={() => void discard()}>{t("draft.discard")}</button></div>
-          </section>}
-          {history && <section className="surface">
-            <div className="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6">
-              <h3 className="surface-title">{t("overview.recentTitle")}</h3>
-              <Link to="/shipments" className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-300">{t("overview.allShipments")} <ArrowRightIcon className="inline h-4 w-4" /></Link>
-              <label className="relative w-full">
-                <span className="sr-only">{t("overview.search")}</span>
-                <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("overview.search")} className="min-h-[44px] w-full rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm dark:border-slate-700 dark:bg-slate-950/50" />
-              </label>
-            </div>
-            {loading ? <p role="status" className="px-6 pb-6 text-sm text-slate-500">{t("overview.loading")}</p> : filtered.length === 0 ? <div className="px-6 pb-8 text-center">
-              <ShipmentsIcon className="mx-auto mb-3 h-9 w-9 text-slate-400" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">{query ? t("overview.noResults") : error ? t("overview.unavailable") : t("overview.recentEmpty")}</p>
-              {!query && !error && <Link to="/" className="action-secondary mt-4">{t("nav.new")}</Link>}
-            </div> : <div>
-              <div className="recent-table-head" aria-hidden="true"><span>{t("overview.reference")}</span><span>{t("overview.route")}</span><span>{t("overview.status")}</span><span>{t("overview.updated")}</span><span /></div>
-              <ul className="divide-y divide-slate-200 dark:divide-slate-800">
-              {filtered.map((shipment) => <li key={shipment.id} className="recent-table-row">
-                <Link className="recent-reference min-w-0 break-words text-sm font-medium hover:text-brand-400" to={`/wizard/${shipment.modality || "road"}?shipment=${shipment.id}`}>{shipment.reference || shipment.consignee_name || `#${shipment.id}`}</Link>
-                <div className="recent-route min-w-0 text-sm">
-                  <p className="break-words">{shipment.consignor_name || "—"} <ArrowRightIcon className="inline h-4 w-4" /> {shipment.consignee_name || "—"}</p>
-                  <span className="mt-1 inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"><ModalityIcon modality={shipment.modality} className="h-3.5 w-3.5" />{t(`modality.${shipment.modality}`)}{shipment.has_dangerous_goods && ` · ${t("overview.dg")}`}</span>
-                </div>
-                <span className={`recent-status text-xs ${shipment.has_documents ? "text-emerald-700 dark:text-emerald-300" : "text-slate-500 dark:text-slate-400"}`}>{shipment.has_documents ? t("overview.documentsAvailable") : t("overview.kept")}</span>
-                <time className="recent-date text-xs text-slate-500 dark:text-slate-400" dateTime={shipment.updated_at}>{new Date(shipment.updated_at).toLocaleDateString(i18n.language)}</time>
-                <details className="recent-menu relative">
-                  <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label={t("review.moreActions")}><MoreIcon /></summary>
-                  <div className="absolute right-0 z-20 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                    <Link className="action-secondary w-full border-0 justify-start" to={`/wizard/${shipment.modality || "road"}?shipment=${shipment.id}`}>{t("overview.open")}</Link>
-                    <Link className="action-secondary w-full border-0 justify-start" to={`/wizard/${shipment.modality || "road"}?template=${shipment.id}`}>{t("overview.asTemplate")}</Link>
-                  </div>
-                </details>
-              </li>)}
-            </ul></div>}
-          </section>}
-          {!history && <HistoryStatus title={t("nav.overview")} admin={user?.role === "admin"} embedded />}
-        </div>
-        <aside className="space-y-6">
-          <section className="surface overview-quick p-5">
-            <h3 className="surface-title">{t("overview.startTitle")}</h3>
-            <div className="mt-4 space-y-2">
-              <Link to={`/wizard/${preferred}?input=paste`} className="action-secondary w-full justify-between"><span className="flex items-center gap-2"><ImportIcon className="h-5 w-5" />{t("overview.paste")}</span><ArrowRightIcon className="inline h-4 w-4" /></Link>
-              {AVAILABLE_MODALITIES.map((key) => <button key={key} type="button" onClick={() => navigate(`/wizard/${key}`)} className="action-secondary w-full justify-between">
-                <span className="flex items-center gap-2"><ModalityIcon modality={key} className="h-5 w-5" />{t(`modality.${key}`)}</span><ArrowRightIcon className="inline h-4 w-4" />
-              </button>)}
-            </div>
-            <Link to="/?choose=1" className="mt-3 inline-flex min-h-[44px] items-center text-xs text-slate-500 hover:underline dark:text-slate-400">{t("wizard.changeModality")}</Link>
-          </section>
-        </aside>
-      </div>
+  return <div className="overview-workspace collection-page page-enter work-overview">
+    <header className="page-heading"><div><p className="eyebrow">{t("nav.overview")}</p>
+      <h2>{t(`overview.${hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}`)}{user && <span className="overview-name"> {user.display_name || user.username}</span>}</h2>
+      <p>{t("work.intro")}</p></div>
+      <div className="work-create"><Link to="/" className="action-primary"><PlusIcon />{t("nav.new")}</Link>
+        <Link to={`/wizard/${preferred}?input=document`} className="action-secondary"><ImportIcon />{t("work.import")}</Link></div>
+    </header>
+    <div className="work-buckets" aria-label={t("work.filters")}>
+      {(["attention", "waiting", "today", "ready"] as WorkBucket[]).map(key => <button type="button" key={key}
+        className="work-bucket" data-active={bucket === key} aria-pressed={bucket === key} onClick={() => filter(key)}>
+        <span>{t(`work.bucket.${key}`)}</span><strong>{data ? data.counts[key] : "—"}</strong></button>)}
     </div>
-  );
+    <section className="surface work-surface" aria-label={t("work.list")} aria-busy={loading}>
+      <div className="work-toolbar"><label className="work-search"><span className="sr-only">{t("work.search")}</span>
+        <input type="search" value={query} maxLength={120} placeholder={t("work.search")} onChange={event => { setQuery(event.target.value); setPage(1); }} /></label>
+        <label className="work-mine"><input type="checkbox" checked={mine} onChange={event => { setMine(event.target.checked); setPage(1); }} />{t("work.mine")}</label>
+        <label><span className="sr-only">{t("work.filters")}</span><select value={bucket} onChange={event => filter(event.target.value as WorkBucket)}>
+          {(["attention", "waiting", "today", "ready", "all", "closed"] as WorkBucket[]).map(key => <option key={key} value={key}>{t(`work.bucket.${key}`)}</option>)}
+        </select></label>
+        <button type="button" className="work-icon" aria-label={t("work.refresh")} disabled={loading} onClick={() => setRefresh(value => value + 1)}><RefreshIcon /></button>
+      </div>
+      {failure ? <div className="work-empty" role="alert"><p>{failure}</p><button className="action-secondary" onClick={() => setRefresh(value => value + 1)}>{t("overview.retry")}</button></div>
+        : !data || loading && !data.items.length ? <p className="work-empty" role="status">{t("overview.loading")}</p>
+        : !data.items.length ? <div className="work-empty"><CheckIcon /><h3>{t("work.empty")}</h3><p>{t(query || mine ? "work.emptyFilter" : "work.emptyHint")}</p></div>
+        : <><div className="work-row work-column-labels" aria-hidden="true"><span>{t("work.shipment")}</span><span>{t("work.next")}</span><span>{t("work.owner")}</span><span>{t("work.loadingDate")}</span><span /></div>
+          <ul className="work-list">{data.items.map(item => <li className="work-row" key={`${item.kind}:${item.id}`}>
+            <div className="work-shipment"><Link to={workDestination(item)}>{name(item)}</Link>
+              <p>{item.consignor && item.consignee ? `${item.consignor} → ${item.consignee}` : t(`modality.${item.modality}`)}</p>
+              {item.is_draft && <span className="work-private">{t("work.privateDraft")}</span>}</div>
+            <div className="work-next"><span className="work-status" data-status={item.completed_at ? "closed" : item.status}>{t(`work.status.${item.completed_at ? "closed" : item.status}`)}</span>
+              {!item.completed_at && item.issues.length > 0 && <p>{t(`work.issue.${item.issues[0]}`, { defaultValue: t("work.issue.reopen") })}</p>}</div>
+            <div className="work-owner"><span className="work-mobile-label">{t("work.owner")}</span>{item.status === "review" || item.status === "waiting" ? t("work.specialistTeam") : item.owner_name || t("work.unassigned")}</div>
+            <div className="work-date" data-overdue={item.overdue}><span className="work-mobile-label">{t("work.loadingDate")}</span>
+              {item.due_date ? <><time dateTime={item.due_date}>{new Date(`${item.due_date}T12:00:00`).toLocaleDateString(i18n.language, { day: "numeric", month: "short" })}</time>{item.overdue && <small>{t("work.overdue")}</small>}</> : <span>{t("work.noDate")}</span>}</div>
+            <div className="work-actions"><Link className="work-primary" to={workDestination(item)}>{t(`work.action.${actionKey(item)}`)}<ArrowRightIcon /></Link>
+              {item.kind === "shipment" && !item.is_draft && <button type="button" className="work-icon" disabled={loading || saving} aria-label={t("work.manage", { name: name(item) })} onClick={() => setEditing(item)}><MoreIcon /></button>}</div>
+          </li>)}</ul></>}
+      {data && !failure && <div className="work-pagination"><span role="status">{loading ? t("overview.loading") : t("work.count", { count: total })}</span>
+        {total > perPage && <div><button type="button" className="action-secondary" disabled={loading || page === 1} onClick={() => setPage(value => value - 1)}>{t("wizard.back")}</button>
+          <span>{page} / {Math.ceil(total / perPage)}</span><button type="button" className="action-secondary" disabled={loading || page * perPage >= total} onClick={() => setPage(value => value + 1)}>{t("wizard.next")}</button></div>}</div>}
+    </section>
+    <p className="work-feedback" role="status">{saved}</p>
+    {!publicSettings?.history_enabled && <HistoryStatus title={t("nav.shipments")} admin={user?.role === "admin" || user?.role === "super_user"} embedded />}
+    {editing && <div className="work-modal-backdrop"><div ref={editor} className="surface work-editor" role="dialog" aria-modal="true" aria-labelledby="work-editor-title">
+      <header><h3 id="work-editor-title">{name(editing)}</h3><button className="work-icon" aria-label={t("work.close")} disabled={saving} onClick={() => setEditing(null)}><CloseIcon /></button></header>
+      <label>{t("work.owner")}<select value={owner} disabled={peopleLoading || saving} onChange={event => setOwner(event.target.value)}>
+        <option value="">{t(peopleLoading ? "overview.loading" : "work.chooseOwner")}</option>
+        {people.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
+      </select></label>
+      <button className="action-primary" disabled={saving || !owner || Number(owner) === editing.owner_id} onClick={() => void change(editing, { owner_id: Number(owner) })}>{t("work.assign")}</button>
+      {(editing.completed_at || editing.status === "ready") && <div className="work-completion"><p>{t("work.completionHint")}</p>
+        <button className="action-secondary" disabled={saving} onClick={() => void change(editing, { completed: !editing.completed_at })}>{t(editing.completed_at ? "work.reopen" : "work.finish")}</button></div>}
+      {peopleFailure && <p role="alert" className="editor-feedback" data-kind="error">{peopleFailure}</p>}
+    </div></div>}
+  </div>;
 }

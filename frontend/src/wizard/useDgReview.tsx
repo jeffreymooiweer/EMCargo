@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api, type DgReview, type ShipmentIn } from "../api/client";
 import { ShieldIcon } from "../components/icons";
 
-export function useDgReview(payload: ShipmentIn, enabled: boolean, active: boolean) {
+export function useDgReview(payload: ShipmentIn, enabled: boolean, active: boolean, sourceReviewId?: string | null) {
   // The source state is for reopening only. Approval covers the actual
   // shipment/document inputs; changing tabs must not invalidate a decision.
   const key = JSON.stringify({ ...payload, snapshot: undefined, draft: undefined });
@@ -29,7 +29,8 @@ export function useDgReview(payload: ShipmentIn, enabled: boolean, active: boole
   }, [key, enabled, active, refresh]);
   const submit = async () => {
     setBusy(true); setFailure("");
-    try { const result = await api.submitDgReview(payload); setState({ key, review: result }); }
+    const previous = sourceReviewId || review?.id;
+    try { const result = await api.submitDgReview(previous ? { ...payload, dg_review_id: previous } : payload); setState({ key, review: result }); }
     catch (e) { setFailure(String(e)); }
     finally { setBusy(false); }
   };

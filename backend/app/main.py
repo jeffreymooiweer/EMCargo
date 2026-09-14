@@ -30,6 +30,8 @@ from app.api.routes.documents import mail_router as documents_mail_router
 from app.api.routes.documents import router as documents_router
 from app.api.routes.geo import router as geo_router
 from app.api.routes.history import router as history_router
+from app.api.routes.work_queue import router as work_queue_router
+from app.api.routes.document_intake import router as document_intake_router
 from app.api.routes.dg_reviews import router as dg_reviews_router
 from app.api.routes.jobs import router as jobs_router
 from app.api.routes.meta import router as meta_router
@@ -58,6 +60,8 @@ WORK_ROUTERS = (
     dangerous_goods_router,
     documents_router,
     dg_reviews_router,
+    work_queue_router,
+    document_intake_router,
     geo_router,
     nhm_router,
     reference_router,

@@ -51,6 +51,7 @@ ACTIONS: dict[str, str] = {
     "settings.history_discarded": "every kept shipment and trip deleted before switching the history off (the counts)",
     "shipment.kept": "a shipment kept (its reference)",
     "shipment.updated": "a kept shipment kept again (its reference)",
+    "shipment.work_changed": "office task assignment or completion changed (record identity only)",
     "shipment.forgotten": "a kept shipment deleted (its reference)",
     "shipment.documents": "a kept shipment's documents handed out again",
     "shipment.export": "a kept shipment's structured export handed out",

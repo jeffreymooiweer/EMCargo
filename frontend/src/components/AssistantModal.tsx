@@ -6,6 +6,7 @@ import { documentLanguage, localised } from "../i18n/language";
 import { ArrowRightIcon, CheckIcon, CloseIcon } from "./icons";
 import AiIcon from "./AiIcon";
 import BusinessSuggestions from "./BusinessSuggestions";
+import DocumentIntake from "./DocumentIntake";
 import { AddressTextarea, LOCATION_FIELD_KEYS, LocationInput, MODALITY_LOCATION_TYPES } from "./GeoInputs";
 import "./AssistantModal.css";
 
@@ -19,6 +20,7 @@ interface Props {
   onApplyState: (state: AssistantState) => void;
   onReview?: () => void;
   modality?: string;
+  initialDocument?: boolean;
 }
 const copy = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const PLAIN_QUESTIONS = new Set(["consignor_name", "consignor_address", "consignee_name", "consignee_address", "carrier_name", "loading_point", "discharge_point", "loading_date", "freight_payment", "payment_instruction", "established_place", "established_date"]);
@@ -28,7 +30,7 @@ const PLAIN_QUESTIONS = new Set(["consignor_name", "consignor_address", "consign
  * keep the original answer. Every history entry is a complete snapshot, and
  * late responses cannot overwrite the wizard after the panel closes.
  */
-export default function AssistantModal({ open, onClose, buildState, onApplyState, onReview, modality }: Props) {
+export default function AssistantModal({ open, onClose, buildState, onApplyState, onReview, modality, initialDocument = false }: Props) {
   const { t, i18n } = useTranslation();
   const lang = documentLanguage(i18n.language);
   const [pending, setPending] = useState<AssistantPending | null>(null);
@@ -41,6 +43,7 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [documentOpen, setDocumentOpen] = useState(false);
   const [modelBlocked, setModelBlocked] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [availability, setAvailability] = useState<"checking" | "ready" | "missing" | "error">("checking");
@@ -64,26 +67,26 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
       : t("assistant.corrected", { attempt: String(event.attempt ?? "") });
   };
 
-  async function send(message: string, action: Action = "answer", target?: AssistantPending, initial?: AssistantState, previous?: Snapshot) {
-    if (inFlight.current || modelBlocked) return;
+  async function send(message: string, action: Action = "answer", target?: AssistantPending, initial?: AssistantState, previous?: Snapshot): Promise<boolean> {
+    if (inFlight.current || modelBlocked) return false;
     inFlight.current = true;
     const request = ++sequence.current;
     const view = current.current;
     const state = copy(initial ?? view.working);
-    const question = target ?? (view.screen === "describe" ? null : view.pending);
+    const question = initial ? null : target ?? (view.screen === "describe" ? null : view.pending);
     const snapshot: Snapshot = { state, pending: view.pending, review: view.review, screen: view.screen, answer: message };
     setBusy(true);
     setError("");
     try {
       const result = await api.assistantStep({ message, state, pending: question, language: lang, ...(action === "answer" ? {} : { action }) });
-      if (sequence.current !== request) return;
+      if (sequence.current !== request) return false;
       const failure = result.events.find(event => event.kind === "clarify" || event.kind === "not_understood");
       if (failure) {
         setError(errorFor(failure));
         if (failure.reason === "unknown") setShowInfo(true);
         // A stale question is the only failure that requires a new question.
         if (failure.reason === "stale") { setPending(result.pending); setScreen(result.pending?.scope === "goods_intake" ? "describe" : result.pending ? "question" : "ready"); }
-        return;
+        return false;
       }
       if (previous || !initial) setHistory(stack => [...stack, previous ?? snapshot]);
       setWorking(copy(result.state));
@@ -102,12 +105,14 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
         : result.events.some(event => event.kind === "un_confirmed") ? t("assistant.unConfirmed", { un: String(result.events.find(e => e.kind === "un_confirmed")?.un) })
         : result.events.some(event => event.kind === "un_dismissed") ? t("assistant.unDismissed") : "");
 
+      return true;
     } catch (cause) {
       if (sequence.current === request) {
         const removed = !!(cause && typeof cause === "object" && "code" in cause && cause.code === "assistant.model_required");
         if (removed) setModelBlocked(true);
         setError(t(removed ? "assistant.modelRequired" : "assistant.problem.connection"));
       }
+      return false;
     } finally {
       if (sequence.current === request) { inFlight.current = false; setBusy(false); }
     }
@@ -153,6 +158,7 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
     document.body.style.overflow = "hidden";
     const initial = copy(callbacks.current.buildState());
     setWorking(initial); setHistory([]); setPending(null); setReview(undefined);
+    setDocumentOpen(initialDocument);
     setInput(""); setChoice(""); setError(""); setNotice(""); setShowInfo(false); setScreen("describe");
     setAvailability("checking"); setModelBlocked(false);
     const statusRequest = ++sequence.current;
@@ -160,7 +166,7 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
       if (sequence.current !== statusRequest) return;
       if (!status.installed || !status.available) { setAvailability("missing"); return; }
       setAvailability("ready");
-      if (initial.draft_lines?.length) void send("", "answer", undefined, initial);
+      if (initial.draft_lines?.length && !initialDocument) void send("", "answer", undefined, initial);
     }).catch(() => {
       if (sequence.current === statusRequest) setAvailability("error");
     });
@@ -168,7 +174,7 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); callbacks.current.onClose(); }
       if (event.key !== "Tab") return;
-      const items = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]') ?? [])
+      const items = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [tabindex="0"]') ?? [])
         .filter(el => {
           for (let node: HTMLElement | null = el; node; node = node.parentElement) {
             if (node.tagName === "DETAILS" && !node.hasAttribute("open") && !node.querySelector(":scope > summary")?.contains(el)) return false;
@@ -276,7 +282,13 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
         </div>
       </div> : <>
       <ol className="assistant-stages" aria-label={t("assistant.progress")}>{["brief", "cargo", "details", "review"].map((key, i) => <li key={key} data-active={i === section} data-complete={i < section} aria-current={i === section ? "step" : undefined}><span>{i < section ? <CheckIcon className="h-3 w-3" /> : i + 1}</span>{t(`assistant.stage.${key}`)}</li>)}</ol>
-      <div className="assistant-layout">
+      {documentOpen ? <DocumentIntake state={working} language={lang} onCancel={() => setDocumentOpen(false)} onAccept={async next => {
+        const before = current.current;
+        const ok = await send("", "add_goods", undefined, next, { state: copy(before.working), pending: before.pending,
+          review: before.review, screen: before.screen, answer: before.input });
+        if (ok) setDocumentOpen(false);
+        return ok;
+      }} /> : <><div className="assistant-layout">
         <div className="assistant-main">
           <details className="assistant-mobile-summary"><summary>{t("assistant.summary")}<span>{description || t("assistant.summaryEmptyShort")}</span></summary>{summary}</details>
           <div className="assistant-question">
@@ -293,6 +305,7 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
               <p className="assistant-eyebrow">{t("assistant.begin")}</p>
               <h3 ref={heading} tabIndex={-1}>{t("assistant.describeLabel")}</h3>
               <p className="assistant-intro">{t("assistant.describeHint")}</p>
+              <button type="button" className="assistant-secondary mb-4" disabled={busy || modelBlocked} onClick={() => setDocumentOpen(true)}>{t("intake.open")}</button>
               <label className="sr-only" htmlFor="assistant-description">{t("assistant.describeLabel")}</label>
               <textarea id="assistant-description" className="assistant-input assistant-description" value={input} onChange={e => setInput(e.target.value)} maxLength={4000} placeholder={t("assistant.describePlaceholder")} disabled={busy || modelBlocked} aria-describedby={error ? "assistant-error" : "assistant-examples"} />
               <div id="assistant-examples" className="assistant-examples"><span>{t("assistant.tryExample")}</span>{["ordinaryExample", "dgExample"].map(key => <button type="button" key={key} disabled={busy || modelBlocked} onClick={() => setInput(t(`assistant.${key}`))}>{t(`assistant.${key}Label`)}</button>)}</div>
@@ -330,6 +343,7 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
         {screen === "ready" ? <button type="button" disabled={busy || modelBlocked} className="assistant-primary" onClick={() => { onClose(); onReview?.(); }}>{t("assistant.done")}<ArrowRightIcon className="h-4 w-4" /></button>
           : <button type="button" disabled={busy || modelBlocked || !answer} className="assistant-primary" onClick={() => void send(answer)}>{t(screen === "describe" ? "assistant.start" : "assistant.next")}<ArrowRightIcon className="h-4 w-4" /></button>}
       </footer>
+      </>}
       </>}
     </div>
   </div>, document.body);

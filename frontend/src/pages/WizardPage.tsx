@@ -43,6 +43,8 @@ import {
   mergeOverrides,
 } from "../utils/lineWeights";
 import { buildAssistantState, draftLinesFromAssistant, wizardDgEntriesFromAssistant, retainAssistantDgAnswers } from "../utils/assistantState";
+import { DocumentEvidenceList } from "../components/DocumentIntake";
+import type { DocumentEvidence } from "../api/client";
 import { useToast } from "../toast/ToastProvider";
 import NumberInput from "../components/NumberInput";
 
@@ -195,6 +197,7 @@ export default function WizardPage() {
   const [result, setResult] = useState<CalcResult | null>(null);
   const [dgEntries, setDgEntries] = useState<DgEntry[]>([]);
   const [signature, setSignature] = useState<string | null>(null);
+  const [documentEvidence, setDocumentEvidence] = useState<DocumentEvidence[]>([]);
   const [loading, setLoading] = useState(false);
   const [exportingDoc, setExportingDoc] = useState<string | null>(null);
   const [unCards, setUnCards] = useState<UnCardsAvailability | null>(null);
@@ -935,6 +938,7 @@ export default function WizardPage() {
     result,
     dgEntries,
     signature,
+    documentEvidence,
   });
 
   /** The shipment as the server takes it. A draft carries no bundle: nothing
@@ -962,7 +966,7 @@ export default function WizardPage() {
   });
 
   const reviewRequired = (dgEntries.length > 0 || (result?.lines.some(line => line.include && line.dangerous_goods) ?? false)) && publicSettings?.dg_review_enabled !== false;
-  const dgReview = useDgReview(shipmentPayload(false), reviewRequired, stepKey === "export" && preferencesLoaded && !restorePending);
+  const dgReview = useDgReview(shipmentPayload(false), reviewRequired, stepKey === "export" && preferencesLoaded && !restorePending, reviewSourceId);
   const reviewBlocked = reviewRequired && (!preferencesLoaded || dgReview.blocked);
 
   // --- the draft: what happens to the entry while it is being made ----------
@@ -1037,7 +1041,7 @@ export default function WizardPage() {
     // The payload is rebuilt from these; the body comparison does the rest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyOn, hasEntry, reopenId, reviewSourceId, stepKey, draftLines, docValues, result, dgEntries,
-      selectedDocs, signature, chosenDocLang, skippedQuestions, closing, restorePending]);
+      selectedDocs, signature, chosenDocLang, skippedQuestions, documentEvidence, closing, restorePending]);
 
   // Finish a read before allowing entry or autosave. Marking it restored when
   // the request started stranded StrictMode and registry-cancelled responses;
@@ -1063,6 +1067,7 @@ export default function WizardPage() {
           if (!snap) throw new Error("Invalid shipment snapshot");
           if (reopenId || !snap.modality || snap.modality === modality) {
             setDraftLines(snap.draftLines);
+            setDocumentEvidence(asTemplate ? [] : snap.documentEvidence ?? []);
             setNextId(snap.nextId);
             setResult(snap.result);
             setDgEntries(snap.dgEntries);
@@ -1117,6 +1122,7 @@ export default function WizardPage() {
     restoredSource.current = restoreKey;
     setSettledRestoreKey(restoreKey);
     setDraftLines(snap.draftLines);
+    setDocumentEvidence(snap.documentEvidence ?? []);
     setNextId(snap.nextId);
     setDgEntries(snap.dgEntries);
     setDocValues(snap.docValues);
@@ -1150,6 +1156,7 @@ export default function WizardPage() {
     setDraftSavedAt(null);
     setHistoryId(null);
     setDraftLines([{ id: 1, description: "", quantity: 1, unit: "pcs" }]);
+    setDocumentEvidence([]);
     setNextId(2);
     setResult(null);
     setDgEntries([]);
@@ -1192,6 +1199,7 @@ export default function WizardPage() {
         return;
       }
       setDraftLines(snap.draftLines);
+      setDocumentEvidence(snap.documentEvidence ?? []);
       setNextId(snap.nextId);
       setResult(snap.result);
       setDgEntries(snap.dgEntries);
@@ -1422,11 +1430,13 @@ export default function WizardPage() {
       docValues,
       selectedDocs,
       skippedQuestions,
+      documentEvidence,
     });
 
   /** What the assistant changed lands in the same state the classic wizard
    *  uses — switching between the two can therefore never lose data. */
   const applyAssistantState = (state: import("../api/client").AssistantState) => {
+    setDocumentEvidence(state.document_evidence ?? []);
     const nextLines = draftLinesFromAssistant(state, draftLines);
     if (nextLines) {
       if (signatureOf(nextLines) !== signatureOf(draftLines) || nextLines.some(line => line.unconfirmed_weight_kg != null)) {
@@ -1446,6 +1456,14 @@ export default function WizardPage() {
       setSkippedQuestions(state.skipped_questions.map(String));
     }
   };
+
+  const openedDocumentIntake = useRef(false);
+  useEffect(() => {
+    if (searchParams.get("input") === "document" && !restorePending && preferencesLoaded && !openedDocumentIntake.current) {
+      openedDocumentIntake.current = true;
+      setAssistantOpen(true);
+    }
+  }, [searchParams, restorePending, preferencesLoaded]);
 
   const translateMessage = (msg: string) => {
     const key = `messages.${msg}`;
@@ -1604,8 +1622,10 @@ export default function WizardPage() {
       }
     >
       <div className="space-y-4 sm:space-y-6" inert={closing || undefined}>
+      <DocumentEvidenceList evidence={documentEvidence} />
       <AssistantModal
         open={assistantOpen}
+        initialDocument={searchParams.get("input") === "document"}
         onClose={() => setAssistantOpen(false)}
         modality={modality}
         buildState={buildStateForAssistant}

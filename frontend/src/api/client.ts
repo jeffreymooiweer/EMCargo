@@ -34,13 +34,14 @@ async function downloadBlob(path: string, filename: string): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
-async function uploadFile<T>(path: string, file: File): Promise<T> {
+async function uploadFile<T>(path: string, file: File, signal?: AbortSignal): Promise<T> {
   const form = new FormData();
   form.append("file", file);
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     credentials: "include",
     body: form,
+    signal,
   });
   if (!res.ok) {
     // The import routes answer with a translatable message, so this cannot
@@ -145,6 +146,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  readPackingDocument: (file: File, language: string, signal?: AbortSignal) =>
+    uploadFile<PackingSource>(`/assistant/documents/read?language=${encodeURIComponent(language)}`, file, signal),
+  proposePackingDocument: (lines: { id: string; text: string }[], signal?: AbortSignal) =>
+    request<PackingProposal>("/assistant/documents/propose", { method: "POST", body: JSON.stringify({ lines }), signal }),
+  work: (params: { day: string; bucket: WorkBucket; q?: string; mine?: boolean; page?: number }) =>
+    request<WorkPage>(`/work?${new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]))}`),
+  workPeople: (shipmentId: number) => request<{ id: number; name: string }[]>(`/work/people?shipment_id=${shipmentId}`),
+  changeWork: (shipmentId: number, payload: { version: number; owner_id?: number; completed?: boolean }) =>
+    request<{ ok: boolean; version: number }>(`/work/shipments/${shipmentId}`, { method: "PATCH", body: JSON.stringify(payload) }),
   myProfile: () => request<PersonalProfile>("/users/me/profile"),
   saveMyProfile: (payload: PersonalProfile) => request<User>("/users/me/profile", { method: "PUT", body: JSON.stringify(payload) }),
   changePassword: (currentPassword: string, newPassword: string) => request<{ ok: boolean; reauthenticate: boolean }>("/auth/change-password", {
@@ -933,6 +943,36 @@ export interface ShipmentPage {
   per_page: number;
 }
 
+export type WorkBucket = "attention" | "waiting" | "today" | "ready" | "closed" | "all";
+export interface WorkItem {
+  kind: "shipment" | "review";
+  id: string;
+  reference: string;
+  modality: string;
+  consignor: string;
+  consignee: string;
+  status: "prepare" | "documents" | "ready" | "review_required" | "review" | "waiting" | "changes" | "approved";
+  due_date: string | null;
+  owner_id: number | null;
+  owner_name: string;
+  completed_at: string | null;
+  version: number;
+  issues: string[];
+  updated_at: string;
+  is_draft: boolean;
+  overdue: boolean;
+  review_status: string;
+}
+export interface WorkPage {
+  items: WorkItem[];
+  counts: Record<WorkBucket, number>;
+  total: number;
+  page: number;
+  per_page: number;
+  day: string;
+  history_enabled: boolean;
+}
+
 /** What the export step hands over to be kept. The server builds the
  *  structured export from the parts itself, so the kept record is produced
  *  by the same code as the downloadable one. */
@@ -1403,6 +1443,7 @@ export interface DgNameCandidate {
  *  holds, in the shape the stateless /assistant/step endpoint takes and
  *  returns. Nothing of the conversation is stored on the server. */
 export interface AssistantState {
+  document_evidence?: DocumentEvidence[];
   modality?: string;
   draft_lines?: Record<string, unknown>[];
   dg_entries?: DgEntry[];
@@ -1410,6 +1451,25 @@ export interface AssistantState {
   selected_docs?: string[] | null;
   skipped_questions?: string[];
   include_optional?: boolean;
+}
+
+export interface PackingSourceLine { id: string; text: string; confidence: number | null }
+export interface PackingSourcePage {
+  number: number; method: "text" | "ocr"; lines: PackingSourceLine[];
+  warnings: string[]; preview: string; corrected?: boolean;
+}
+export interface PackingSource { name: string; sha256: string; pages: PackingSourcePage[] }
+export interface PackingGood {
+  description: string; quantity: number | null; unit: string; weight_kg: number | null;
+  weight_basis: "each" | "total" | "unknown"; dimensions: string;
+  dimensions_cm?: { length_cm: number; width_cm: number; height_cm: number } | null;
+  source_ids: string[]; excerpt: string;
+}
+export interface PackingField { key: string; value: string; source_ids: string[]; excerpt: string }
+export interface PackingProposal { goods: PackingGood[]; fields: PackingField[]; warnings: string[] }
+export interface DocumentEvidence {
+  name: string; sha256: string; pages: number[]; excerpt: string;
+  method: "text" | "ocr" | "corrected"; target: string; value: string;
 }
 
 export interface AssistantPending {
