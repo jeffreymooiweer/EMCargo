@@ -40,8 +40,9 @@ tesseract --list-langs
 
 The `emcargo` service user must be able to find `tesseract` on `PATH`. The native
 installer does not install operating-system packages automatically. Docker images
-already include these dependencies. Without Tesseract, text-only PDFs still work;
-scans and photos show an explicit missing-OCR message. Missing preferred language
+already include these dependencies. Without Tesseract, PDFs containing only native
+text still work; PDFs containing images and photos require OCR. Reading the whole
+page also covers a small scanned table beneath a native PDF heading. Missing preferred language
 data falls back to installed English with a visible notice.
 
 Document proposals require the existing locally installed assistant model. Reading

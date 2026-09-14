@@ -77,6 +77,22 @@ def test_real_ocr_recovers_image_table_and_mixed_pdf_pages(kind):
         assert len(result["pages"]) == 2 and result["pages"][0]["method"] == "text"
 
 
+@pytest.mark.skipif(not shutil.which("tesseract"), reason="Native OCR requires Tesseract; CI and Docker install it")
+def test_a_small_image_table_is_read_even_beneath_native_pdf_text():
+    """An image-area threshold silently discarded tables occupying part of a page."""
+    with pymupdf.open(stream=packing_pdf(), filetype="pdf") as original:
+        table = original[0].get_pixmap(matrix=pymupdf.Matrix(2, 2), clip=pymupdf.Rect(0, 170, 595, 290)).tobytes("png")
+    with pymupdf.open() as document:
+        page = document.new_page(width=595, height=842)
+        page.insert_text((35, 65), "Packing list from Example Factory - reference PL-2048", fontsize=14)
+        page.insert_image(pymupdf.Rect(30, 280, 565, 388), stream=table)
+        data = document.tobytes()
+    source = intake.read_document(data, "partial-scan.pdf", "en")
+    assert source["pages"][0]["method"] == "ocr"
+    row = next(line for line in source["pages"][0]["lines"] if "Boxes of bolts" in line["text"])
+    assert all(value in row["text"] for value in ("12", "boxes", "240"))
+
+
 @pytest.mark.parametrize("kind,code", [("encrypted", "encrypted"), ("pages", "pages"), ("invalid", "invalid")])
 def test_unreadable_or_oversized_documents_fail_explicitly(kind, code):
     data = b"not a PDF"

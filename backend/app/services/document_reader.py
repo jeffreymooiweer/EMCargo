@@ -126,9 +126,9 @@ def read(path: str, extension: str, language: str) -> dict:
                 raise ReadError("image_large")
             lines = _text_lines(page)
             images = page.get_image_info()
-            image_area = sum(max(0, item["bbox"][2] - item["bbox"][0]) *
-                             max(0, item["bbox"][3] - item["bbox"][1]) for item in images)
-            needs_ocr = extension != "pdf" or image_area > area * .45 or (images and sum(len(line["text"]) for line in lines) < 30)
+            # Even a small image can be the complete goods table beneath a
+            # native PDF heading. Its area cannot decide whether to read it.
+            needs_ocr = extension != "pdf" or bool(images)
             method, warnings = "text", []
             if needs_ocr:
                 zoom = min(2.5, math.sqrt(MAX_PIXELS / area))
