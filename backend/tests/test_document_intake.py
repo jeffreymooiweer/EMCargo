@@ -186,3 +186,17 @@ def test_accepted_document_mass_and_evidence_survive_assistant_round_trip(setup)
     line = answered["state"]["draft_lines"][0]
     assert line["quantity"] == 12 and line["weight_each_kg"] == 20 and line["weight_total_kg"] == 240
     assert answered["state"]["document_evidence"] == evidence
+
+
+def test_failed_document_requests_still_observe_their_real_rate_limits(setup, monkeypatch):
+    """A failing model must not permit an unlimited stream of expensive retries."""
+    _, as_role = setup
+    client = as_role("user")
+    monkeypatch.setattr(intake.runtime, "installed", lambda: False)
+    for _ in range(6):
+        assert client.post("/api/assistant/documents/read", files={"file": ("packing.pdf", b"test", "application/pdf")}).status_code == 409
+    assert client.post("/api/assistant/documents/read", files={"file": ("packing.pdf", b"test", "application/pdf")}).status_code == 429
+    payload = {"lines": [{"id": "p1l1", "text": "Boxes of bolts"}]}
+    for _ in range(30):
+        assert client.post("/api/assistant/documents/propose", json=payload).status_code == 409
+    assert client.post("/api/assistant/documents/propose", json=payload).status_code == 429

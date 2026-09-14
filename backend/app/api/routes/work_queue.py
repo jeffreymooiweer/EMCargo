@@ -12,7 +12,7 @@ from app.core.deps import get_current_user, require_history
 from app.models.user import User
 from app.services import audit, work_queue
 
-router = APIRouter(prefix="/work", tags=["work"])
+router = APIRouter(prefix="/work", tags=["work"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("")

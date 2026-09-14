@@ -857,7 +857,7 @@
     "work": {
       "owner_invalid": "Kies een actieve collega die toegang heeft tot deze zending.",
       "not_ready": "Rond eerst de documenten en de vereiste DG-vrijgave af.",
-      "changed": "Deze taak is gewijzigd. Vernieuw de lijst voordat je opnieuw probeert."
+      "changed": "Deze taak is gewijzigd. Vernieuw de lijst voordat u het opnieuw probeert."
     },
     "intake": {
       "unsupported": "Kies een PDF-, JPEG- of PNG-bestand.",
@@ -872,7 +872,7 @@
       "no_text": "Er is geen leesbare tekst gevonden. Kies een scherpere foto of een PDF met selecteerbare tekst.",
       "ocr_missing": "Lokale tekstherkenning ontbreekt. De beheerder moet Tesseract en de taalbestanden installeren.",
       "ocr_failed": "Tekstherkenning is mislukt. Probeer een scherpere, rechtopstaande afbeelding.",
-      "model_failed": "Het lokale model kon geen voorstel maken. De bron en je huidige zending zijn behouden."
+      "model_failed": "Het lokale model kon geen voorstel maken. De bron en uw huidige zending zijn behouden."
     }
   },
   "instructions": {
@@ -1998,7 +1998,7 @@
     "peopleFailed": "Collega’s konden niet worden opgehaald. Sluit dit venster en probeer opnieuw.",
     "empty": "Hier staat niets open",
     "emptyHint": "Kies een ander overzicht of maak een nieuwe zending.",
-    "emptyFilter": "Pas je zoekopdracht of filters aan.",
+    "emptyFilter": "Pas uw zoekopdracht of filters aan.",
     "shipment": "Zending",
     "next": "Volgende stap",
     "owner": "Verantwoordelijke",
@@ -2040,7 +2040,7 @@
     "close": "Sluiten",
     "chooseOwner": "Kies een collega",
     "assign": "Toewijzing opslaan",
-    "completionHint": "Hiermee rond je het kantoorwerk af. Dit registreert geen vertrek of aflevering.",
+    "completionHint": "Hiermee rondt u het kantoorwerk af. Dit registreert geen vertrek of aflevering.",
     "reopen": "Werk heropenen",
     "finish": "Werk afhandelen",
     "saved": "Wijziging opgeslagen.",
@@ -2051,7 +2051,7 @@
     "open": "Pakbon, pdf of foto inlezen",
     "eyebrow": "Documentinvoer",
     "title": "Van pakbon naar zending",
-    "intro": "Neem de herkende gegevens door en kies wat je wilt overnemen.",
+    "intro": "Neem de herkende gegevens door en kies wat u wilt overnemen.",
     "choose": "Document kiezen",
     "otherFile": "Ander document",
     "formats": "PDF, JPEG of PNG · maximaal 20 MB en 10 pagina’s",
@@ -2059,7 +2059,7 @@
     "reading": "Document lokaal uitlezen…",
     "proposing": "Voorstel voorbereiden · deel {{current}} van {{total}}",
     "applying": "Gegevens overnemen en vervolgstappen bepalen…",
-    "applyFailed": "Overnemen is niet gelukt. Het voorstel en je zending zijn behouden. Probeer opnieuw of ga terug naar de assistent.",
+    "applyFailed": "Overnemen is niet gelukt. Het voorstel en uw zending zijn behouden. Probeer opnieuw of ga terug naar de assistent.",
     "source": "Bron bekijken",
     "page": "Bronpagina",
     "pageNumber": "Pagina {{number}}",
@@ -2067,9 +2067,9 @@
     "correctTextHint": "Een correctie maakt een nieuw voorstel nodig. De oorspronkelijke pagina blijft zichtbaar.",
     "recognisedText": "Herkende tekst",
     "proposal": "Voorstel controleren",
-    "sourceHint": "Je kunt de brontekst aanpassen voordat je opnieuw een voorstel maakt.",
+    "sourceHint": "U kunt de brontekst aanpassen voordat u opnieuw een voorstel maakt.",
     "prepare": "Voorstel maken",
-    "reviewHint": "Vergelijk de regels met de bron. Je kunt gegevens aanpassen of niet overnemen.",
+    "reviewHint": "Vergelijk de regels met de bron. U kunt gegevens aanpassen of niet overnemen.",
     "includeGood": "Goederenregel {{number}} overnemen",
     "description": "Omschrijving",
     "quantity": "Aantal/hoeveelheid",

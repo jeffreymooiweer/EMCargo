@@ -221,6 +221,9 @@ def test_every_rate_limit_in_the_application_in_one_table():
         "shipment_documents": "10 per 1 minute",
         # The running entry, saved a few seconds after the typing stops.
         "save_draft": "60 per 1 minute",
+        # Local OCR and model proposals have separate CPU budgets.
+        "read_document": "6 per 1 minute",
+        "propose_document": "30 per 1 minute",
         # The adviser's annual report reads every kept shipment of a year.
         "review_status": "60 per 1 minute",
         "submit_review": "60 per 1 minute",
