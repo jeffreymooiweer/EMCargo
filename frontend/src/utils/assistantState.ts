@@ -1,4 +1,4 @@
-import { AssistantState, DgEntry, LineItem } from "../api/client";
+import { AssistantState, DgEntry, LineItem, type DocumentEvidence } from "../api/client";
 import { DraftLine } from "../components/ReviewLinesPanel";
 
 /**
@@ -20,6 +20,7 @@ export function buildAssistantState(args: {
   docValues: Record<string, string>;
   selectedDocs: string[] | null;
   skippedQuestions: string[];
+  documentEvidence?: DocumentEvidence[];
 }): AssistantState {
   return {
     modality: args.modality,
@@ -60,6 +61,7 @@ export function buildAssistantState(args: {
     doc_values: args.docValues,
     selected_docs: args.selectedDocs,
     skipped_questions: args.skippedQuestions,
+    ...(args.documentEvidence ? { document_evidence: args.documentEvidence } : {}),
   };
 }
 

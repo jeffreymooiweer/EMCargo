@@ -67,10 +67,22 @@ class Shipment(Base):
     bundle_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     export_json: Mapped[str] = mapped_column(Text, default="{}")
 
+    # Small indexed office-work metadata. The overview never loads document
+    # payloads or recalculates cargo merely to show a next action.
+    work_status: Mapped[str] = mapped_column(String(24), default="prepare", index=True)
+    work_due_date: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)
+    work_owner_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    work_issues_json: Mapped[str] = mapped_column(Text, default="[]")
+    work_review_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    work_fingerprint: Mapped[str] = mapped_column(String(64), default="")
+    work_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    work_version: Mapped[int] = mapped_column(Integer, default=0)
+
     # A list needs document availability, never the document payload. This
     # SQL expression adds no physical column and also handles empty bundles.
     has_documents: Mapped[bool] = column_property(
         bundle_json.is_not(None) & (bundle_json != ""))
 
-    creator: Mapped[User | None] = relationship()
+    creator: Mapped[User | None] = relationship(foreign_keys=[created_by_id])
     department: Mapped[Department | None] = relationship()

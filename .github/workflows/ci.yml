@@ -63,6 +63,11 @@ jobs:
 
       - run: pip install -r backend/requirements.txt
 
+      - name: Install local document OCR
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng tesseract-ocr-nld tesseract-ocr-deu tesseract-ocr-fra
+
       - name: Validate installed Python dependencies
         run: pip check
 

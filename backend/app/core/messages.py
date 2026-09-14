@@ -50,6 +50,22 @@ class ApiError(HTTPException):
 #: Kept here rather than at the raise sites so that the set of codes is
 #: countable — a translation guard cannot check what it cannot enumerate.
 MESSAGES: dict[str, str] = {
+    "intake.unsupported": "Choose a PDF, JPEG or PNG document.",
+    "intake.file_large": "Choose a non-empty document of at most 20 MB.",
+    "intake.busy": "Other documents are being read. Try again shortly.",
+    "intake.timeout": "Reading took too long. Use a smaller document or clearer scan and retry.",
+    "intake.invalid": "This document could not be read. Export a new PDF or choose a clear image.",
+    "intake.image_large": "This image or page is too large to process. Reduce its resolution and retry.",
+    "intake.encrypted": "This PDF is password protected. Upload an unlocked copy.",
+    "intake.pages": "Choose a document with 1 to 10 pages. No pages have been imported.",
+    "intake.text_large": "The document contains too much text. Split it into smaller documents; no rows have been imported.",
+    "intake.no_text": "No readable text was found. Choose a clearer photo or a PDF with selectable text.",
+    "intake.ocr_missing": "Local text recognition is not installed. Ask the administrator to install Tesseract and its language data.",
+    "intake.ocr_failed": "Text recognition failed. Try a sharper, upright image.",
+    "intake.model_failed": "The local model could not prepare a proposal. The source and your current shipment have been preserved.",
+    "work.owner_invalid": "Choose an active colleague who can access this shipment.",
+    "work.not_ready": "Finish the documents and required DG release before completing this office task.",
+    "work.changed": "This task has changed. Refresh the list before trying again.",
     "auth.current_password_incorrect": "Your current password is incorrect.",
     "un_cards.no_release": "No UN card set has been published yet. Check for a new set later or import a ZIP file.",
     "un_cards.download_failed": "The card set could not be downloaded. Try again or import a ZIP file.",

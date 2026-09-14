@@ -1,6 +1,7 @@
 """Approval is bound to the actual document inputs, never a client status flag."""
 import hashlib
 import json
+from datetime import datetime, timezone
 from uuid import uuid4
 from sqlalchemy.orm import Session
 from app.core.messages import error
@@ -159,6 +160,14 @@ def submit(db: Session, user: User, payload: ShipmentIn) -> DgReview:
     record = DgReview(id=str(uuid4()), created_by_id=user.id, created_by=user.username,
                       reference=str(payload.values.get("shipment_reference") or payload.values.get("reference") or "")[:255],
                       modality=payload.modality, fingerprint=digest, payload_json=serialized)
+    from app.services.work_queue import loading_date
+    record.work_due_date = loading_date(payload.values)
+    record.work_draft_fingerprint = fingerprint(payload.model_copy(update={"bundle": None}))
+    record.work_consignee = str(payload.values.get("consignee_name") or "")[:255]
+    if payload.dg_review_id:
+        previous = db.get(DgReview, payload.dg_review_id)
+        if previous and owns(previous, user) and previous.id != record.id:
+            previous.work_completed_at = datetime.now(timezone.utc)
     db.add(record)
     db.commit()
     db.refresh(record)

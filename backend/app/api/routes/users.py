@@ -283,7 +283,11 @@ def delete_user(request: Request, user_id: int, admin: User = Depends(require_ma
     # SQLite installations may not enforce foreign keys. Do not let a reused
     # account id inherit another person’s submitted review data.
     from app.models.dg_review import DgReview
+    from app.models.shipment import Shipment
     db.query(DgReview).filter_by(created_by_id=user.id).update({DgReview.created_by_id: None})
+    db.query(Shipment).filter_by(created_by_id=user.id, is_draft=True).delete()
+    db.query(Shipment).filter_by(created_by_id=user.id).update({Shipment.created_by_id: None})
+    db.query(Shipment).filter_by(work_owner_id=user.id).update({Shipment.work_owner_id: None})
     db.delete(user)
     db.commit()
     audit.record(db, "user.deleted", actor=admin, target=("user", gone_id),

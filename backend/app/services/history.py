@@ -155,6 +155,8 @@ def keep(db: Session, user: User, payload: ShipmentIn,
     record.snapshot_json = snapshot_json
     record.bundle_json = bundle_json
     record.export_json = export_json
+    from app.services.work_queue import index_shipment
+    index_shipment(record, payload)
     if existing is None:
         db.add(record)
     if commit:

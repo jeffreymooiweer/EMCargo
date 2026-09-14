@@ -27,6 +27,29 @@ The in-app Docker updater does not apply to native installations.
 See [the installer](../deploy/native/install.sh),
 [the updater](../deploy/native/update.sh) and [configuration](configuration.md).
 
+## Document OCR
+
+For scanned packing lists and photos, install Tesseract on the service host.
+On Debian/Ubuntu:
+
+```bash
+sudo apt-get update
+sudo apt-get install tesseract-ocr tesseract-ocr-nld tesseract-ocr-eng tesseract-ocr-deu tesseract-ocr-fra
+tesseract --list-langs
+```
+
+The `emcargo` service user must be able to find `tesseract` on `PATH`. The native
+installer does not install operating-system packages automatically. Docker images
+already include these dependencies. Without Tesseract, PDFs containing only native
+text still work; PDFs containing images and photos require OCR. Reading the whole
+page also covers a small scanned table beneath a native PDF heading. Missing preferred language
+data falls back to installed English with a visible notice.
+
+Document proposals require the existing locally installed assistant model. Reading
+supports PDF/JPEG/PNG, at most 20 MB, 10 pages and 40,000 recognised characters.
+Source files are deleted after reading; selected source excerpts are part of the
+user's saved draft. No upload is sent to an external OCR or model provider.
+
 ## Kubernetes
 
 The manifest for new installations is [emcargo.yaml](../deploy/kubernetes/emcargo.yaml).
