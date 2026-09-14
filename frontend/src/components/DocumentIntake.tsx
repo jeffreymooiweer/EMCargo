@@ -33,6 +33,7 @@ function withColumnHeader(source: PackingSource, chunk: { id: string; text: stri
   const lines = source.pages.flatMap(page => page.lines);
   const start = lines.findIndex(line => line.id === chunk[0].id);
   const header = lines.slice(0, start).reverse().find(line => line.text.length <= 500
+    && !/\d/.test(line.text)
     && /description|omschrijving|beschrijving|bezeichnung|désignation|artikel|article/i.test(line.text)
     && /quantity|qty|aantal|anzahl|quantité|gewicht|weight|poids|masse|\bkg\b/i.test(line.text));
   return header ? [{ id: header.id, text: header.text }, ...chunk] : chunk;

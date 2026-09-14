@@ -92,3 +92,13 @@ it("chunks every source line in order and rejects text that would exceed the sup
   expect(chunks.flat()).toEqual(lines.map(({ id, text }) => ({ id, text })));
   expect(() => documentChunks({ ...source, pages: [{ ...source.pages[0], lines: [{ id: "p1l1", text: "x".repeat(6000), confidence: null }] }] })).toThrow("intake.longLine");
 });
+
+it("carries the column header into later batches without repeating an earlier article", async () => {
+  const lines = [{ id: "p1l1", text: "Article description Quantity Unit Total kg", confidence: null },
+    ...Array.from({ length: 6 }, (_, i) => ({ id: `p1l${i + 2}`, text: `Article ${i + 1} bolts 12 boxes 240 kg`, confidence: null }))];
+  api.readPackingDocument.mockResolvedValue({ ...source, pages: [{ ...source.pages[0], lines }] });
+  api.proposePackingDocument.mockResolvedValue({ goods: [], fields: [], warnings: [] });
+  render(<DocumentIntake state={existing} language="nl" onAccept={vi.fn()} onCancel={vi.fn()} />);
+  await upload();
+  expect(api.proposePackingDocument.mock.calls[1][0].map((line: { id: string }) => line.id)).toEqual(["p1l1", "p1l5", "p1l6", "p1l7"]);
+});
