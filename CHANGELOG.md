@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.12.1] - 2026-09-15
+
+### Fixed
+
+- Replace inaccurate factual-only and freely-reusable data claims with the
+  source-specific rights assessment; distinguish local storage from external
+  geocoding and support flows in contribution guidance.
+- Document the exact GWDD CC BY 4.0 grant and DGSA government-source/OGL grant,
+  supply creator/adaptation notices, and record source hashes. Keep mixed
+  Hapman data and the specifically narrowed NIST question unresolved.
+- Record ten additional package/version-specific MIT or BSD notice reviews for
+  native distributions. Image and unresolved-content publication gates remain held.
+
+### Documentation
+
+- Expand the unactivated contributor agreement and commercial order framework;
+  add chain-of-title, historical-distribution, trademark and GDPR/CRA/AI Act
+  applicability procedures with primary-source evidence. No contributor assent,
+  trademark registration, publisher permission or new customer contract is implied.
+
 All notable changes are documented here, following [Semantic Versioning](https://semver.org/).
 
 ## [2.12.0] - 2026-09-15

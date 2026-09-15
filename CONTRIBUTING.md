@@ -63,19 +63,26 @@ mismatch as a bug.
 
 ## Please do not send us regulatory text
 
-The repository holds **factual data only**: a UN number mapped to a code, a material
-mapped to a density. The regulations themselves — ADR, the IMDG Code, the IATA DGR — are
-copyrighted and are **not** in this repository and must not be added to it. This applies
-to issues and attachments as much as to code. Quote the clause you need to make your
-point; do not paste the chapter.
+The repository contains factual tables **and some extracted regulatory wording
+and images**. Those existing extracts are recorded in the rights register;
+their presence is not permission to add more. Complete regulatory volumes and
+third-party form PDFs are not bundled. Public access to a publication does not
+by itself permit redistribution, translation or inclusion in a dataset.
+
+Identify the clause, source link and edition needed to explain a correction.
+Do not paste chapters, upload licensed publications, or copy a publisher's
+database into issues, attachments or pull requests. A maintainer must establish
+the applicable permission or other legal basis before accepting protected
+material, including short quotations where relevant.
 
 See [docs/data-sources.md](docs/data-sources.md) for what is in here and where it came
 from.
 
 ## Privacy in issues
 
-Issues are public. EMCargo is built so that your shipment data never leaves your
-machine, and it would be a shame to undo that in a bug report. Before you attach anything:
+Issues are public. Local storage does not make a public attachment private;
+optional external services and support access also need their own assessment.
+Before you attach anything:
 
 - Replace real company names, addresses and contact details with placeholders.
 - Remove reference numbers, container numbers and licence plates.

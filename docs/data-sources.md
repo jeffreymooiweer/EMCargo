@@ -3,21 +3,19 @@
 EMCargo ships with reference data so that most of it works without internet access.
 This page lists where each dataset comes from.
 
-Only **factual data** is included — a UN number mapped to a code, a material mapped to a
-density. Regulatory texts themselves are not in this repository.
+The repository contains **factual tables and some extracted regulatory wording
+and images**. Complete source volumes are not bundled. Provenance and technical
+validation do not establish redistribution rights; the
+[rights register](licensing/rights-register.md) and
+[source decisions](licensing/source-evidence.md) distinguish documented grants
+from unresolved material.
 
-That policy is unchanged, but one assumption behind it was wrong and worth correcting.
-**ADR and ADN are published free of charge by UNECE, and RID by OTIF** — those three are
-not paywalled. Neither, it turned out, is the IMDG Code: the consolidated volumes are
-sold by the IMO, but resolution MSC.556(108) — freely distributed — states that "the
-complete text of the IMDG Code is replaced by the following" and then prints it, which
-is how the Dangerous Goods List was read in v1.48.0 and chapter 5.3 in v1.150.0. The
-IATA DGR remains the one text this project cannot read. What kept the others out of
-reach was a network policy in the development container, not their price.
-`scripts/read_land_regulations.py` therefore reads them on a CI runner and prints the
-provisions the application implements to the run log, so a rule can be checked against the
-text. It commits nothing: the quoted text stays in the log, and only the values read out of
-it — thresholds, limits, multipliers — are stored, each with the provision it came from.
+Public downloads of ADR/ADN, RID and IMO resolutions have supported extraction
+and verification. Availability, official status and access without payment do
+not by themselves grant commercial reuse, republication or translation rights.
+Historical scripts also printed regulatory passages to CI logs; logs and
+workflow artifacts are publication surfaces even when nothing is committed.
+Current publication gates hold unresolved regulatory-volume transfers.
 
 Since v1.72.0 the documents themselves have a durable home: a **document store** outside
 the repository (`/data/regulations`), registered file by file in
@@ -129,7 +127,7 @@ Location autocomplete works fully offline from the seeds in
 | Data | Source | Licence |
 |---|---|---|
 | 4,500+ airports (IATA/ICAO) | [OurAirports](https://ourairports.com/data/) | Public domain |
-| 17,500+ ports (UN/LOCODE) | [UNECE UN/LOCODE](https://unece.org/trade/uncefact/unlocode) | Freely reusable |
+| 17,500+ ports (UN/LOCODE) | [UNECE UN/LOCODE](https://unece.org/trade/uncefact/unlocode) | Source-specific redistribution basis unresolved; see the rights register |
 | 750+ European railway stations | [Trainline EU stations](https://github.com/trainline-eu/stations) | ODbL |
 
 Address autocomplete is the one feature that calls out: it uses a Photon geocoder on
@@ -149,7 +147,7 @@ goes quiet; typing an address by hand always works.
 | Proper shipping names, Dutch | **ADR 2025, official Dutch edition**, table A column (2), read by `scripts/extract_adr_names.py` and cross-checked against the alphabetical index of the same edition (2,345 UN numbers, 99.9% agreement). The book itself is not in this repository; only the derived names are |
 | English proper shipping names, cross-check | 49 CFR 172.101 (eCFR / GovInfo, public domain) |
 | UN packaging codes (107) | ADR 6.1.2 / 6.5.1.4 / 6.6.2 |
-| EmS emergency schedules per UN number, and the schedule descriptions | IMO **MSC.1/Circ.1588/Rev.3** — EmS Guide (IMO circular, freely distributable) |
+| EmS emergency schedules per UN number, and the schedule descriptions | IMO **MSC.1/Circ.1588/Rev.3** — EmS Guide; assess the circular's actual reuse conditions, including commercial use, separately from provenance |
 | Class segregation table and class 1 compatibility matrix | IMDG Code chapter 7.2, Amendment 40-20 — unchanged in 42-24 |
 | Segregation exemption tables 7.2.6.3.1 – 7.2.6.3.4 | IMDG Code chapter 7.2, Amendment 40-20 — unchanged in 42-24 |
 | Segregation groups per substance (SGG1–SGG18, 629 entries) | IMDG Code chapter 3.1, section 3.1.4.4 — unchanged in 42-24; the separate SGG1a marking for strong acids was dropped in 41-22 |

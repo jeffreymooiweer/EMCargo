@@ -14,6 +14,7 @@ remediation.
 | Relevant ADR/RID/ADN publishers/authorities | Sixteen model PDFs and literal provision-text datasets, by edition/language |
 | IMO | DGL, EmS, code descriptions, literal regulatory text and generated cards |
 | UN/LOCODE and other dataset publishers | Exact data release and downstream redistribution terms |
+| NIST / Thermodynamics Research Center | Whether the exact ThermoML 2020-09-30 archive falls under the non-SRD reuse grant and whether journal-derived observations carry separate restrictions |
 
 ## Request text
 
@@ -35,6 +36,15 @@ licensor and agreement. Local possession or use rights may differ from public
 redistribution rights; we would appreciate a clear distinction in your answer.
 
 ## Recording a response
+
+For NIST, identify record `mds2-2422`, archive `ThermoML.v2020-09-30.tgz`
+and SHA-256 `231161b5e443dc1ae0e5da8429d86a88474cb722016e5b790817bb31c58d7ec2`.
+Ask specifically whether the non-SRD worldwide grant covers redistribution of
+selected density observations, condition/method labels, names and DOI/InChI
+references, including commercial software and hosting, and whether any journal
+or other third-party conditions must accompany those selections. Do not ask for
+a blanket clearance of all NIST products. See `source-evidence.md` for the
+record already found and the distinction still requiring an answer.
 
 Store the actual agreement privately if required and record a stable evidence
 reference, granted scope, editions/files/hashes, expiry and reviewer in the

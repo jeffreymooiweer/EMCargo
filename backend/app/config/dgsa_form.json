@@ -1,4 +1,8 @@
 {
+  "source_url": "https://www.gov.uk/government/publications/carriage-of-dangerous-goods-annual-report-template",
+  "source_document_url": "https://assets.publishing.service.gov.uk/media/694504759273c48f554cf647/dgsa-annual-audit.pdf",
+  "source_document_sha256": "c82127f104f922d4acca58124fa09e3249de6a06f8a4be64205ce4226ecbd8bb",
+  "license_url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
   "_comment": "The safety adviser's annual report in the shape the DVSA gives it. Sections and questions follow 'DGSA Annual Report for the Carriage of Dangerous Goods' (Driver & Vehicle Standards Agency, December 2025), an implementation of ADR 1.8.3.3 by a competent authority. The English texts are the template's own wording; the Dutch, German and French are translations made for this file. UK-specific bodies (HSE, DfT, ONR) and instruments (CDG Regulation 24) are written as 'the competent authority' and 'national provisions' so the report reads the same on either side of the Channel. The template's layout and Crown branding are not reproduced; the structure and the questions are reused under the Open Government Licence v3.0 with this attribution.",
   "source": "DVSA, DGSA Annual Report for the Carriage of Dangerous Goods, December 2025 (as required by ADR 1.8.3.3) — structure and question wording reused under the Open Government Licence v3.0",
   "answer_labels": {
