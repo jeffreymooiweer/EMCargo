@@ -23,7 +23,7 @@ from .sources.base import REPO, CardPage
 sys.path.insert(0, str(REPO / "backend"))
 from app.pdf_style import (
     ACCENT, ASSETS, BOLD, LINE, MARGIN, MUTED, TEXT,
-    draw_wordmark, paragraph_styles, table_commands,
+    SectionHeading, draw_wordmark, paragraph_styles, table_commands,
 )
 
 PAGE_W, PAGE_H = A4
@@ -31,7 +31,8 @@ FRAME_W = PAGE_W - 2 * MARGIN
 
 
 def _p(value: str, style) -> Paragraph:
-    return Paragraph(escape(str(value)).replace("\n", "<br/>"), style)
+    paragraph = SectionHeading if style.name == "emcargo_section" else Paragraph
+    return paragraph(escape(str(value)).replace("\n", "<br/>"), style)
 
 
 def _fields(rows: list[tuple[str, str]], styles: dict, width: float = FRAME_W) -> Table:

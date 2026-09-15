@@ -123,3 +123,30 @@ def test_card_names_provisions_and_provenance_flow_without_truncation(tmp_path, 
         assert all(token in text for token in tokens)
         assert all("UN 0000" in p.get_text() for p in pdf)
         _inside_paper(pdf)
+
+
+def test_a_section_starts_its_long_table_in_the_remaining_page_space():
+    """A keepWithNext heading grouped the complete following table. A
+    25-row section therefore jumped to page two even though its first
+    ten rows fitted on page one. The heading should reserve opening
+    rows and allow the remainder to continue, retaining every value.
+    """
+    document = dict(get_document("packing_list"))
+    document["sections"] = []
+    values = {}
+    for name, count in (("First section", 9), ("Second section", 25)):
+        fields = []
+        for index in range(count):
+            key = name + str(index)
+            fields.append({"key": key, "label": {"en": f"Field {index}"}, "type": "text"})
+            values[key] = f"{name}-VALUE-{index:02}"
+        document["sections"].append({"label": {"en": name}, "fields": fields})
+    path = render_document_pdf(document, values, [], [], "en")
+    try:
+        with fitz.open(path) as pdf:
+            assert "Second section-VALUE-00" in pdf[0].get_text()
+            assert len(pdf) == 2
+            assert "Second section-VALUE-24" in pdf[-1].get_text()
+            _inside_paper(pdf)
+    finally:
+        path.unlink()

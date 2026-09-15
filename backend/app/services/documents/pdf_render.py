@@ -27,7 +27,7 @@ from reportlab.platypus import (
 )
 
 from app.core.languages import pick
-from app.pdf_style import ACCENT, LINE, PALE, BOLD, paragraph_styles, table_commands
+from app.pdf_style import ACCENT, LINE, PALE, BOLD, SectionHeading, paragraph_styles, table_commands
 from app.services.documents import brand
 from app.services.documents.frame import branded_document
 from app.services.dg.autofill import adr_category_totals
@@ -59,9 +59,8 @@ def _p(text: Any, style: ParagraphStyle) -> Paragraph:
 
 
 def _section_header(title: str, styles: dict, width: float) -> Paragraph:
-    # keepWithNext prevents an isolated heading, without forcing a long table
-    # onto a new page or retaining an entire section in one unbreakable block.
-    return _p(title, styles["section"])
+    paragraph = _p(title, styles["section"])
+    return SectionHeading(paragraph.text, styles["section"])
 
 
 def _fields_table(rows: list[tuple[str, Any]], styles: dict, width: float) -> Table:

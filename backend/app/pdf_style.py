@@ -16,6 +16,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Paragraph
 
 ACCENT = colors.HexColor("#245BEA")
 INK = colors.HexColor("#152238")
@@ -30,6 +31,26 @@ DISPLAY = "EMCargoDisplay"
 ASSETS = Path(__file__).resolve().parent / "assets"
 MARGIN = 51.0
 _font_lock = RLock()
+
+
+class SectionHeading(Paragraph):
+    """Reserve a table's opening rows without keeping the entire table.
+
+    ReportLab's keepWithNext groups a heading with the *whole* next table.
+    Even a splittable table then moves to a new page, leaving large gaps.
+    Reserve enough room for a normal header and first row instead.
+    """
+
+    keepWithNext = False
+
+    def wrap(self, avail_width: float, avail_height: float) -> tuple[float, float]:
+        width, height = super().wrap(avail_width, avail_height)
+        if height + self.getSpaceAfter() + 90 > avail_height:
+            return width, avail_height + 1
+        return width, height
+
+    def split(self, avail_width: float, avail_height: float) -> list:
+        return []
 
 
 def register_fonts() -> None:
