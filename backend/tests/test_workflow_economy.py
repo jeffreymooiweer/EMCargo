@@ -73,7 +73,12 @@ def test_only_ci_and_scoped_publication_workflows_start_by_themselves():
     ("scripts/un_cards/assets/labels/3.png", True),
     ("backend/seed/dg/adr_table_a.json", True),
     ("backend/app/config/dg_compliance.json", True),
-    ("frontend/public/shipping.png", True),
+    ("backend/app/pdf_style.py", True),
+    ("backend/app/assets/fonts/CalSans-Regular.ttf", True),
+    ("backend/app/assets/fonts/DejaVuSans.ttf", True),
+    ("backend/app/assets/fonts/DejaVu-LICENSE.txt", True),
+    ("backend/app/assets/logo.png", True),
+    ("frontend/public/shipping.png", False),
     (".github/workflows/generate-un-cards.yml", True),
     ("VERSION", False),
     ("frontend/src/pages/TripsPage.tsx", False),
@@ -82,7 +87,10 @@ def test_only_ci_and_scoped_publication_workflows_start_by_themselves():
 ])
 def test_card_generation_only_follows_its_sources_on_main(path, should_generate):
     """Ordinary app changes must not rebuild thousands of unchanged PDFs.
-    A branch or pull request must not trigger their public release either."""
+    A branch or pull request must not trigger their public release either.
+    The dossier style moved cards to the backend's shared theme, bundled
+    fonts and logo; only those actual inputs should trigger regeneration.
+    """
     events = triggers(load("generate-un-cards.yml"))
     assert set(events) == {"push", "workflow_dispatch"}
     assert events["push"]["branches"] == ["main"]
