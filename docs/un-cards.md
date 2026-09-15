@@ -40,6 +40,18 @@ then regenerating the cards. Only one modality changed? Regenerate all the
 same — the release always carries one coherent complete set, so the
 application never has to stitch partial packages together.
 
+## Document style
+
+Newly generated cards share the application PDF theme in `backend/app/pdf_style.py`
+and its bundled fonts. All available EN/NL/DE/FR names are printed, long provisions
+continue across pages and full provenance appears in a flowing source section.
+Hazard-label artwork is unchanged. Font licenses travel in the package's
+`licenses/` directory alongside its notices and inventories.
+
+Existing installed cards keep their original appearance until an administrator
+imports a regenerated set. Source, artwork and dependency publication gates still
+apply; a style update does not clear any unresolved redistribution rights.
+
 ## Running the generator
 
 Manually, from a checkout (test mode, nothing published):
@@ -50,8 +62,9 @@ python scripts/un_cards/validate.py --dir /tmp/cards
 ```
 
 Merging changes to the generator, its measured source tables, its label artwork
-or its workflow into `main` automatically generates, validates and publishes a
-new set. Application-only changes leave the existing set in place. A failed
+or its shared PDF theme into `main` triggers the card workflow. Generation and
+publication require the existing rights gate to pass; unresolved rights hold the
+workflow before it distributes a new set. Application-only changes leave the existing set in place. A failed
 generation or validation stops publication. Card releases never replace the
 latest application release, which the in-app updater relies on.
 

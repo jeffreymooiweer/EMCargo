@@ -1,387 +1,159 @@
-"""The EMCargo UN card layout: one A4 datasheet per transport entry.
+"""UN reference cards using EMCargo's shared dossier typography and colours.
 
-The layout follows the structure of the classic UN card datasheets — a
-framed grid with the UN number large on the left, the shipping name beside
-it, an attribute row, drawn hazard labels, packaging and tank bands, the
-special transport provisions and the LQ/EQ boxes — but the page is
-EMCargo's own: EMCargo logo and wordmark in the header, no background
-watermark, no third-party branding, and a footer that names the regulation
-edition, the source reading and the generation time, plus the reminder that
-the published text remains authoritative.
-
-Content is never truncated: a band that no longer fits continues on a next
-page under the same header. Text sizes are fixed — nothing is shrunk to fit.
+Each source entry begins on a new page. Flowing tables retain all source
+values and continue across pages; no regulatory text is shrunk or clipped.
+Hazard artwork remains the label renderer's unmodified vector drawing.
+This offline module imports only the standalone PDF theme, never web settings.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+import sys
 from pathlib import Path
+from xml.sax.saxutils import escape
 
-from reportlab.lib.colors import Color, black, white
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.utils import ImageReader, simpleSplit
-from reportlab.pdfgen.canvas import Canvas
+from reportlab.platypus import (
+    BaseDocTemplate, Flowable, Frame, NextPageTemplate, PageBreak,
+    PageTemplate, Paragraph, Spacer, Table, TableStyle,
+)
 
-from .labels import ORANGE, draw_label
+from .labels import draw_label
 from .sources.base import REPO, CardPage
 
+sys.path.insert(0, str(REPO / "backend"))
+from app.pdf_style import (
+    ACCENT, ASSETS, BOLD, LINE, MARGIN, MUTED, TEXT,
+    draw_wordmark, paragraph_styles, table_commands,
+)
+
 PAGE_W, PAGE_H = A4
-MARGIN = 30.0
 FRAME_W = PAGE_W - 2 * MARGIN
-HEADER_H = 46.0
-FOOTER_H = 34.0
-GRAY = Color(0.42, 0.45, 0.48)
-LIGHT = Color(0.955, 0.96, 0.965)
-
-LOGO_PATH = REPO / "frontend" / "public" / "shipping.png"
-
-LABEL_FONT = ("Helvetica-Bold", 6.6)
-VALUE_FONT = ("Helvetica", 9.2)
-TEXT_FONT = ("Helvetica", 8.4)
-TEXT_LEADING = 10.4
 
 
-@dataclass
-class _Cursor:
-    c: Canvas
-    page: CardPage
-    entry_index: int
-    entry_count: int
-    generated_at: str
-    y: float = 0.0
-    page_number: int = 0
-
-    def new_page(self) -> None:
-        if self.page_number > 0:
-            _footer(self.c, self.page, self.generated_at)
-            self.c.showPage()
-        self.page_number += 1
-        _header(self.c, self.page, self.entry_index, self.entry_count,
-                continued=self.page_number > 1)
-        self.y = PAGE_H - MARGIN - HEADER_H - 6
-
-    def ensure(self, height: float) -> None:
-        if self.y - height < MARGIN + FOOTER_H:
-            self.new_page()
+def _p(value: str, style) -> Paragraph:
+    return Paragraph(escape(str(value)).replace("\n", "<br/>"), style)
 
 
-def _header(c: Canvas, page: CardPage, index: int, count: int, continued: bool) -> None:
-    top = PAGE_H - MARGIN
-    # Logo and wordmark.
-    if LOGO_PATH.exists():
-        c.drawImage(ImageReader(str(LOGO_PATH)), MARGIN, top - 34, width=34, height=34,
-                    mask="auto")
-    c.setFillColor(black)
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(MARGIN + 42, top - 22, "EMCargo")
-    c.setFont("Helvetica", 6.4)
-    c.setFillColor(GRAY)
-    c.drawString(MARGIN + 42, top - 31, "dangerous goods reference card")
+def _fields(rows: list[tuple[str, str]], styles: dict, width: float = FRAME_W) -> Table:
+    data = [[_p(label, styles["label"]), _p(value, styles["cell"])]
+            for label, value in rows]
+    table = Table(data, colWidths=[width * .30, width * .70],
+                  splitByRow=1, splitInRow=1, hAlign="LEFT")
+    table.setStyle(TableStyle(table_commands(header=False)))
+    return table
 
-    # Title.
-    c.setFillColor(black)
-    c.setFont("Helvetica-Bold", 15)
-    title = f"{page.modality} – UN Card"
-    if continued:
-        title += " (continued)"
-    c.drawCentredString(PAGE_W / 2, top - 26, title)
+
+def _attributes(rows: list[tuple[str, str]], styles: dict) -> Table:
+    """Three readable cells per row, with labels above their full values."""
+    data = []
+    for offset in range(0, len(rows), 3):
+        cells = [[_p(label, styles["label"]), _p(value, styles["value"])]
+                 for label, value in rows[offset:offset + 3]]
+        data.append(cells + [""] * (3 - len(cells)))
+    table = Table(data, colWidths=[FRAME_W / 3] * 3,
+                  splitByRow=1, splitInRow=1, hAlign="LEFT")
+    table.setStyle(TableStyle(table_commands(header=False)))
+    return table
+
+
+class _HazardLabels(Flowable):
+    """Illustrations only; the separate printable label sheet owns print sizes."""
+
+    def __init__(self, codes: list[str]):
+        super().__init__()
+        self.codes = codes
+        self.width = FRAME_W
+        self.height = ((len(codes) + 7) // 8) * 62
+
+    def draw(self):
+        for index, code in enumerate(self.codes):
+            draw_label(self.canv, code, (index % 8) * 60,
+                       self.height - (index // 8 + 1) * 62 + 8, 46)
+
+
+def _frame(canvas, doc, entry: CardPage, index: int, count: int, generated_at: str,
+           styles: dict, logo: bytes | None) -> None:
+    canvas.saveState()
+    canvas.setFillColor(ACCENT)
+    canvas.rect(0, PAGE_H - 3, PAGE_W, 3, stroke=0, fill=1)
+    draw_wordmark(canvas, MARGIN, PAGE_H - 42, logo=logo)
+    canvas.setFont(TEXT, 7.4)
+    canvas.setFillColor(MUTED)
+    title = f"{entry.modality} – UN Card · UN {entry.un}"
+    canvas.drawRightString(PAGE_W - MARGIN, PAGE_H - 36, title)
     if count > 1:
-        c.setFont("Helvetica", 7)
-        c.setFillColor(GRAY)
-        c.drawCentredString(PAGE_W / 2, top - 36, f"entry {index} of {count}")
-
-    # UN diamond, top right.
-    half = 21.0
-    cx = PAGE_W - MARGIN - half - 2
-    cy = top - half - 1
-    c.setFillColor(ORANGE)
-    c.setStrokeColor(ORANGE)
-    p = c.beginPath()
-    p.moveTo(cx, cy + half)
-    p.lineTo(cx + half, cy)
-    p.lineTo(cx, cy - half)
-    p.lineTo(cx - half, cy)
-    p.close()
-    c.drawPath(p, stroke=1, fill=1)
-    c.setFillColor(white)
-    c.setFont("Helvetica-Bold", 6.4)
-    c.drawCentredString(cx, cy + 3.5, "UN")
-    c.setFont("Helvetica-Bold", 9.4)
-    c.drawCentredString(cx, cy - 6.5, page.un)
-
-    # Rule under the header.
-    c.setStrokeColor(black)
-    c.setLineWidth(1.1)
-    c.line(MARGIN, top - HEADER_H, PAGE_W - MARGIN, top - HEADER_H)
-
-
-def _footer(c: Canvas, page: CardPage, generated_at: str) -> None:
-    c.setStrokeColor(black)
-    c.setLineWidth(0.7)
-    c.line(MARGIN, MARGIN + FOOTER_H - 8, PAGE_W - MARGIN, MARGIN + FOOTER_H - 8)
-    c.setFillColor(black)
-    c.setFont("Helvetica", 6.6)
-    c.drawString(MARGIN, MARGIN + FOOTER_H - 17,
-                 "Generated by EMCargo — a compilation offered as an aid; the published "
-                 "text of the regulation remains authoritative.")
-    c.setFillColor(GRAY)
-    line = f"Regulation: {page.regulation}   ·   Generated: {generated_at}"
-    c.drawString(MARGIN, MARGIN + FOOTER_H - 25, line)
-    for i, source_line in enumerate(
-            simpleSplit(f"Source: {page.source}", "Helvetica", 6.0, FRAME_W)[:2]):
-        c.setFont("Helvetica", 6.0)
-        c.drawString(MARGIN, MARGIN + FOOTER_H - 32 - i * 7, source_line)
-
-
-def _cell(c: Canvas, x: float, y: float, w: float, h: float,
-          label: str, value: str, value_size: float = 9.2) -> None:
-    """One framed cell: small bold label top-left, value centred beneath."""
-    c.setStrokeColor(black)
-    c.setLineWidth(0.6)
-    c.rect(x, y - h, w, h, stroke=1, fill=0)
-    c.setFillColor(black)
-    c.setFont(*LABEL_FONT)
-    c.drawString(x + 3, y - 8.5, label)
-    font = "Helvetica"
-    size = value_size
-    while size > 6.4 and c.stringWidth(value, font, size) > w - 6:
-        size -= 0.4
-    lines = simpleSplit(value, font, size, w - 6)
-    c.setFont(font, size)
-    start = y - 8.5 - 11
-    for i, line in enumerate(lines[:2]):
-        c.drawCentredString(x + w / 2, start - i * (size + 1.4), line)
-
-
-def _draw_text_box(cur: _Cursor, label_lines: list[str], lines: list[str],
-                   label_width: float, fill: bool) -> None:
-    height = max(16.0, 6 + len(lines) * TEXT_LEADING, 8 + len(label_lines) * 9)
-    cur.ensure(height)
-    c = cur.c
-    y = cur.y
-    if fill:
-        c.setFillColor(LIGHT)
-        c.rect(MARGIN, y - height, FRAME_W, height, stroke=0, fill=1)
-    c.setStrokeColor(black)
-    c.setLineWidth(0.6)
-    c.rect(MARGIN, y - height, FRAME_W, height, stroke=1, fill=0)
-    c.setFillColor(black)
-    c.setFont("Helvetica-Bold", 7.6)
-    for i, label_line in enumerate(label_lines):
-        c.drawString(MARGIN + 4, y - 11 - i * 9, label_line)
-    c.setFont(*TEXT_FONT)
-    for i, line in enumerate(lines):
-        if line:
-            c.drawString(MARGIN + label_width, y - 11 - i * TEXT_LEADING, line)
-    cur.y -= height
-
-
-def _text_row(cur: _Cursor, label: str, text: str,
-              label_width: float = 108.0, fill: bool = False) -> None:
-    # Paragraph breaks survive: each "\n" separates provisions or list items.
-    lines: list[str] = []
-    for index, paragraph in enumerate(text.split("\n")):
-        if index > 0:
-            lines.append("")
-        lines += simpleSplit(paragraph, TEXT_FONT[0], TEXT_FONT[1],
-                             FRAME_W - label_width - 10)
-    label_lines = simpleSplit(label, "Helvetica-Bold", 7.6, label_width - 8)[:3]
-
-    # A provision longer than a whole page (S1 for class 1 runs to that)
-    # continues in follow-up boxes on the next page rather than clipping —
-    # the text is never shrunk and never truncated.
-    usable = PAGE_H - 2 * MARGIN - HEADER_H - FOOTER_H - 20
-    per_box = max(4, int((usable - 6) / TEXT_LEADING))
-    first = True
-    while lines:
-        chunk, lines = lines[:per_box], lines[per_box:]
-        _draw_text_box(
-            cur,
-            label_lines if first else
-            simpleSplit(f"{label} (continued)", "Helvetica-Bold", 7.6, label_width - 8)[:3],
-            chunk, label_width, fill)
-        first = False
-
-
-def _heading(cur: _Cursor, text: str) -> None:
-    height = 16.0
-    cur.ensure(height + 20)
-    c = cur.c
-    c.setFillColor(LIGHT)
-    c.rect(MARGIN, cur.y - height, FRAME_W, height, stroke=0, fill=1)
-    c.setStrokeColor(black)
-    c.setLineWidth(0.6)
-    c.rect(MARGIN, cur.y - height, FRAME_W, height, stroke=1, fill=0)
-    c.setFillColor(black)
-    c.setFont("Helvetica-Bold", 9.4)
-    c.drawString(MARGIN + 4, cur.y - 11.5, text)
-    cur.y -= height
-
-
-def _identity_band(cur: _Cursor) -> None:
-    page = cur.page
-    height = 46.0
-    cur.ensure(height)
-    c = cur.c
-    y = cur.y
-    number_w = 108.0
-    c.setStrokeColor(black)
-    c.setLineWidth(0.9)
-    c.rect(MARGIN, y - height, number_w, height, stroke=1, fill=0)
-    c.rect(MARGIN + number_w, y - height, FRAME_W - number_w, height, stroke=1, fill=0)
-    c.setFillColor(black)
-    c.setFont(*LABEL_FONT)
-    c.drawString(MARGIN + 3, y - 8.5, "UN number")
-    c.setFont("Helvetica-Bold", 24)
-    c.drawCentredString(MARGIN + number_w / 2, y - height + 12, page.un)
-    c.setFont(*LABEL_FONT)
-    c.drawString(MARGIN + number_w + 3, y - 8.5, "Shipping name")
-    text_y = y - 20
-    for language in ("en", "nl", "de", "fr"):
-        name = page.names.get(language)
-        if not name:
-            continue
-        c.setFont("Helvetica-Bold" if language == "en" else "Helvetica", 9.0)
-        c.setFillColor(black if language == "en" else GRAY)
-        shown = name
-        size = 9.0
-        while size > 6.6 and c.stringWidth(shown, c._fontname, size) > FRAME_W - number_w - 34:
-            size -= 0.4
-        c.setFontSize(size)
-        c.drawString(MARGIN + number_w + 22, text_y, shown)
-        c.setFont("Helvetica-Bold", 5.8)
-        c.setFillColor(GRAY)
-        c.drawString(MARGIN + number_w + 4, text_y, language.upper())
-        text_y -= 12
-        if text_y < y - height + 6:
-            break
-    c.setFillColor(black)
-    cur.y -= height
-
-
-def _attribute_band(cur: _Cursor) -> None:
-    page = cur.page
-    cells = [
-        ("Class", page.klass),
-        ("Packing group", page.packing_group),
-        ("Classification code", page.classification_code),
-        *page.identity_extra,
-    ]
-    height = 30.0
-    cur.ensure(height)
-    w = FRAME_W / len(cells)
-    for i, (label, value) in enumerate(cells):
-        _cell(cur.c, MARGIN + i * w, cur.y, w, height, label, value)
-    cur.y -= height
-
-
-def _labels_band(cur: _Cursor) -> None:
-    page = cur.page
-    diamond = 46.0
-    # Enough headroom that the cell label stays clear of the diamonds.
-    height = 14 + diamond + 6
-    marking_h = 24.0
-    cur.ensure(height + marking_h)
-    c = cur.c
-    y = cur.y
-    left_w = FRAME_W * 0.46
-    c.setStrokeColor(black)
-    c.setLineWidth(0.6)
-    c.rect(MARGIN, y - height, left_w, height, stroke=1, fill=0)
-    c.setFillColor(black)
-    c.setFont(*LABEL_FONT)
-    c.drawString(MARGIN + 3, y - 8.5, "Hazard labels")
-    x = MARGIN + 8
-    for code in page.labels:
-        draw_label(c, code, x, y - height + 6, diamond)
-        x += diamond + 8
-    if not page.labels:
-        c.setFont("Helvetica", 8.4)
-        c.drawString(MARGIN + 8, y - height / 2, "No labels in column (5).")
-
-    right_x = MARGIN + left_w
-    right_w = FRAME_W - left_w
-    cells = [("Hazard labels", ", ".join(page.labels) if page.labels else "—"),
-             *page.label_extra]
-    w = right_w / len(cells)
-    for i, (label, value) in enumerate(cells):
-        _cell(c, right_x + i * w, y, w, height, label, value)
-
-    # Marking row across the full width.
-    c.setStrokeColor(black)
-    c.rect(MARGIN, y - height - marking_h, FRAME_W, marking_h, stroke=1, fill=0)
-    c.setFillColor(black)
-    c.setFont(*LABEL_FONT)
-    c.drawString(MARGIN + 3, y - height - 8.5, "Marking")
-    c.setFont("Helvetica", 8.8)
-    marking = page.marking
-    size = 8.8
-    while size > 6.6 and c.stringWidth(marking, "Helvetica", size) > FRAME_W - 12:
-        size -= 0.4
-    c.setFontSize(size)
-    c.drawCentredString(PAGE_W / 2, y - height - marking_h + 7, marking)
-    cur.y -= height + marking_h
-
-
-def _tank_band(cur: _Cursor) -> None:
-    page = cur.page
-    if not page.tank_rows:
-        return
-    per_row = 3
-    height = 30.0
-    rows = [page.tank_rows[i:i + per_row] for i in range(0, len(page.tank_rows), per_row)]
-    cur.ensure(len(rows) * height)
-    for chunk in rows:
-        w = FRAME_W / len(chunk)
-        for i, (label, value) in enumerate(chunk):
-            _cell(cur.c, MARGIN + i * w, cur.y, w, height, label, value, value_size=8.2)
-        cur.y -= height
-
-
-def _lq_eq_band(cur: _Cursor) -> None:
-    page = cur.page
-    if page.lq_eq is None:
-        return
-    lq, eq = page.lq_eq
-    height = 30.0
-    cur.ensure(height)
-    c = cur.c
-    if eq:
-        half = FRAME_W / 2
-        _cell(c, MARGIN, cur.y, half, height, "Limited quantities (LQ)", lq)
-        _cell(c, MARGIN + half, cur.y, half, height, "Excepted quantities (EQ)", eq)
-    else:
-        _cell(c, MARGIN, cur.y, FRAME_W, height, "Limited quantities (LQ)", lq)
-    cur.y -= height
-
-
-def render_pages(c: Canvas, pages: list[CardPage], generated_at: str) -> None:
-    for index, page in enumerate(pages, start=1):
-        cur = _Cursor(c=c, page=page, entry_index=index, entry_count=len(pages),
-                      generated_at=generated_at)
-        cur.new_page()
-        _identity_band(cur)
-        _attribute_band(cur)
-        _labels_band(cur)
-        for label, text in page.packaging_rows:
-            _text_row(cur, label, text)
-        cur.y -= 6
-        _tank_band(cur)
-        cur.y -= 6
-        _heading(cur, "Special transport provisions")
-        for label, text in page.provision_rows:
-            _text_row(cur, label, text)
-        cur.y -= 6
-        _lq_eq_band(cur)
-        _footer(c, page, generated_at)
-        c.showPage()
+        canvas.drawRightString(PAGE_W - MARGIN, PAGE_H - 47, f"entry {index} of {count}")
+    canvas.setStrokeColor(LINE)
+    canvas.setLineWidth(.6)
+    canvas.line(MARGIN, PAGE_H - 60, PAGE_W - MARGIN, PAGE_H - 60)
+    canvas.line(MARGIN, 68, PAGE_W - MARGIN, 68)
+    disclaimer = _p("Generated by EMCargo — a compilation offered as an aid; the published "
+                    "text of the regulation remains authoritative.", styles["disclaimer"])
+    _, height = disclaimer.wrap(FRAME_W - 55, 100)
+    disclaimer.drawOn(canvas, MARGIN, 59 - height)
+    canvas.setFont(TEXT, 6.6)
+    canvas.setFillColor(MUTED)
+    canvas.drawString(MARGIN, 22, f"Regulation: {entry.regulation} · Generated: {generated_at}")
+    canvas.setFont(BOLD, 7.5)
+    canvas.setFillColor(ACCENT)
+    canvas.drawRightString(PAGE_W - MARGIN, 44, str(doc.page))
+    canvas.restoreState()
 
 
 def render_card_pdf(path: Path, pages: list[CardPage], generated_at: str) -> None:
-    c = Canvas(str(path), pagesize=A4)
+    styles = paragraph_styles()
     first = pages[0]
-    c.setTitle(f"UN {first.un} — {first.modality} UN Card")
-    c.setAuthor("EMCargo")
-    c.setSubject(f"{first.regulation} reference card for UN {first.un}")
-    render_pages(c, pages, generated_at)
-    c.save()
+    doc = BaseDocTemplate(str(path), pagesize=A4,
+                          leftMargin=MARGIN, rightMargin=MARGIN,
+                          topMargin=82, bottomMargin=82,
+                          title=f"UN {first.un} — {first.modality} UN Card",
+                          author="EMCargo",
+                          subject=f"{first.regulation} reference card for UN {first.un}")
+    logo_path = ASSETS / "logo.png"
+    logo = logo_path.read_bytes() if logo_path.is_file() else None
+    story = []
+    for index, page in enumerate(pages, start=1):
+        template = f"entry-{index}"
+        frame = Frame(MARGIN, doc.bottomMargin, doc.width, doc.height,
+                      leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+        doc.addPageTemplates(PageTemplate(
+            id=template, frames=[frame],
+            onPage=lambda canvas, document, entry=page, number=index:
+                _frame(canvas, document, entry, number, len(pages), generated_at, styles, logo)))
+        if index > 1:
+            story.extend([NextPageTemplate(template), PageBreak()])
+        story.extend([
+            _p(f"UN {page.un}", styles["title"]),
+            _p(f"{page.modality} · {page.regulation}", styles["status"]),
+            _p("Shipping name", styles["section"]),
+            _fields([(language.upper(), page.names[language])
+                     for language in ("en", "nl", "de", "fr") if page.names.get(language)], styles),
+            Spacer(1, 10),
+            _attributes([("Class", page.klass), ("Packing group", page.packing_group),
+                         ("Classification code", page.classification_code),
+                         *page.identity_extra], styles),
+            _p("Hazard labels", styles["section"]),
+        ])
+        if page.labels:
+            story.append(_HazardLabels(page.labels))
+        else:
+            story.append(_p("No labels in column (5).", styles["note"]))
+        story.append(_fields([("Hazard labels", ", ".join(page.labels) or "—"),
+                              *page.label_extra, ("Marking", page.marking)], styles))
+        if page.packaging_rows:
+            story.extend([_p("Packaging", styles["section"]), _fields(page.packaging_rows, styles)])
+        if page.tank_rows:
+            story.extend([Spacer(1, 10), _attributes(page.tank_rows, styles)])
+        if page.provision_rows:
+            story.extend([_p("Special transport provisions", styles["section"]),
+                          _fields(page.provision_rows, styles)])
+        if page.lq_eq is not None:
+            lq, eq = page.lq_eq
+            rows = [("Limited quantities (LQ)", lq)]
+            if eq:
+                rows.append(("Excepted quantities (EQ)", eq))
+            story.extend([Spacer(1, 10), _attributes(rows, styles)])
+        # Full provenance belongs in flowing content, so a long source never
+        # disappears beyond a two-line footer limit.
+        story.extend([_p("Source", styles["section"]), _p(page.source, styles["note"])])
+    doc.build(story)

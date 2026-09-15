@@ -45,7 +45,14 @@ MODALITIES = ("ADR", "RID", "ADN", "IMDG", "ICAO")
 #: Every member of a valid package matches one of these — nothing else is
 #: extracted, so ../ tricks and absolute paths never reach the filesystem.
 _CARD_MEMBER = re.compile(r"^(ADR|RID|ADN|IMDG|ICAO)/UN(\d{4})_(ADR|RID|ADN|IMDG|ICAO)\.pdf$")
-_META_MEMBERS = {"manifest.json", "generation-report.json"}
+_META_MEMBERS = {
+    "manifest.json", "generation-report.json", "THIRD_PARTY_NOTICES.md",
+    "source.cdx.json", "cards.cdx.json",
+}
+# The workflow includes dependency notices and font licenses. Only safe
+# relative components below this metadata directory are accepted; these
+# bounded files are stored as evidence and never interpreted or executed.
+_LICENSE_MEMBER = re.compile(r"licenses/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*")
 
 MAX_MEMBERS = 30_000
 MAX_CARD_BYTES = 2 * 1024 * 1024
@@ -219,7 +226,7 @@ def import_package(archive_path: Path) -> dict[str, Any]:
                 name = member.filename
                 if name.endswith("/"):
                     continue
-                if name in _META_MEMBERS:
+                if name in _META_MEMBERS or _LICENSE_MEMBER.fullmatch(name):
                     limit = MAX_META_BYTES
                 elif _CARD_MEMBER.match(name):
                     limit = MAX_CARD_BYTES

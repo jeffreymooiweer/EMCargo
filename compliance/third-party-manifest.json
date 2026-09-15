@@ -93,7 +93,8 @@
       "distribution_channels": [
         "image",
         "native",
-        "source"
+        "source",
+        "cards"
       ],
       "reviewed_at": "2026-09-15",
       "reviewer": "Codex technical evidence inventory; unresolved is not legal clearance"
@@ -3552,7 +3553,7 @@
       "paths": [
         "frontend/package.json"
       ],
-      "version": "EMCargo 2.12.2; dependency declarations unchanged",
+      "version": "2.12.3; version-only update, dependency declarations unchanged",
       "source_url": null,
       "copyright_holder": "Original rights holders; see source notices",
       "license_expression": "LicenseRef-EMCargo",
@@ -3560,7 +3561,7 @@
       "redistribution_basis": "Project-authored build/dependency declaration; dependencies keep their own licenses.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package.json": "8e76c3c6bbdb201157bad162bc828f34937575190346e56047eb9972ac7ce03d"
+        "frontend/package.json": "21232a6076a932d5cd0d4255f821c6bf032755bf580c2f8e541d13ebc92c9328"
       },
       "distribution_channels": [
         "source"
@@ -3574,7 +3575,7 @@
       "paths": [
         "frontend/package-lock.json"
       ],
-      "version": "EMCargo 2.12.2; dependency declarations unchanged",
+      "version": "2.12.3; version-only update, dependency declarations unchanged",
       "source_url": null,
       "copyright_holder": "Jeffrey Mooiweer",
       "license_expression": "LicenseRef-EMCargo",
@@ -3582,7 +3583,7 @@
       "redistribution_basis": "The declaration is project-authored; the resolved packages retain their own licenses and require a generated SBOM.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package-lock.json": "6a7661d4419ddb3f8d8aca2e04cbfa2e04e3ba0333aa81f9a7df8a0f90b0c20a"
+        "frontend/package-lock.json": "54df9bf7e635d80a35070f7e4c16aace4420dfd31d8b3a37b4c6e94dc95ada5e"
       },
       "distribution_channels": [
         "image",
@@ -5084,6 +5085,62 @@
       "retired_sha256": {
         "templates/forms/iata_dgd.pdf": "22661891a710c06c27409fa2bca7c7aabc946a4d8a4b6aeeb77bb161ca5de302"
       }
+    },
+    {
+      "id": "pdf-cal-sans",
+      "kind": "pdf-font",
+      "paths": [
+        "backend/app/assets/fonts/CalSans-Regular.ttf",
+        "backend/app/assets/fonts/CalSans-LICENSE.txt"
+      ],
+      "version": "1.000",
+      "source_url": "https://github.com/calcom/font",
+      "copyright_holder": "The Cal Sans Project Authors",
+      "license_expression": "OFL-1.1",
+      "rights_status": "documented",
+      "redistribution_basis": "Unmodified copy of the existing bundled Cal Sans font. The included SIL OFL 1.1 permits embedding and redistribution subject to its notice and reserved-name conditions.",
+      "evidence_reference": "backend/app/assets/fonts/CalSans-LICENSE.txt",
+      "sha256": {
+        "backend/app/assets/fonts/CalSans-Regular.ttf": "040f5d1335848146e769ca40ce9664ca8b7639eecdd7316f468b7db20d1c9c01",
+        "backend/app/assets/fonts/CalSans-LICENSE.txt": "c6bd569e2bb98d55fcdaeb53918c023741772ea882d470844195f858a41c5551"
+      },
+      "distribution_channels": [
+        "source",
+        "image",
+        "native",
+        "cards"
+      ],
+      "reviewed_at": "2026-09-15",
+      "reviewer": "Codex font license and binary-metadata review"
+    },
+    {
+      "id": "pdf-dejavu-sans",
+      "kind": "pdf-font",
+      "paths": [
+        "backend/app/assets/fonts/DejaVuSans.ttf",
+        "backend/app/assets/fonts/DejaVuSans-Bold.ttf",
+        "backend/app/assets/fonts/DejaVu-LICENSE.txt"
+      ],
+      "version": "2.37",
+      "source_url": "https://dejavu-fonts.github.io/License.html",
+      "copyright_holder": "Bitstream, Inc.; Tavmjong Bah; DejaVu contributors",
+      "license_expression": "Bitstream-Vera AND Arev-Fonts",
+      "rights_status": "documented",
+      "redistribution_basis": "Unmodified DejaVu Sans 2.37 files. Preserve the bundled Bitstream Vera and Arev notices; DejaVu changes are public domain. Font-only sale and reserved-name restrictions remain applicable.",
+      "evidence_reference": "backend/app/assets/fonts/DejaVu-LICENSE.txt",
+      "sha256": {
+        "backend/app/assets/fonts/DejaVuSans.ttf": "ae7b7855e115a5966d8b1b3f80f254ccc117ec86f9965e202ee2940453837280",
+        "backend/app/assets/fonts/DejaVuSans-Bold.ttf": "5c1247acef7f2b8522a31742c76d6adcb5569bacc0be7ceaa4dc39dd252ce895",
+        "backend/app/assets/fonts/DejaVu-LICENSE.txt": "d75938dec098f06f0ac3c00853065d94f020be1c3c62ef1dc2975ba15b4d9b0e"
+      },
+      "distribution_channels": [
+        "source",
+        "image",
+        "native",
+        "cards"
+      ],
+      "reviewed_at": "2026-09-15",
+      "reviewer": "Codex font license and binary-metadata review"
     }
   ]
 }

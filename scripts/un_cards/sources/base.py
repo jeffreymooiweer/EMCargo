@@ -63,7 +63,7 @@ class CardPage:
     lq_eq: tuple[str, str] | None = None
     #: The regulation and edition this page was read from, e.g. "ADR 2025".
     regulation: str = ""
-    #: Full provenance line for the footer.
+    #: Full provenance, rendered without truncation in the source section.
     source: str = ""
 
 

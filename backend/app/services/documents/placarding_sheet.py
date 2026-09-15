@@ -24,7 +24,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from reportlab.platypus import KeepTogether, Spacer
+from reportlab.platypus import Spacer
 
 from app.services.dg.compliance import (
     check_adn_exemption,
@@ -231,11 +231,12 @@ def render_placarding_sheet(
 
     rows = _goods_rows(entries)
     if rows:
-        story.append(KeepTogether([
+        story.extend([
             _section_header(_t("goods", lang), styles, width),
-            _grid_table(_t("goods_headers", lang).split("|"), rows, styles, width),
+            _grid_table(_t("goods_headers", lang).split("|"), rows, styles, width,
+                        col_weights=[.10, .37, .09, .10, .13, .21]),
             Spacer(1, 6),
-        ]))
+        ])
 
     story.append(_section_header(_t("placards", lang), styles, width))
     if result.get("status") == "exempt":

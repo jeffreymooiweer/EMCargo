@@ -14,8 +14,8 @@ from typing import Any
 
 from PIL import Image as PILImage
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.enums import TA_RIGHT
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     Image,
@@ -27,6 +27,7 @@ from reportlab.platypus import (
 )
 
 from app.core.languages import pick
+from app.pdf_style import ACCENT, LINE, PALE, BOLD, paragraph_styles, table_commands
 from app.services.documents import brand
 from app.services.documents.frame import branded_document
 from app.services.dg.autofill import adr_category_totals
@@ -42,29 +43,13 @@ from app.services.documents.exporter import (
     resolve_sections,
 )
 
-BRAND = colors.HexColor("#1E3A5F")
-LIGHT = colors.HexColor("#D9E2EC")
-MUTED = colors.HexColor("#666666")
-GRID = colors.HexColor("#B0BEC5")
+BRAND = ACCENT
+LIGHT = LINE
+GRID = LINE
 
 
 def _styles() -> dict[str, ParagraphStyle]:
-    base = getSampleStyleSheet()
-    return {
-        "title": ParagraphStyle("cp_title", parent=base["Title"], fontSize=16, spaceAfter=4, textColor=BRAND),
-        "status": ParagraphStyle("cp_status", parent=base["Normal"], fontSize=9, textColor=BRAND, italic=True),
-        "meta": ParagraphStyle("cp_meta", parent=base["Normal"], fontSize=8, textColor=MUTED),
-        "section": ParagraphStyle(
-            "cp_section", parent=base["Heading2"], fontSize=11, textColor=colors.white, spaceBefore=8, spaceAfter=0
-        ),
-        "label": ParagraphStyle("cp_label", parent=base["Normal"], fontSize=8.5, textColor=colors.HexColor("#334155")),
-        "value": ParagraphStyle("cp_value", parent=base["Normal"], fontSize=9, alignment=TA_LEFT),
-        "note": ParagraphStyle("cp_note", parent=base["Normal"], fontSize=8, textColor=MUTED),
-        "cell": ParagraphStyle("cp_cell", parent=base["Normal"], fontSize=8, leading=10),
-        "cellh": ParagraphStyle("cp_cellh", parent=base["Normal"], fontSize=8, leading=10, textColor=colors.white),
-        "fixed": ParagraphStyle("cp_fixed", parent=base["Normal"], fontSize=8, leading=11, textColor=colors.HexColor("#1f2937")),
-        "disclaimer": ParagraphStyle("cp_disc", parent=base["Normal"], fontSize=7.5, leading=10, textColor=MUTED),
-    }
+    return paragraph_styles()
 
 
 def _p(text: Any, style: ParagraphStyle) -> Paragraph:
@@ -73,48 +58,67 @@ def _p(text: Any, style: ParagraphStyle) -> Paragraph:
     return Paragraph(s, style)
 
 
-def _section_header(title: str, styles: dict, width: float) -> Table:
-    t = Table([[_p(title, styles["section"])]], colWidths=[width])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), BRAND),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-    ]))
-    return t
+def _section_header(title: str, styles: dict, width: float) -> Paragraph:
+    # keepWithNext prevents an isolated heading, without forcing a long table
+    # onto a new page or retaining an entire section in one unbreakable block.
+    return _p(title, styles["section"])
 
 
 def _fields_table(rows: list[tuple[str, Any]], styles: dict, width: float) -> Table:
     data = [[_p(label, styles["label"]), _p(value, styles["value"])] for label, value in rows]
-    t = Table(data, colWidths=[width * 0.34, width * 0.66])
-    t.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.4, GRID),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 5),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F1F5F9")),
-    ]))
-    return t
+    table = Table(data, colWidths=[width * .32, width * .68],
+                  splitByRow=1, splitInRow=1, hAlign="LEFT")
+    table.setStyle(TableStyle(table_commands(header=False)))
+    return table
 
 
-def _grid_table(header: list[str], rows: list[list[Any]], styles: dict, width: float) -> Table:
-    data = [[_p(h, styles["cellh"]) for h in header]]
-    for row in rows:
-        data.append([_p(c, styles["cell"]) for c in row])
-    t = Table(data, colWidths=[width / len(header)] * len(header), repeatRows=1)
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), BRAND),
-        ("GRID", (0, 0), (-1, -1), 0.4, GRID),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
-    ]))
-    return t
+def _grid_table(header: list[str], rows: list[list[Any]], styles: dict, width: float,
+                *, col_weights: list[float] | None = None,
+                numeric_columns: tuple[int, ...] = (), summary_last: bool = False) -> Table:
+    # Descriptions need more room than counts. Explicit proportions take
+    # precedence; other tables use bounded content lengths, never equal-width
+    # columns that make a three-character position as wide as its description.
+    if col_weights is None:
+        col_weights = [max(5, min(45, max(len(str(row[index] or ""))
+                       for row in [header, *rows]))) ** .6 for index in range(len(header))]
+    if len(col_weights) != len(header) or any(weight <= 0 for weight in col_weights):
+        raise ValueError("Each table column needs a positive width weight")
+    widths = [width * weight / sum(col_weights) for weight in col_weights]
+    right = ParagraphStyle("emcargo_numeric_cell", parent=styles["cell"], alignment=TA_RIGHT)
+    total = ParagraphStyle("emcargo_total_cell", parent=styles["cell"], fontName=BOLD)
+    total_right = ParagraphStyle("emcargo_total_number", parent=total, alignment=TA_RIGHT)
+    has_header = any(header)
+    data = [[_p(h, styles["cellh"]) for h in header]] if has_header else []
+    for index, row in enumerate(rows):
+        last = summary_last and index == len(rows) - 1
+        data.append([_p(value, (total_right if last else right) if column in numeric_columns
+                        else total if last else styles["cell"]) for column, value in enumerate(row)])
+    table = Table(data, colWidths=widths, repeatRows=int(has_header),
+                  splitByRow=1, splitInRow=1, hAlign="LEFT")
+    commands = table_commands(header=has_header)
+    if summary_last and rows:
+        commands += [("BACKGROUND", (0, -1), (-1, -1), PALE),
+                     ("LINEABOVE", (0, -1), (-1, -1), .8, ACCENT)]
+    table.setStyle(TableStyle(commands))
+    return table
+
+
+def _imdg_item(header: list[str], row: list[Any], styles: dict, width: float) -> Table:
+    """Keep every IMDG field readable instead of squeezing ten columns on A4.
+
+    The first row identifies the substance and repeats if its details span
+    pages. The remaining eight values are paired with their original labels
+    in two rows, so a quantity can never lose its column's meaning.
+    """
+    data = [[[_p(header[0], styles["cellh"]), _p(row[0], styles["cellh"])],
+             [_p(header[1], styles["cellh"]), _p(row[1], styles["cellh"])], "", ""]]
+    for offset in (2, 6):
+        data.append([[_p(label, styles["label"]), _p(value, styles["cell"])]
+                     for label, value in zip(header[offset:offset + 4], row[offset:offset + 4])])
+    table = Table(data, colWidths=[width / 4] * 4, repeatRows=1,
+                  splitByRow=1, splitInRow=1, hAlign="LEFT")
+    table.setStyle(TableStyle(table_commands() + [("SPAN", (1, 0), (3, 0))]))
+    return table
 
 
 def _visible_fields(section: dict, values: dict) -> list[dict]:
@@ -227,11 +231,11 @@ def render_document_pdf(
         if not fields:
             continue
         rows = [(_label(f, lang), _field_display(f, values, lang)) for f in fields]
-        story.append(KeepTogether([
+        story.extend([
             _section_header(_label(section, lang), styles, width),
             _fields_table(rows, styles, width),
             Spacer(1, 6),
-        ]))
+        ])
 
     included = [ln for ln in lines if ln.get("include", True)]
     if included:
@@ -250,7 +254,9 @@ def render_document_pdf(
             ])
         rows.append(["", _text("totals", lang), "", "", round(tw, 2), round(tv, 3), ""])
         story.append(_section_header(_text("goods", lang), styles, width))
-        story.append(_grid_table(header, rows, styles, width))
+        story.append(_grid_table(header, rows, styles, width,
+                                 col_weights=[.065, .28, .11, .105, .14, .13, .17],
+                                 numeric_columns=(0, 2, 4, 5), summary_last=True))
         story.append(Spacer(1, 6))
 
     profile = document.get("dg_profile")
@@ -261,7 +267,11 @@ def render_document_pdf(
             for product in entry.get("products", []):
                 rows.append(_dg_rows(profile, entry, product, values, lang))
         story.append(_section_header(f"{_text('dg_table', lang)} ({profile})", styles, width))
-        story.append(_grid_table(header, rows, styles, width))
+        if profile == "IMDG":
+            for row in rows:
+                story.extend([_imdg_item(header, row, styles, width), Spacer(1, 8)])
+        else:
+            story.append(_grid_table(header, rows, styles, width))
         story.append(Spacer(1, 6))
 
         # ADR 5.4.1.1.1.1: the total quantity per transport category belongs in

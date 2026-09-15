@@ -69,6 +69,23 @@ each document requires:
 | **[Structured shipment export (JSON)](shipment-export.md)** | Not paper but data: the whole shipment, including what EMCargo derived and against which editions. Offered on every transport mode. EMCargo's own format with its own version number — not an eFTI message and not an eCMR |
 | **Package label and marking sheet (5.2)** | Which labels and marks each package carries, per regime, and the class labels themselves at full size — 100 mm on each side, one per A4 page. The artwork is the official one, cut from the ADR; nothing is redrawn. The battery mark and the orientation arrows are printed too: the arrows are the framed figure of 5.2.1.10.1.2, cut whole, and the battery mark is the edition's own symbol inside the frame 5.2.1.9.2 states in words — 100 mm square, 5 mm of red hatching — carrying the UN number where the figure prints an asterisk. A sea consignment also gets what column 6 of the Dangerous Goods List says about its labels: the effect each cited special provision would have, and whether it was applied or is left to be judged. Every page carrying a figure names BS 5609, the standard a material meets to survive the IMDG Code's three months' immersion — the working page carries the full note, and the pages that get cut up carry it in one line, because the working page is the one a packer throws away. Air is absent: the IATA marking rules have not been read |
 
+## Shared PDF style
+
+Self-designed exports, the DGSA annual report and newly generated UN cards use
+`backend/app/pdf_style.py`: Cal Sans headings, DejaVu Sans body text, blue accents,
+horizontal table rules and alternating pale rows. Fonts and their licenses are
+bundled under `backend/app/assets/fonts`; exports do not fetch fonts or depend on
+fonts installed on the host. Instance name/logo overrides remain supported.
+
+Tables wrap and continue onto following pages with repeated headings. IMDG data
+uses one labelled block per substance so all ten fields remain legible on A4.
+Long answers and source notes are retained rather than shrunk or truncated.
+
+Official CMR, CIM, AVC and IATA forms retain their original layouts. Hazard
+artwork, colours, physical print sizes and QR module sizing retain their own
+rendering rules. Previously exported PDFs and installed UN-card packages are not
+rewritten; the style applies when a document or card set is generated again.
+
 ## What is never filled in for you
 
 EMCargo distinguishes four kinds of field, and only fills the first:
