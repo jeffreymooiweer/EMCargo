@@ -30,7 +30,10 @@ it("routes corrections, approvals, private drafts and unavailable modes to their
   expect(workDestination({ ...item, kind: "review", id: "abc", status: "review" })).toBe("/dg-reviews/abc");
   expect(workDestination({ ...item, kind: "review", id: "abc", status: "changes" })).toBe("/wizard/road?review=abc");
   expect(workDestination({ ...item, kind: "review", id: "abc", status: "approved" })).toBe("/wizard/road?review=abc");
-  expect(workDestination({ ...item, modality: "sea" })).toBe("/shipments");
+  expect(workDestination({ ...item, modality: "sea" })).toBe("/wizard/sea?shipment=7");
+  for (const modality of ["air", "multimodal"]) {
+    expect(workDestination({ ...item, modality })).toBe("/shipments");
+  }
 });
 
 it("filters with the server so counts and rows use one scope", async () => {
