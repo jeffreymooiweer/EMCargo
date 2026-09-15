@@ -8,6 +8,13 @@ cleared. The machine-readable file inventory is
 
 ## Evidence and decisions
 
+The follow-up [source review](source-evidence.md) establishes exact GWDD and
+DGSA grants, narrows the remaining NIST question and records the publishers'
+form-use boundaries. [Operational scope](operational-scope.md) covers current
+CRA/AI Act applicability and data protection. The [historical review procedure](historical-distributions.md)
+tracks earlier distributions separately. None of these documents activates
+the proposed CLA or commercial terms.
+
 | Family | Evidence inspected | Outstanding decision |
 | --- | --- | --- |
 | Project software | [Current LICENSE](../../LICENSE); initial MIT release on 2026-07-07; Commons Clause added on 2026-07-11 | Previously granted MIT rights are not retroactively revoked; later additions must be evaluated under their applicable license |
@@ -20,6 +27,9 @@ cleared. The machine-readable file inventory is
 | Trainline stations | [Upstream license](https://github.com/trainline-eu/stations/blob/master/LICENCE.txt) | ODbL attribution, derivative-database availability and separate licensing must accompany every relevant distribution |
 | OurAirports | [Data download page](https://ourairports.com/data/) | Public-domain source statement recorded; no accuracy guarantee is implied |
 | Cal Sans | [Bundled OFL](../../frontend/public/fonts/cal-sans-LICENSE.txt) | Preserve the font's notices and any reserved-name conditions |
+| GWDD v2.2 | Exact Zenodo record/API identifies CC BY 4.0; see `source-evidence.md` | Separate measurement extract documented with creator/change/license notices; mixed Hapman catalogue remains unresolved |
+| DGSA question configuration | DfT publication page, exact December 2025 PDF/hash and OGL v3.0 | Adapted question configuration documented; no grant inferred for Crown branding or other ADR publications |
+| NIST ThermoML 2020 archive | Exact record, archive hash and generic policy link verified | Confirm the non-SRD regime and journal-derived data reservations; measurement files remain unresolved |
 | Other reference data and assets | Exact paths and hashes in the manifest, plus existing source annotations | Confirm the specific rights for the captured dataset/version; do not relabel unknowns as MIT, public domain or project-owned |
 
 ## Interpretation of status

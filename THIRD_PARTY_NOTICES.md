@@ -17,7 +17,9 @@ forms or regulatory texts. Their original rights and conditions apply.
 | CMR, CIM, IATA DGD and AVC form templates | Issuing bodies and source models described in `docs/data-sources.md` | Original PDFs are no longer bundled; local imports require an operator-recorded basis for use |
 | Sixteen ADR/RID/ADN model PDFs | Edition/page fingerprints remain in the source register | Originals are no longer bundled; import locally or derive from a verified, independently obtained source volume |
 | Cantell UN cards 2023 | Historical source of `card_data.json` | Seed, extracted prose, parser and runtime fallback removed; earlier Git/release copies need separate review |
-| DVSA annual-report questions | The source file claims Open Government Licence v3.0 reuse | Exact source grant still to be confirmed; not attributed solely to the project |
+| DGSA annual-report questions | DVSA, December 2025 report, published by the Department for Transport; [official download page](https://www.gov.uk/government/publications/carriage-of-dangerous-goods-annual-report-template), [OGL v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) | Source and grant verified for the adapted question configuration; Crown branding and original PDF are not bundled |
+| Global Wood Density Database v2.2 | Fischer et al. (2026), [exact dataset](https://doi.org/10.5281/zenodo.20815517), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | The extracted measurements retain CC BY 4.0; the separate mixed GWDD/Hapman catalogue still requires review |
+| NIST ThermoML archive, 2020-09-30 | [Dataset metadata](https://data.nist.gov/rmm/records/mds2-2422), [NIST licensing policy](https://www.nist.gov/open/license) | Exact archive and policy link verified; non-SRD status and relevant journal-derived rights still require confirmation |
 | Densities, profiles and external reference catalogues | Source-level provenance in the seed files and `docs/data-sources.md` | Review the file-level register; a factual-data label is not a blanket rights clearance |
 | Optional assistant runtime and model | llama.cpp (MIT), official Qwen3 model (Apache-2.0); exact pins in `assistant_runtime.json` | Independently downloaded components retain their publisher's terms and notices |
 
@@ -26,6 +28,26 @@ Contains information from Trainline EU stations, made available under the
 The distributed station subset is a derivative database. Its source is available
 in this repository and through the application's legal downloads; using the
 database does not put EMCargo's application source under ODbL.
+
+Contains public sector information licensed under the
+[Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
+The DGSA configuration adapts DVSA's *DGSA Annual Report for the Carriage of
+Dangerous Goods*, December 2025, published by the Department for Transport.
+EMCargo translates questions into Dutch, German and French and generalises
+UK-specific references. This is an EMCargo adaptation, not an official
+translation or endorsement. OGL exclusions, including third-party rights and
+logos, remain applicable.
+
+Wood measurements are adapted from Fischer et al. (2026), *Global Wood Density
+Database v.2*, version v2.2 (with metadata). The [version DOI](https://doi.org/10.5281/zenodo.20815517)
+identifies the source; the authors also request citation of the
+[dataset family](https://doi.org/10.5281/zenodo.16919509) and their
+[New Phytologist paper](https://doi.org/10.1111/nph.70860).
+EMCargo selects measurements, converts units and derives catalogue values;
+the original author list and transformation details are preserved in
+[`licenses/GWDD-NOTICE.md`](licenses/GWDD-NOTICE.md).
+The [CC BY 4.0 license](https://creativecommons.org/licenses/by/4.0/)
+applies to the licensed data independently of EMCargo's Commons Clause.
 
 ## Software packages
 

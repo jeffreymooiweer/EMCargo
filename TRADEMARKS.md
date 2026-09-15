@@ -16,5 +16,14 @@ IRU, CIT, IATA, IMO, UNECE, Stichting Vervoeradres and other third parties
 belong to their respective holders. Their appearance in provenance records
 does not indicate endorsement.
 
+Before a registration or a substantial brand investment, search the actual
+territory and goods/services in BOIP, EUIPO and relevant WIPO designations,
+including similar names, spelling and pronunciation. Assess earlier trade names
+and distinctiveness as well as exact matches. A domain or GitHub repository name
+does not establish clearance. Software and hosted-software services need their
+own classification; use transport-service classes only if such services are
+actually offered. No completed trademark clearance or registration is claimed
+by this policy. See the [official BOIP information](https://www.boip.int/).
+
 See [LICENSE](LICENSE) for software terms and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for third-party material.

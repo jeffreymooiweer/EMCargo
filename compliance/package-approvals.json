@@ -143,6 +143,156 @@
       "evidence": "licenses/javascript/scheduler-0.27.0/LICENSE",
       "reviewer": "Codex: inspected the packaged MIT grant, 2026-09-15",
       "obligations": "Preserve full original copyright, permission and warranty notice; the browser build emits that notice beside its chunks. Application code does not relicense these packages."
+    },
+    {
+      "purl": "pkg:pypi/alembic@1.14.0",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "evidence": "licenses/python/alembic-1.14.0/ce19e7ba2b77-LICENSE",
+      "reviewer": "Codex: read the original packaged MIT grant, 2026-09-15",
+      "obligations": "Retain the complete original copyright, permission/conditions and disclaimer in distributions. Reviewed package only; dependencies and architecture-specific native libraries need their own review. Existing bundled license copies supply the notice; no image-wide approval is inferred."
+    },
+    {
+      "purl": "pkg:pypi/anyio@4.15.1",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "evidence": "licenses/python/anyio-4.15.1/5361ac9dc58f-LICENSE",
+      "reviewer": "Codex: read the original packaged MIT grant, 2026-09-15",
+      "obligations": "Retain the complete original copyright, permission/conditions and disclaimer in distributions. Reviewed package only; dependencies and architecture-specific native libraries need their own review. Existing bundled license copies supply the notice; no image-wide approval is inferred."
+    },
+    {
+      "purl": "pkg:pypi/fastapi@0.141.1",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "evidence": "licenses/python/fastapi-0.141.1/4ec89ffc8148-LICENSE",
+      "reviewer": "Codex: read the original packaged MIT grant, 2026-09-15",
+      "obligations": "Retain the complete original copyright, permission/conditions and disclaimer in distributions. Reviewed package only; dependencies and architecture-specific native libraries need their own review. Existing bundled license copies supply the notice; no image-wide approval is inferred."
+    },
+    {
+      "purl": "pkg:pypi/httpcore@1.0.9",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "evidence": "licenses/python/httpcore-1.0.9/fdcb59154c74-LICENSE.md",
+      "reviewer": "Codex: read the original packaged BSD-3-Clause grant, 2026-09-15",
+      "obligations": "Retain the complete original copyright, permission/conditions and disclaimer in distributions. No author endorsement without permission. Reviewed package only; dependencies and architecture-specific native libraries need their own review. Existing bundled license copies supply the notice; no image-wide approval is inferred."
+    },
+    {
+      "purl": "pkg:pypi/httpx@0.28.1",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "evidence": "licenses/python/httpx-0.28.1/4ec59d544f12-LICENSE.md",
+      "reviewer": "Codex: read the original packaged BSD-3-Clause grant, 2026-09-15",
+      "obligations": "Retain the complete original copyright, permission/conditions and disclaimer in distributions. No author endorsement without permission. Reviewed package only; dependencies and architecture-specific native libraries need their own review. Existing bundled license copies supply the notice; no image-wide approval is inferred."
+    },
+    {
+      "purl": "pkg:pypi/openpyxl@3.1.5",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "evidence": "licenses/python/openpyxl-3.1.5/0c84bb42f5d3-LICENCE.rst",
+      "reviewer": "Codex: read the original packaged MIT grant, 2026-09-15",
+      "obligations": "Retain the complete original copyright, permission/conditions and disclaimer in distributions. Reviewed package only; dependencies and architecture-specific native libraries need their own review. Existing bundled license copies supply the notice; no image-wide approval is inferred."
+    },
+    {
+      "purl": "pkg:pypi/pydantic@2.10.3",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "evidence": "licenses/python/pydantic-2.10.3/a9e186f3ca16-LICENSE",
+      "reviewer": "Codex: read the original packaged MIT grant, 2026-09-15",
+      "obligations": "Retain the complete original copyright, permission/conditions and disclaimer in distributions. Reviewed package only; dependencies and architecture-specific native libraries need their own review. Existing bundled license copies supply the notice; no image-wide approval is inferred."
+    },
+    {
+      "purl": "pkg:pypi/pydantic-settings@2.6.1",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "evidence": "licenses/python/pydantic-settings-2.6.1/eb355a753e02-LICENSE",
+      "reviewer": "Codex: read the original packaged MIT grant, 2026-09-15",
+      "obligations": "Retain the complete original copyright, permission/conditions and disclaimer in distributions. Reviewed package only; dependencies and architecture-specific native libraries need their own review. Existing bundled license copies supply the notice; no image-wide approval is inferred."
+    },
+    {
+      "purl": "pkg:pypi/pyjwt@2.13.0",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "evidence": "licenses/python/PyJWT-2.13.0/797a7a20231d-LICENSE",
+      "reviewer": "Codex: read the original packaged MIT grant, 2026-09-15",
+      "obligations": "Retain the complete original copyright, permission/conditions and disclaimer in distributions. Reviewed package only; dependencies and architecture-specific native libraries need their own review. Existing bundled license copies supply the notice; no image-wide approval is inferred."
+    },
+    {
+      "purl": "pkg:pypi/slowapi@0.1.9",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "evidence": "licenses/python/slowapi-0.1.9/29eefa286ff3-LICENSE",
+      "reviewer": "Codex: read the original packaged MIT grant, 2026-09-15",
+      "obligations": "Retain the complete original copyright, permission/conditions and disclaimer in distributions. Reviewed package only; dependencies and architecture-specific native libraries need their own review. Existing bundled license copies supply the notice; no image-wide approval is inferred."
     }
   ]
 }
