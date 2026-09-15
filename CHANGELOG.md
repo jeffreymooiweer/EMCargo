@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.12.2] - 2026-09-15
+
+### Fixed
+
+- Restore sea freight selection, preferred-mode navigation, packing-list intake
+  and direct wizard links, including reopening saved sea shipments. The v2.4.0
+  interface lock hid the sea workflow first released in v1.152.0; its existing
+  IMDG calculations and documents remain in use.
+- Keep document validation, IMDG source assessment and DG Specialist release
+  requirements in force. Air and multimodal remain in development.
+- Align the guide and roadmap with the four available transport modes and add
+  regression coverage for sea entry points and saved-shipment restoration.
+
 ## [2.12.1] - 2026-09-15
 
 ### Fixed

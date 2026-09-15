@@ -21,7 +21,7 @@
  */
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import ModalitySelectPage, {
@@ -44,22 +44,27 @@ vi.mock("../branding", () => ({
   useBranding: () => ({ branding, refresh: async () => {} }),
 }));
 
+function WizardDestination() {
+  const { pathname, search } = useLocation();
+  return <><p>wizard</p><output aria-label="Destination">{pathname}{search}</output></>;
+}
+
 function renderAt(path = "/") {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/" element={<ModalitySelectPage />} />
-        <Route path="/wizard/:modality" element={<p>wizard</p>} />
+        <Route path="/wizard/:modality" element={<WizardDestination />} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
 describe("de modaliteitkeuze", () => {
-  it("offers road, rail and inland while sea is in development", () => {
-    // The product owner moved sea back into development in v2.4.0.
-    // A saved preference must obey that change just like the visible tile.
-    expect([...AVAILABLE_MODALITIES]).toEqual(["road", "rail", "inland"]);
+  it("offers the four released modes, including sea again", () => {
+    // v2.4.0 hid the previously released sea flow. The shared allowlist must
+    // restore its tile, default preference, mode switcher and direct URLs.
+    expect([...AVAILABLE_MODALITIES]).toEqual(["road", "rail", "sea", "inland"]);
     for (const key of AVAILABLE_MODALITIES) {
       expect(isModalityAvailable(key)).toBe(true);
     }
@@ -72,11 +77,11 @@ describe("de modaliteitkeuze", () => {
   it("shows developing modes beside the released modes as disabled buttons", async () => {
     preferences.default_modality = undefined;
     renderAt("/?choose=1");
-    for (const key of ["sea", "air", "multimodal"]) {
+    for (const key of ["air", "multimodal"]) {
       expect(screen.getByText(`modality.${key}`)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: new RegExp(`modality.${key}`) })).toBeDisabled();
     }
-    expect(screen.getAllByText("modality.inDevelopment")).toHaveLength(3);
+    expect(screen.getAllByText("modality.inDevelopment")).toHaveLength(2);
     expect(screen.queryByText("wizard")).not.toBeInTheDocument();
   });
 
@@ -86,6 +91,29 @@ describe("de modaliteitkeuze", () => {
     const road = screen.getAllByRole("button").find((tile) => !tile.hasAttribute("disabled"))!;
     await userEvent.click(road);
     await waitFor(() => expect(screen.getByText("wizard")).toBeInTheDocument());
+  });
+
+  it("opens the sea wizard from its enabled tile", async () => {
+    preferences.default_modality = undefined;
+    renderAt("/?choose=1");
+    const sea = screen.getByRole("button", { name: /modality.sea/ });
+    expect(sea).toBeEnabled();
+    expect(sea).toHaveTextContent("modality.seaDesc");
+    await userEvent.click(sea);
+    expect(screen.getByLabelText("Destination")).toHaveTextContent("/wizard/sea");
+  });
+
+  it("restores sea as the preferred transport mode", async () => {
+    preferences.default_modality = "sea";
+    renderAt();
+    expect(await screen.findByLabelText("Destination")).toHaveTextContent("/wizard/sea");
+  });
+
+  it("uses the sea preference for packing-list intake", async () => {
+    preferences.default_modality = "sea";
+    renderAt("/?choose=1");
+    await userEvent.click(screen.getByRole("button", { name: "overview.paste" }));
+    expect(screen.getByLabelText("Destination")).toHaveTextContent("/wizard/sea?input=paste");
   });
 
   it("volgt een voorkeur voor een vergrendelde modaliteit niet meer", async () => {

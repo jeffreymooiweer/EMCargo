@@ -122,6 +122,46 @@ def test_no_dg_and_policy_off_do_not_require_release(setup):
     assert client.post("/api/documents/export", json=shipment()["bundle"]["documents"][0]).status_code == 200
 
 
+def test_restored_sea_flow_requires_release_and_exports_the_approved_content(setup):
+    """Restoring sea selection must reach the current specialist workflow.
+
+    The older sea rendering archetypes disable review to isolate the PDF
+    generators. Exercise a real IMO declaration with review enabled here:
+    record the source assessment, obtain specialist approval, download the
+    declaration and bundle, then prove that changing the cargo invalidates it.
+    """
+    _, as_role = setup
+    payload = shipment()
+    payload.update(modality="sea", profiles=["IMDG"], documents=["imo_dgd"])
+    values = payload["values"]
+    values.update(container_number="MSKU 123456-7", declarant_name="Test consignor",
+                  declaration_place="Rotterdam", declaration_date="2026-09-15")
+    products = payload["dangerous_goods"]
+    products[0]["products"][0].update(
+        marine_pollutant="N", imdg_source_reviewed="Y",
+        imdg_source_reference="Synthetic test SDS section 14, 2026-09-15")
+    document = payload["bundle"]["documents"][0]
+    document.update(document_key="imo_dgd", modality="sea", profiles=["IMDG"],
+                    values=deepcopy(values), dangerous_goods=deepcopy(products))
+    payload["bundle"].update(profiles=["IMDG"], dangerous_goods=deepcopy(products))
+    payload["snapshot"]["docValues"] = deepcopy(values)
+
+    client = as_role("user")
+    assert client.post("/api/documents/export", json=document).status_code == 409
+    assert client.post("/api/documents/export/bundle", json=payload["bundle"]).status_code == 409
+    release(as_role, payload)
+    client = as_role("user")
+    response = client.post("/api/documents/export", json=document)
+    assert response.status_code == 200, response.text
+    assert response.content.startswith(b"%PDF-")
+    response = client.post("/api/documents/export/bundle", json=payload["bundle"])
+    assert response.status_code == 200, response.text
+    assert response.content.startswith(b"PK")
+    document["lines"][0]["weight_total_kg"] = 900
+    assert client.post("/api/documents/export", json=document).status_code == 409
+    assert client.post("/api/documents/export/bundle", json=payload["bundle"]).status_code == 409
+
+
 def test_only_specialists_decide_and_rejection_requires_explanation(setup):
     _, as_role = setup
     payload = shipment(); response = as_role("user").post("/api/dg-reviews", json=payload)

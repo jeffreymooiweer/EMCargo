@@ -1,6 +1,6 @@
 # Roadmap
 
-Current direction, reviewed on 14 September 2026 against v2.10.0 and the product
+Current direction, reviewed on 15 September 2026 against v2.12.2 and the product
 owner's decisions. Completed work is in [CHANGELOG.md](CHANGELOG.md). Historical
 research remains in [Roadmap research](docs/roadmap-research.md),
 [The database](docs/database-plan.md) and the usability plans; older release
@@ -20,7 +20,7 @@ dependencies, acceptance criteria and delivery gates for v2.11.0.
 
 | Area | Current state |
 |---|---|
-| Transport modes | Road, rail and inland waterway selectable; sea, air and multimodal in development |
+| Transport modes | Road, rail, sea and inland waterway selectable; air and multimodal in development |
 | Shipment preparation | Manual entry, pasted lists, XLSX/CSV/TXT, weight/volume calculations and document preparation |
 | Local assistant | Guided interview requiring the installed local model; unresolved facts remain questions |
 | Documents | Official CMR, AVC, CIM and IATA forms plus the existing generated transport, package and equipment documents |
@@ -69,8 +69,8 @@ Specialist modules remain optional projects using the core API and shipment data
 
 ## Transport modes still in development
 
-Sea remains unselectable by product decision; its existing records/calculations stay
-available internally. Air needs authoritative quantity limits and the remaining
+Sea is selectable again in v2.12.2 after checking its existing document flow and
+specialist release controls. Air needs authoritative quantity limits and the remaining
 [DG checks](docs/dg-coverage.md); investigate IATA's own validation integration.
 Multimodal follows its validated component modes. Unlock only after end-to-end
 verification of the relevant document flow.

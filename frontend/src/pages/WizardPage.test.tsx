@@ -39,7 +39,7 @@ vi.mock("../components/ReviewLinesPanel", async (original) => ({
 }));
 
 const registry = {
-  modalities: [{ key: "road", documents: [] }, { key: "rail", documents: [] }],
+  modalities: [{ key: "road", documents: [] }, { key: "rail", documents: [] }, { key: "sea", documents: [] }],
   documents: [], shared_sections: [],
 } as unknown as DocumentRegistry;
 
@@ -64,6 +64,7 @@ function saved(description = "Saved goods", modality = "road"): ShipmentDetail {
 
 function open(path = "/wizard/road", strict = true) {
   const app = <MemoryRouter initialEntries={[path]}><Routes>
+    <Route path="/" element={<p>Transport mode selection</p>} />
     <Route path="/wizard/:modality" element={<WizardPage />} />
   </Routes></MemoryRouter>;
   return render(strict ? <StrictMode>{app}</StrictMode> : app);
@@ -86,6 +87,30 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe("shipment restoration", () => {
+  // Restoring only the tile would still strand bookmarks and saved sea
+  // shipments at the wizard's own availability guard. Exercise that guard
+  // with the actual wizard and verify that saved inputs reach the editor.
+  it("opens a direct sea wizard URL", async () => {
+    open("/wizard/sea");
+    expect(await screen.findByLabelText("Goods description")).toBeInTheDocument();
+    expect(screen.queryByText("Transport mode selection")).not.toBeInTheDocument();
+    expect(mocks.api.runningDraft).toHaveBeenCalled();
+  });
+
+  it("reopens an existing sea shipment with its saved goods and reference", async () => {
+    mocks.api.shipment.mockResolvedValue(saved("Saved sea cargo", "sea"));
+    open("/wizard/sea?shipment=42");
+    expect(await screen.findByLabelText("Goods description")).toHaveValue("Saved sea cargo");
+    expect(screen.getByLabelText("wizard.referenceLabel")).toHaveValue("SAVED-42");
+    expect(mocks.api.runningDraft).not.toHaveBeenCalled();
+  });
+
+  it.each(["air", "multimodal"])("keeps an unreleased %s wizard URL closed", async modality => {
+    open(`/wizard/${modality}`);
+    expect(await screen.findByText("Transport mode selection")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Goods description")).not.toBeInTheDocument();
+  });
+
   it("keeps an entered total weight when dimensions change", async () => {
     mocks.api.runningDraft.mockResolvedValue(saved());
     mocks.api.calculate.mockResolvedValue({ success: true, lines: [{ line_id: 1, description: "Saved goods",
