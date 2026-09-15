@@ -580,5 +580,4 @@ def test_the_un_cards_no_longer_carry_a_class():
     from pathlib import Path as _Path
 
     seed = _Path(__file__).resolve().parents[1] / "seed" / "dg" / "card_data.json"
-    cards = json.loads(seed.read_text(encoding="utf-8"))["entries"]
-    assert not any("class" in entry for entry in cards.values())
+    assert not seed.exists()

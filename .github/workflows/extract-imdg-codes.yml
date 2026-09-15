@@ -52,4 +52,5 @@ jobs:
             -m "Read the IMDG 16a and 16b code descriptions from chapter 7" \
             -m "The app knew which stowage, handling and segregation codes a substance carries but could only show fragments of wording scraped from the UN cards. These come from 7.1.5, 7.1.6 and 7.2.8 themselves." \
             -m "Extracted by scripts/extract_imdg_codes.py; a factual code table, not the regulatory text."
+          python scripts/check_third_party_manifest.py --publish source
           git push

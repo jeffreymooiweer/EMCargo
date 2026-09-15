@@ -37,3 +37,8 @@ frontend/playwright-report/
 # Local visual-review worker state (synthetic data only).
 frontend/.review-bridge/
 frontend/.env.development.local
+
+# Locally supplied originals are not project distribution assets.
+/templates/forms/*.pdf
+/backend/seed/models/*.pdf
+/backend/seed/dg/card_data.json

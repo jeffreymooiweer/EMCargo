@@ -213,33 +213,40 @@ here about **2,849 third-party PDFs totalling 575 MB** in the repository and in 
 and an administrator imports the current card set into the data volume on request. The
 pipeline is described in [un-cards.md](un-cards.md).
 
-One inheritance from that third-party set remains, as data rather than as files:
-`backend/seed/dg/card_data.json` was extracted from the Cantell IMDG UN cards (2023
-edition, IMDG 41-22) by `scripts/extract_un_card_data.py` — marine pollutant status
-(column 4), stowage codes (SW, 16a), segregation codes (SG, 16b) and bulk carriage for
-2,336 UN numbers. The regulatory manifest carries that provenance, including that the
-source PDFs are no longer bundled.
+The Cantell-derived `card_data.json`, its loader/fallbacks and extraction entry
+point have been retired. Current per-UN stowage/segregation comes from the
+independently sourced IMDG DGL, and rule descriptions from `imdg_codes.json`.
+The separate redistribution status of those IMO-derived sources remains open.
+No Cantell values or prose are copied into a replacement dataset.
 
-Since v1.23.0 columns 16a and 16b come from the Dangerous Goods List of Amendment 42-24
-instead, so what the cards still supply is marine pollutant status and bulk carriage.
-They no longer carry a class: nothing in the application read it, and the card parser had
-it wrong for eleven substances (see the v1.27.1 entry in the changelog).
-
-The extraction cross-checks its own EmS readings against `ems.json`, which comes from the
-official EmS Guide and remains the authority: **2,282 agreed, none disagreed**.
+A positive P indication in the current DGL can support a marine-pollutant hint;
+an absent P is **unknown**, not “no”. Bulk permissions are not inferred from
+absence. Missing or conditional assessments require an explicit substance
+assessment, source edition/date and verification, bound to the shipment review.
+A missing DGL row cannot be overridden by a checkbox.
 
 ## Official form templates
 
-The filled-in official forms live in `templates/forms/`:
+The four forms and sixteen ADR/RID/ADN model PDFs are no longer distributed in
+new source revisions or release bundles while their redistribution rights are
+unresolved. Compatibility profiles, field names and hashes remain in
+`backend/app/config/document_templates.json`; historical cut hashes remain in
+`backend/seed/models/manifest.json`.
 
-| File | Form |
+| Local filename | Form |
 |---|---|
 | `cmr.pdf` | CMR consignment note, IRU model 2007 |
 | `cim.pdf` | CIM consignment note, CIT CIM/CUV 2019 |
 | `iata_dgd.pdf` | IATA Shipper's Declaration, open format |
 | `avc.pdf` | AVC waybill, sVa / Stichting Vervoeradres |
 
-If you fork this repository publicly, check the redistribution terms of each form first.
+Use Administration → Document templates to import a supported original PDF
+from an authorised source. The server validates its identity, page geometry
+and field mapping, records the local-use basis and keeps immutable versions.
+The local receipt is not a project-wide redistribution license. Each file is
+resolved independently; one local form does not hide all other supported forms.
+
+See [template migration](licensing/template-migration.md) for upgrade routes.
 
 ## Assistant runtime (optional, phase 23)
 

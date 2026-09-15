@@ -74,24 +74,58 @@ def _ocr(png: bytes, language: str) -> tuple[list[dict], list[str]]:
 
 
 def _text_lines(page) -> list[dict]:
-    """Keep cells on one physical table row together instead of losing columns."""
-    words = sorted(page.get_text("words"), key=lambda word: (round(word[1], 1), word[0]))
-    rows: list[list] = []
-    for word in words:
-        if not rows or abs(word[1] - rows[-1][0][1]) > max(2, (word[3] - word[1]) * .35):
-            rows.append([word])
-        else:
-            rows[-1].append(word)
-    return [{"text": " ".join(str(word[4]) for word in sorted(row, key=lambda word: word[0])),
-             "confidence": None} for row in rows]
+    """pypdf's physical layout keeps neighbouring table cells on one row."""
+    text = page.extract_text(extraction_mode="layout", layout_mode_strip_rotated=False)
+    return [{"text": " ".join(line.split()), "confidence": None}
+            for line in text.splitlines() if line.strip()]
+
+
+def _encoded_image(image, *, preview: bool = False) -> bytes:
+    output = io.BytesIO()
+    if preview:
+        with image.convert("RGB") as thumbnail:
+            thumbnail.thumbnail((1000, 1000))
+            thumbnail.save(output, format="JPEG", quality=75)
+    else:
+        image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def _render(page, scale: float, *, preview: bool = False) -> bytes:
+    # Rendering happens only in this bounded subprocess. PDFium is not called
+    # concurrently from API threads, and its native buffers close explicitly.
+    bitmap = page.render(scale=scale)
+    try:
+        image = bitmap.to_pil()
+        try:
+            return _encoded_image(image, preview=preview)
+        finally:
+            image.close()
+    finally:
+        bitmap.close()
 
 
 def read(path: str, extension: str, language: str) -> dict:
-    import pymupdf
+    import pypdfium2 as pdfium
+    from pypdf import PdfReader
     from PIL import Image, ImageOps
 
     Image.MAX_IMAGE_PIXELS = MAX_SOURCE_PIXELS
     data = Path(path).read_bytes()
+    pages, total_text, total_lines = [], 0, 0
+
+    def append(index, lines, warnings, method, preview):
+        nonlocal total_text, total_lines
+        lines = [{**line, "id": f"p{index + 1}l{n + 1}"} for n, line in enumerate(lines) if line["text"].strip()]
+        if not lines:
+            warnings.append("empty_page")
+        total_text += sum(len(line["text"]) for line in lines)
+        total_lines += len(lines)
+        if total_text > MAX_TEXT or total_lines > MAX_LINES:
+            raise ReadError("text_large")
+        pages.append({"number": index + 1, "method": method, "lines": lines, "warnings": warnings,
+                      "preview": "data:image/jpeg;base64," + base64.b64encode(preview).decode()})
+
     try:
         if extension in {"jpg", "jpeg", "png"}:
             with Image.open(io.BytesIO(data)) as original:
@@ -100,52 +134,49 @@ def read(path: str, extension: str, language: str) -> dict:
                 if original.width * original.height > MAX_SOURCE_PIXELS:
                     raise ReadError("image_large")
                 image = ImageOps.exif_transpose(original).convert("RGB")
-                scale = min(1, math.sqrt(MAX_PIXELS / (image.width * image.height)))
-                if scale < 1:
-                    image = image.resize((max(1, round(image.width * scale)), max(1, round(image.height * scale))))
-                output = io.BytesIO()
-                image.save(output, format="PNG")
-                data = output.getvalue()
-            with pymupdf.open(stream=data, filetype="png") as picture:
-                document = pymupdf.open(stream=picture.convert_to_pdf(), filetype="pdf")
+                try:
+                    scale = min(1, math.sqrt(MAX_PIXELS / (image.width * image.height)))
+                    if scale < 1:
+                        resized = image.resize((max(1, round(image.width * scale)), max(1, round(image.height * scale))))
+                        image.close()
+                        image = resized
+                    lines, warnings = _ocr(_encoded_image(image), language)
+                    append(0, lines, warnings, "ocr", _encoded_image(image, preview=True))
+                finally:
+                    image.close()
         else:
-            document = pymupdf.open(stream=data, filetype="pdf")
+            reader = PdfReader(io.BytesIO(data))
+            if reader.is_encrypted:
+                raise ReadError("encrypted")
+            if not 0 < len(reader.pages) <= MAX_PAGES:
+                raise ReadError("pages")
+            with pdfium.PdfDocument(data) as document:
+                document.init_forms()
+                if len(document) != len(reader.pages):
+                    raise ReadError("invalid")
+                for index, source in enumerate(reader.pages):
+                    page = document[index]
+                    try:
+                        width, height = page.get_size()
+                        area = width * height
+                        if not math.isfinite(area) or area <= 0 or area > 100_000_000:
+                            raise ReadError("image_large")
+                        lines = _text_lines(source)
+                        method, warnings = "text", []
+                        # Image identifiers do not decode their pixel buffers.
+                        # Any image may contain the entire table below a heading.
+                        if len(source.images) or source.get("/Annots"):
+                            scale = min(2.5, math.sqrt(MAX_PIXELS / area))
+                            lines, warnings = _ocr(_render(page, scale), language)
+                            method = "ocr"
+                        preview = _render(page, min(1.5, 1000 / max(width, height)), preview=True)
+                        append(index, lines, warnings, method, preview)
+                    finally:
+                        page.close()
     except ReadError:
         raise
     except (Exception, Warning) as exc:
         raise ReadError("invalid") from exc
-    with document:
-        if document.needs_pass:
-            raise ReadError("encrypted")
-        if not 0 < len(document) <= MAX_PAGES:
-            raise ReadError("pages")
-        pages, total_text, total_lines = [], 0, 0
-        for index, page in enumerate(document):
-            area = page.rect.width * page.rect.height
-            if not math.isfinite(area) or area <= 0 or area > 100_000_000:
-                raise ReadError("image_large")
-            lines = _text_lines(page)
-            images = page.get_image_info()
-            # Even a small image can be the complete goods table beneath a
-            # native PDF heading. Its area cannot decide whether to read it.
-            needs_ocr = extension != "pdf" or bool(images)
-            method, warnings = "text", []
-            if needs_ocr:
-                zoom = min(2.5, math.sqrt(MAX_PIXELS / area))
-                pixmap = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), colorspace=pymupdf.csRGB, alpha=False)
-                lines, warnings = _ocr(pixmap.tobytes("png"), language)
-                method = "ocr"
-            lines = [{**line, "id": f"p{index + 1}l{n + 1}"} for n, line in enumerate(lines) if line["text"].strip()]
-            if not lines:
-                warnings.append("empty_page")
-            total_text += sum(len(line["text"]) for line in lines)
-            total_lines += len(lines)
-            if total_text > MAX_TEXT or total_lines > MAX_LINES:
-                raise ReadError("text_large")
-            zoom = min(1.5, 1000 / max(page.rect.width, page.rect.height))
-            preview = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), colorspace=pymupdf.csRGB, alpha=False)
-            pages.append({"number": index + 1, "method": method, "lines": lines, "warnings": warnings,
-                          "preview": "data:image/jpeg;base64," + base64.b64encode(preview.tobytes("jpg", jpg_quality=75)).decode()})
     if not total_text:
         raise ReadError("no_text")
     return {"pages": pages}

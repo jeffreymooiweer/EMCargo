@@ -619,7 +619,10 @@
     "sourceLanguage": "Der vollständige Text unten ist auf Niederländisch verfügbar. Sie können ihn herunterladen und aufbewahren.",
     "download": "Bedingungen herunterladen",
     "expandAll": "Alle Artikel öffnen",
-    "collapseAll": "Artikel einklappen"
+    "collapseAll": "Artikel einklappen",
+    "stationCredit": "Enthält Informationen von",
+    "stationDownload": "Stationsdatenbank herunterladen",
+    "thirdPartyNotices": "Hinweise zu Drittanbietern"
   },
   "compliance": {
     "title": "Gefahrgut-Konformitätsprüfung",
@@ -873,6 +876,16 @@
       "ocr_missing": "Lokale Texterkennung fehlt. Der Administrator muss Tesseract und die Sprachdaten installieren.",
       "ocr_failed": "Die Texterkennung ist fehlgeschlagen. Versuchen Sie ein schärferes, aufrechtes Bild.",
       "model_failed": "Das lokale Modell konnte keinen Vorschlag erstellen. Quelle und Sendung bleiben erhalten."
+    },
+    "templates": {
+      "unknown": "Diese Dokumentvorlage ist nicht registriert.",
+      "size": "Wählen Sie eine nicht leere PDF mit höchstens 30 MB.",
+      "incompatible": "Diese PDF entspricht nicht der unterstützten Ausgabe, Seitenzahl und Feldzuordnung. Die aktuelle Vorlage wurde beibehalten.",
+      "source_required": "Dokumentieren Sie die Quelle und Ihre Grundlage für die lokale Nutzung dieser Vorlage.",
+      "missing": "Importieren Sie die unterstützte Vorlage unter Verwaltung, Dokumentvorlagen."
+    },
+    "imdg": {
+      "source_verification_required": "Vervollständigen Sie vor der Freigabe die IMDG-Stoffbeurteilung und dokumentieren Sie Quelle und Prüfung."
     }
   },
   "instructions": {
@@ -1962,7 +1975,7 @@
     "about": "Über uns",
     "aboutTagline": "Vom Start bis zum Ziel. Alles an einem Ort.",
     "aboutIntro": "EMCargo vereint Sendungen, Beförderungsdokumente und Prüfungen in einem Arbeitsbereich. Entwickelt für den Alltag in Transport und Logistik.",
-    "openSource": "Open Source",
+    "openSource": "Source available",
     "selfHosted": "Auf Ihrem eigenen Server",
     "fourLanguages": "Vier Sprachen",
     "aboutShipments": "Sendungen & Fahrten",
@@ -1975,7 +1988,7 @@
     "sourceCode": "Quellcode",
     "releaseNotes": "Was ist neu?",
     "feedback": "Idee oder Problem melden",
-    "madeBy": "EMCargo · Open Source für die Logistik",
+    "madeBy": "EMCargo · Logistiksoftware mit einsehbarem Quellcode",
     "menu": "Benutzermenü"
   },
   "work": {
@@ -2117,5 +2130,26 @@
       "booking_number": "Buchungsnummer",
       "purchase_order": "Bestellnummer"
     }
+  },
+  "templates": {
+    "title": "Dokumentvorlagen",
+    "intro": "Importieren Sie die unterstützten PDFs aus einer Quelle, die Sie nutzen dürfen. Dateien bleiben in dieser Installation. Neue Ausgaben erfordern eine aktualisierte Feldzuordnung.",
+    "choose": "Vorlage wählen",
+    "available": "Verfügbar",
+    "missing": "Fehlt",
+    "pages": "{{count}} Seiten",
+    "preview": "Aktuelle Vorlage ansehen",
+    "file": "Unterstützte PDF",
+    "source": "Quelle, Ausgabe und Datum",
+    "basis": "Grundlage für die lokale Nutzung (Lizenz, Genehmigung oder andere geltende Bedingungen)",
+    "import": "Prüfen und importieren",
+    "importing": "Wird importiert…",
+    "saved": "Vorlage geprüft und gespeichert."
+  },
+  "imdgSource": {
+    "title": "IMDG-Quellenbeurteilung",
+    "explanation": "Beurteilen Sie bei fehlender eindeutiger DGL-Angabe den Meeresschadstoffstatus (P oder N), gegebenenfalls die Beförderung in loser Schüttung und bedingte Trennvorschriften anhand einer zulässigen Quelle. Quelle und Ausgabe/Datum dokumentieren.",
+    "reference": "Quelle und Ausgabe/Datum (zum Beispiel SDB Abschnitt 14 und IMDG-Vorschrift)",
+    "confirm": "Ich habe diese stoffspezifischen Punkte anhand der angegebenen Quelle geprüft."
   }
 }

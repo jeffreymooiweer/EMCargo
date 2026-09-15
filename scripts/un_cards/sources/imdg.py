@@ -149,7 +149,7 @@ def cards(un: str) -> list[CardPage]:
             labels=labels,
             identity_extra=[
                 ("Subsidiary hazards", ", ".join(subsidiary_codes) or "—"),
-                ("Marine pollutant", "Yes (P)" if pollutant else "No"),
+                ("Marine pollutant", "Yes (P)" if pollutant else "Unknown: assess the substance under IMDG 2.10"),
                 ("EmS", _clean(row.get("ems")) or "—"),
             ],
             label_extra=[],

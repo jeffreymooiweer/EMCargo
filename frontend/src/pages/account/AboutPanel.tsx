@@ -33,6 +33,6 @@ export default function AboutPanel({ version }: { version: string }) {
       <a href={`${repository}/releases`} target="_blank" rel="noreferrer"><HistoryIcon /><span>{t("account.releaseNotes")}</span><ArrowRightIcon /></a>
       <a href={`${repository}/issues`} target="_blank" rel="noreferrer"><ShieldIcon /><span>{t("account.feedback")}</span><ArrowRightIcon /></a>
     </div>
-    <footer className="about-footer"><span>{t("account.madeBy")}</span><a href={`${repository}/blob/main/LICENSE`} target="_blank" rel="noreferrer">Apache License 2.0</a></footer>
+    <footer className="about-footer"><span>{t("account.madeBy")}</span><a href={`${repository}/blob/main/LICENSE`} target="_blank" rel="noreferrer">Apache 2.0 + Commons Clause</a></footer>
   </div>;
 }

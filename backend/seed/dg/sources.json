@@ -474,7 +474,14 @@
           749
         ],
         "measured_with": "scripts/find_instructions_pages.py",
-        "note": "Like the Dutch ADR, this edition begins the model partway down the sheet that carries 5.4.3's own paragraphs. The range is the wider one deliberately: a page short at the front would lose the model's title and its first measures."
+        "note": "Like the Dutch ADR, this edition begins the model partway down the sheet that carries 5.4.3's own paragraphs. The range is the wider one deliberately: a page short at the front would lose the model's title and its first measures.",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "dbed31a915adb9d2d6c31f5cc1817b471f3c759695c5b998d2c42444f6801d64",
+          "ca4eb9d5013de26ef19f69bb193e7609b0d3389db4f9b5e583c3c0e6272730aa",
+          "7fac2ea2659a06f5c78560a0d2365b114874d8284209c5a4559782d879334b65",
+          "f6544c7a5e0bfb7f48219f7c3ea2729c50227f7651ff9c9a833ad203e354e5fe"
+        ]
       }
     },
     {
@@ -502,7 +509,14 @@
           363,
           366
         ],
-        "measured_with": "scripts/find_instructions_pages.py"
+        "measured_with": "scripts/find_instructions_pages.py",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "f3cc10f4db9c1be3c0166e4cd78f7f34ecf5bad18b3206097fb16f159637adb8",
+          "e5dec6efd47f57f5fdc7066f76f140d4a5a24f302b6c1abc69f8d2ee315e83ab",
+          "41284b56c8f16da306ec0324c115162da11e287dc8c7ce0140204836414371cd",
+          "a54f85f7c98a6388e74912a75a1afb86156914d66d3793ed06eb4535f444499a"
+        ]
       },
       "note": "Not a file of its own: cut from adn, pages 363-366, measured with scripts/find_instructions_pages.py. The identity of what is served is the identity of that edition, whose hash is pinned above."
     },
@@ -532,7 +546,14 @@
           818,
           821
         ],
-        "measured_with": "scripts/find_instructions_pages.py"
+        "measured_with": "scripts/find_instructions_pages.py",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "06640137bca5e5aab9a505bd098b53bcc99c829a29f4b9f86e57aae5d9b2b61a",
+          "743729b8179b59b44c2524ee183179796a574eee1cc845bf518ae533ea8d5529",
+          "760fd0d1361150cd2e8b70ddfc7eb0d57dbe12ee93ca4e842f1d0fa9cfb61c1f",
+          "d03740fa68aa350178bb229394171f8cbc2762fe253a622d328c3f946d26b045"
+        ]
       }
     },
     {
@@ -560,7 +581,14 @@
           375,
           378
         ],
-        "measured_with": "scripts/find_instructions_pages.py"
+        "measured_with": "scripts/find_instructions_pages.py",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "b8fc70121e4e4a3a6a01ba8a2e28a519f3e569fe873abe7bf0f5983afa5893f0",
+          "d99a8846b814764c332b68701a57611f6438d1d37d13e3f0670e726771dff24b",
+          "1d4956520ccfdaeaf185ab4f2377c30f5cc4be75b7d544e91ce4f2ae1a9171ab",
+          "de607465d4e0a93d487fed559ecf5c03856455a1cd6c3bd7ce98c6b62fc02745"
+        ]
       },
       "note": "Not a file of its own: cut from adn_fr, pages 375-378, measured with scripts/find_instructions_pages.py. The identity of what is served is the identity of that edition, whose hash is pinned above."
     },
@@ -590,7 +618,16 @@
           916
         ],
         "measured_with": "scripts/find_instructions_pages.py",
-        "note": "This edition begins the model partway down its first sheet, so that sheet carries the end of 5.4.2 above it. The range is the wider one deliberately: a page short at the front would lose the model's title and its first measures."
+        "note": "This edition begins the model partway down its first sheet, so that sheet carries the end of 5.4.2 above it. The range is the wider one deliberately: a page short at the front would lose the model's title and its first measures.",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "59111454dd0f1ebbccc0e0a578b840ec3bfda59aa66b13066b85f99210949254",
+          "cc0bc9623c61838ab6e3ff46c52a3483ab6078912f9d54d84b2b5f66c3e74041",
+          "e92b5d8eb9f55d720b6f9f0ec7b09627976e600c00fb8f087e9fafd7ecffef16",
+          "80771b7400b4ad01830de91857224e22a4eff0e839495dc9bb94bc63e4ab8a1a",
+          "2e9f05d83f0e2e356cf717fcdb802e86ffac2e11dfa8340cd72826ef6d9f5bab",
+          "c06cfb6428eba743ab7375b8ad9fb2a3a6051c447f77df5329d86406ab985831"
+        ]
       },
       "note": "Not a file of its own: cut from adr_nl_2025, pages 911-916, measured with scripts/find_instructions_pages.py. It was cut from adr_nl_complete until v1.77.0; that assembly reflows the model over ten pages and runs 5.4.4 onto the last of them, where this edition is the printed one. The identity of what is served is the identity of that edition, whose hash is pinned above."
     },
@@ -620,7 +657,14 @@
           284,
           287
         ],
-        "measured_with": "scripts/find_instructions_pages.py"
+        "measured_with": "scripts/find_instructions_pages.py",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "f2ef131911449edbec97e6775cf802c7b1cfefeffd1b82bd20c6648adf9bab8d",
+          "9204fb423550615e77a4d1b6d4cc068a3c43b8e214c50f74cde2f7b2b91c9726",
+          "bee6b39c2ff34e5daf1b5d234b7241a75a00aefe7c30dfe866a3b87498855cd0",
+          "13133354306449e3e2ee7bd703a5cd3c34c685246b7d3f32a1698e74318d3c6a"
+        ]
       }
     },
     {
@@ -649,7 +693,14 @@
           345,
           348
         ],
-        "measured_with": "scripts/find_instructions_pages.py"
+        "measured_with": "scripts/find_instructions_pages.py",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "8463eee98bdddccc016b719b44aaaa0b4ce53a6ea1ea7f4933f0375e4c2f88bc",
+          "a44307ccab5703d1807ec4087393b88e401cdf04f614bdc02764e4dec27ab9c3",
+          "1a6dbf9740f46a23d803d4519cfeffc745b83867854dd1485d3171be7573f3d1",
+          "1b55e255b5a3325508bd1f3523cec24ddb7f5e7a5f6007157dc7b7f0c3cc7212"
+        ]
       }
     },
     {
@@ -678,7 +729,14 @@
           301,
           304
         ],
-        "measured_with": "scripts/find_instructions_pages.py"
+        "measured_with": "scripts/find_instructions_pages.py",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "7ecb652db62a861c3f6b2e3d8787a50617fa75fa31bce02e23698e7a10b295ae",
+          "9f3b0ffdb00bd07465081639b56e1c9939fa718b5c30a104b6bddb1cc9dacdc7",
+          "baa8a11596d4325f8dc88a1e1189ea2a9c31ef5ec9256076c464343cb1026337",
+          "701a7213a3197815f36ae7f8a65f52ce6cf594bd08a3a622293dfac49e32ff22"
+        ]
       }
     },
     {
@@ -707,7 +765,14 @@
           981,
           984
         ],
-        "measured_with": "scripts/find_instructions_pages.py"
+        "measured_with": "scripts/find_instructions_pages.py",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "8f1b660c679accecd2246a0eb22ea6ac00bcdd0f7ec0975c313147c1502407c7",
+          "466f50bf9bef9af2c176e894ed43a30f6d805c899090b2f3348e93ae6b718c3e",
+          "1b3ecb2ecf9548a9b442f14989638751996a7391fb950f221bb59e353afd2e97",
+          "6a2e58014c63e35d212baedaa560935e614dbc0e301ea6ba99e7ab942377f0e6"
+        ]
       }
     },
     {
@@ -736,7 +801,14 @@
           856,
           859
         ],
-        "measured_with": "scripts/find_instructions_pages.py"
+        "measured_with": "scripts/find_instructions_pages.py",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "f51feca767881c4957ce0506644e41fa3c733583952ca1b931d0707d96116516",
+          "343a1b34772d7403c28482c2c0f657b05f75025208c7ffe46ee4e01db30b1f69",
+          "feadc3bfd0edf94e3c6d7edf436610df1d2fb7c969e78d1303eb23a153945dde",
+          "92cde6df2ba3b26061911ed704829c5544f61e5976a50318ba352237b595982f"
+        ]
       }
     },
     {
@@ -765,7 +837,14 @@
           916,
           919
         ],
-        "measured_with": "scripts/find_instructions_pages.py"
+        "measured_with": "scripts/find_instructions_pages.py",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "b9e800da1585ec230fa4644d025e46568d2d8a8b87b08046cec3b5edd51fe855",
+          "d24d6c96ca63404097f4b3c7cc01aaa187760137fbd6accfa59acd3660cdb3f8",
+          "7aa70a8cb3c2f5a917253322769665128a7c7ab53ce98a2555f29566f081f4fe",
+          "80787880713d02473958bd430120acad44983b6f042473efb3fb42f09850a052"
+        ]
       }
     },
     {
@@ -794,7 +873,14 @@
           910,
           913
         ],
-        "measured_with": "scripts/find_instructions_pages.py"
+        "measured_with": "scripts/find_instructions_pages.py",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "0fdce62509e9b947f42feb86090cd31f6df89e0c6c6258f2c0a21e792f9b49b3",
+          "6c160b9c44386c0a7c0efc24fe1d5acbf112c31194358642bc59be2195cfb516",
+          "fc63c84e010374236f76cf40858a2cb0b5d8a1cf3b3ef5f84d1372957d28e08f",
+          "e5de516501b36ff01acbfb3b865007adfe02e5ece109daa7c02a2a2717eadebe"
+        ]
       }
     },
     {
@@ -822,7 +908,15 @@
           491,
           495
         ],
-        "measured_with": "scripts/find_instructions_pages.py --provision 8.6.3"
+        "measured_with": "scripts/find_instructions_pages.py --provision 8.6.3",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "9707721f277039f3fa5bc2806a8d64bf702e1e3812d926b3af3762059a6a3deb",
+          "e23f16534af5bf4e5ac383d57a952e626de8f0a7d3c3c855c7dfb7b0dc38de68",
+          "635b52087f4746c02c986d23c233bb46dbcb33219121c7229cfc40a5ed6eae39",
+          "5ca96b70e1903d9472282cd60e089172a544332b1bbbf8e7bb19f29a331f571e",
+          "cbdb3bf9b1367566fc614536f81d39bd186ebec2b096cee7ee26ff777c3ee156"
+        ]
       },
       "note": "Not a file of its own: cut from adn, pages 491-495, measured with scripts/find_instructions_pages.py --provision 8.6.3."
     },
@@ -851,7 +945,15 @@
           513,
           517
         ],
-        "measured_with": "scripts/find_instructions_pages.py --provision 8.6.3"
+        "measured_with": "scripts/find_instructions_pages.py --provision 8.6.3",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "503b34976528eef09bf81c1636df76361276544d1d49e7b14a637685081d69fd",
+          "7a47f1f1d460d6575d7a0ff719862009f23b77b312ff7be4bbc7f44cfa765d4d",
+          "bc21f0f09c233cc52c44a90223093bf94055ebd43dd10ba9580a8d48a8d97ec8",
+          "44a60f48239652b23c29ed8c0f0bdd3571e892a64dbba2d9f3d343530073f4c6",
+          "a0d73350dddd9806587f1a440f8b344bae57a39886c02dcabebe102560ab55dc"
+        ]
       },
       "note": "Not a file of its own: cut from adn_fr, pages 513-517, measured with scripts/find_instructions_pages.py --provision 8.6.3."
     },
@@ -880,7 +982,16 @@
           858,
           863
         ],
-        "measured_with": "scripts/find_instructions_pages.py --provision 8.6.3"
+        "measured_with": "scripts/find_instructions_pages.py --provision 8.6.3",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "e1d6521fc48b847fb3ca50c98fada41643e5150952e4623df297317855a8f75c",
+          "ee116411476bd16995a6eb2b563394d4b08f9426f92c0875ec620f837b2649c4",
+          "df2d8393a9c6abed9ae264df543d587ce1472b6db98cbe5c9124a812b197d23a",
+          "51ae9edd726b49efee537119adad90d9087c39394ded3f7dfaf36ff82e8124af",
+          "4689ae5b2e32dffe158c2860ac107e994866be1f75bac38d81aeee5d306bbb9e",
+          "a63b0379d7670a0ada5972b1c33b7dddf4727073ed4bc63f87975df9431e83f5"
+        ]
       },
       "note": "Not a file of its own: cut from adn_nl_2025, pages 858-863, measured with scripts/find_instructions_pages.py --provision 8.6.3."
     },
@@ -909,7 +1020,15 @@
           941,
           945
         ],
-        "measured_with": "scripts/find_instructions_pages.py --provision 8.6.3"
+        "measured_with": "scripts/find_instructions_pages.py --provision 8.6.3",
+        "fingerprint_method": "pypdf-text-and-boxes-v1",
+        "page_fingerprints": [
+          "47ddc97c0f0905a75e868e7106af044824e5144e21bdb026142dc29f33fc6994",
+          "4941990103127c91182cbdf70b5af6275b07f2947f05494c2f4248cdc6afcd99",
+          "d2af78c722d09c677228f33aab2597f2f5a37cae8cca2ab42fb4fc883b71d7b5",
+          "fcd3fb0b9cb068278c04201d208583898b2c7be2e9fe523597d0f1561662e1c2",
+          "ee286596cca74e947ffdbd43c082a5711f294ddf624e9336220d92cbcd84a251"
+        ]
       },
       "note": "Not a file of its own: cut from adn_de, pages 941-945, measured with scripts/find_instructions_pages.py --provision 8.6.3."
     }

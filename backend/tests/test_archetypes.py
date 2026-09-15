@@ -398,7 +398,9 @@ def test_sea_packages_in_a_container():
                       document_form="Seaway bill")
     for key in ("imo_dgd", "bl_si", "vgm", "packing_certificate",
                 "placarding_sheet_imdg"):
-        assert export(key, goods("1203"), values=sea_values).status_code == 200, key
+        assert export(key, goods("1203", marine_pollutant="N",
+                                 imdg_source_reference="Synthetic SDS section 14, 2026-09-01",
+                                 imdg_source_reviewed="Y"), values=sea_values).status_code == 200, key
 
 
 def test_the_sea_documents_carry_the_emergency_number():
@@ -478,4 +480,4 @@ def test_every_unlocked_mode_can_carry_a_container():
 
 
 # These fixtures exercise document/retention behaviour with optional review off.
-pytestmark = pytest.mark.usefixtures("dg_review_disabled")
+pytestmark = pytest.mark.usefixtures("dg_review_disabled", "synthetic_templates")

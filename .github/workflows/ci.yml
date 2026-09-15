@@ -1,27 +1,6 @@
 name: CI
 
-# One workflow on every push and every pull request. It was not that.
-#
-# ci.yml and dockerhub.yml were both called "CI" and both ran on a push to main
-# and on every pull request. They largely did the same work: pytest ran twice,
-# `npm ci` and the frontend build ran twice. Five checks per push, of which two
-# were a copy of two others. On a release with three commits on the branch that
-# was fifteen jobs before anything had been merged.
-#
-# The second cost was the Docker build. It built linux/amd64 *and* linux/arm64,
-# and arm64 runs on an amd64 runner under QEMU emulation: that is where the five
-# to nine minutes went. On a pull request the result was then thrown away,
-# because nothing is pushed there.
-#
-# So: one workflow, every step once, and arm64 only when an image is actually
-# published. On a pull request the Docker build is a smoke test — does the
-# Dockerfile still build? — and amd64 is enough for that.
-#
-# This does not run on a tag. The image of a release is not rebuilt but renamed:
-# `tag-release.yml` puts the version tag with `imagetools create` on the manifest
-# built and pushed here on main. That saves a second compilation of the same
-# commit, and it is stricter — what is released is bit for bit what went green
-# here.
+# Tests and image inspection run independently of outstanding publication rights.
 
 on:
   push:
@@ -115,83 +94,112 @@ jobs:
       - name: Typecheck and build
         working-directory: frontend
         run: npm run build
+      - name: Record installed production JavaScript dependencies
+        run: cp dist/compliance/frontend.cdx.json ../compliance/frontend.cdx.json
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-sbom
+          path: compliance/frontend.cdx.json
 
-  docker:
-    name: Docker build
+  rights:
+    name: Rights inventory
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
-    timeout-minutes: 45
+    outputs:
+      image_ready: ${{ steps.review.outputs.image_ready }}
     steps:
       - uses: actions/checkout@v4
-
-      # On a pull request nothing is pushed, so no arm64 has to be built either.
-      # That saves the lion's share of the runtime: arm64 goes through QEMU here.
-      - name: Decide what to build
-        id: plan
-        env:
-          REF_NAME: ${{ github.ref_name }}
+      - name: Validate registered content and evidence
+        run: python scripts/check_third_party_manifest.py
+      - name: Record exact source files
+        run: python scripts/build_source_sbom.py --out compliance-output/source.cdx.json
+      - name: Report publication readiness
+        id: review
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "platforms=linux/amd64" >> "$GITHUB_OUTPUT"
-            echo "publishing=false" >> "$GITHUB_OUTPUT"
-            # A pull request writes no cache. If it did, an amd64-only layer
-            # would overwrite the one from main and the next publishing build
-            # would actually get slower.
-            echo "cache_to=" >> "$GITHUB_OUTPUT"
+          if python scripts/check_third_party_manifest.py --publish image --report compliance-output/image-rights.json; then
+            echo "image_ready=true" >> "$GITHUB_OUTPUT"
           else
-            echo "platforms=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT"
-            echo "publishing=true" >> "$GITHUB_OUTPUT"
-            echo "cache_to=type=gha,mode=max,scope=$REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "image_ready=false" >> "$GITHUB_OUTPUT"
+            echo "Image publication is held for the recorded rights decisions." >> "$GITHUB_STEP_SUMMARY"
           fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rights-report
+          path: compliance-output/
 
-      # QEMU is there only to emulate arm64. Without arm64, setting it up is
-      # wasted time.
-      - name: Set up QEMU
-        if: steps.plan.outputs.publishing == 'true'
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        if: steps.plan.outputs.publishing == 'true'
-        uses: docker/login-action@v3
+  docker:
+    name: Docker build (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, rights]
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+        if: matrix.arch == 'arm64'
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the image locally before any publication
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          push: false
+          load: true
+          tags: emcargo-review:${{ matrix.arch }}
+          cache-from: type=gha,scope=license-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=license-${{ matrix.arch }}
+      - name: Confirm runtime and absence of PyMuPDF
+        run: |
+          docker run --rm --entrypoint python emcargo-review:${{ matrix.arch }} -c "import importlib.util; assert importlib.util.find_spec('fitz') is None; assert importlib.util.find_spec('pymupdf') is None; import app.main"
+          docker run --rm --entrypoint python -e PYTHONPATH=/app/backend -v "$PWD/scripts/check_assistant_runtime.py:/tmp/check_assistant_runtime.py:ro" emcargo-review:${{ matrix.arch }} /tmp/check_assistant_runtime.py
+      - name: Inventory the built image, including OS and native libraries
+        uses: anchore/sbom-action@v0
+        with:
+          image: emcargo-review:${{ matrix.arch }}
+          format: cyclonedx-json
+          output-file: image-${{ matrix.arch }}.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Report package obligations
+        run: python scripts/check_sbom.py image-${{ matrix.arch }}.cdx.json --channel image --report image-${{ matrix.arch }}-review.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-sbom-${{ matrix.arch }}
+          path: |
+            image-${{ matrix.arch }}.cdx.json
+            image-${{ matrix.arch }}-review.json
+      - name: Require reviewed packages before publishing this exact image
+        if: github.event_name != 'pull_request' && needs.rights.outputs.image_ready == 'true'
+        run: python scripts/check_sbom.py image-${{ matrix.arch }}.cdx.json --channel image --publish
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request' && needs.rights.outputs.image_ready == 'true'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/jeffreymooiweer/emcargo
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=semver,pattern={{version}}
-            type=sha,prefix=
-
-      - name: Build and optionally publish image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: ${{ steps.plan.outputs.platforms }}
-          push: ${{ steps.plan.outputs.publishing == 'true' }}
-          load: ${{ steps.plan.outputs.publishing == 'false' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: |
-            type=gha,scope=${{ github.ref_name }}
-            type=gha,scope=main
-          cache-to: ${{ steps.plan.outputs.cache_to }}
-
-      - name: Check installed assistant runtime in container
-        if: steps.plan.outputs.publishing == 'false'
-        env:
-          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+      - name: Publish the scanned architecture image
+        if: github.event_name != 'pull_request' && needs.rights.outputs.image_ready == 'true'
         run: |
-          image_tag="$(printf '%s\n' "$IMAGE_TAGS" | head -n 1)"
-          docker run --rm --entrypoint python \
-            -e PYTHONPATH=/app/backend \
-            -v "$PWD/scripts/check_assistant_runtime.py:/tmp/check_assistant_runtime.py:ro" \
-            "$image_tag" /tmp/check_assistant_runtime.py
+          docker tag emcargo-review:${{ matrix.arch }} ghcr.io/jeffreymooiweer/emcargo:${{ github.sha }}-${{ matrix.arch }}
+          docker push ghcr.io/jeffreymooiweer/emcargo:${{ github.sha }}-${{ matrix.arch }}
+
+  publish-image:
+    name: Publish reviewed image manifest
+    needs: [docker, rights]
+    if: github.event_name != 'pull_request' && needs.rights.outputs.image_ready == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Combine the two reviewed images
+        env:
+          COMMIT: ${{ github.sha }}
+          IMAGE: ghcr.io/jeffreymooiweer/emcargo
+        run: docker buildx imagetools create -t "$IMAGE:latest" -t "$IMAGE:${COMMIT:0:7}" "$IMAGE:$COMMIT-amd64" "$IMAGE:$COMMIT-arm64"

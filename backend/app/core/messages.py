@@ -50,6 +50,12 @@ class ApiError(HTTPException):
 #: Kept here rather than at the raise sites so that the set of codes is
 #: countable — a translation guard cannot check what it cannot enumerate.
 MESSAGES: dict[str, str] = {
+    "imdg.source_verification_required": "Complete the IMDG substance assessment and record the source and verification before release.",
+    "templates.unknown": "This document template is not registered.",
+    "templates.size": "Choose a non-empty PDF of at most 30 MB.",
+    "templates.incompatible": "This PDF does not match the supported edition, pages and field mapping. The current template has been preserved.",
+    "templates.source_required": "Record the source and your basis for using this template locally.",
+    "templates.missing": "Import the supported template under Administration, Document templates.",
     "intake.unsupported": "Choose a PDF, JPEG or PNG document.",
     "intake.file_large": "Choose a non-empty document of at most 20 MB.",
     "intake.busy": "Other documents are being read. Try again shortly.",

@@ -585,7 +585,7 @@ def validate_document(
             ) + outcome.get("iata_segregation", []) + outcome.get(
                 "rid_transport_document", []
             ) + outcome.get("adn_stabilisation", []) + outcome.get(
-                "technical_name_findings", []):
+                "technical_name_findings", []) + outcome.get("imdg_source_findings", []):
                 text = f"{finding.get('rule')}: {finding.get('message')}"
                 if finding.get("severity") == "error":
                     errors.append(text)

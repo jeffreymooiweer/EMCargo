@@ -41,7 +41,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install cutter dependency
-        run: pip install pymupdf
+        run: pip install pypdf==6.17.0
 
       # The books fetched and supplied in earlier runs live in this cache;
       # the operator-supplied volumes (NL, DE, rid_fr) exist nowhere else
@@ -78,5 +78,6 @@ jobs:
             echo "nothing changed"
           else
             git commit -m "Cut the prescribed model documents from the pinned editions"
+            python scripts/check_third_party_manifest.py --publish source
             git push origin HEAD:${{ inputs.branch }}
           fi

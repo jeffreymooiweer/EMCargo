@@ -121,6 +121,7 @@ export default function DgCompliancePanel({ entries, profiles }: Props) {
     // Special provision 274: an N.O.S. entry without its technical name is an
     // incomplete description, and it has to speak before the document does.
     ...(result?.technical_name_findings ?? []),
+    ...(result?.imdg_source_findings ?? []),
   ];
 
   // The headings carry the outcome in figures, so that a collapsed section
@@ -1091,7 +1092,7 @@ export default function DgCompliancePanel({ entries, profiles }: Props) {
       {result && warnings.length === 0 &&
         (result.adr_mixed_loading || result.imdg_segregation || result.iata_segregation ||
           result.rid_transport_document || result.adn_stabilisation ||
-          result.technical_name_findings) && (
+          result.technical_name_findings || result.imdg_source_findings) && (
           <p className="text-xs text-emerald-700 dark:text-emerald-300">{t("compliance.noSegregationIssues")}</p>
         )}
       {result?.regulatory_manifest && (

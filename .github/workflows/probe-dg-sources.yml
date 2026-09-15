@@ -12,7 +12,7 @@ on:
       source:
         description: "Which source to survey"
         type: choice
-        options: [all, cantell, model-regs, cepa, dgl, dgl-survey, dgl-trial]
+        options: [all, model-regs, cepa, dgl, dgl-survey, dgl-trial]
         default: all
       sample_pages:
         description: "Dangerous Goods List pages to sample in the log"
@@ -39,7 +39,7 @@ jobs:
       - run: pip install --quiet pymupdf
 
       - name: Probe
-        if: ${{ contains(fromJSON('["all","cantell","model-regs","cepa","dgl"]'), inputs.source) }}
+        if: ${{ contains(fromJSON('["all","model-regs","cepa","dgl"]'), inputs.source) }}
         run: python scripts/probe_dg_sources.py "${{ inputs.source }}" --sample-pages "${{ inputs.sample_pages }}"
 
       - name: Survey the Dangerous Goods List

@@ -292,7 +292,7 @@ def test_the_list_filters_and_pages_newest_first(db, monkeypatch):
     with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
         for reference, modality in (("A-1", "road"), ("B-2", "sea"), ("A-3", "road")):
             client.post("/api/shipments", json=shipment(
-                modality=modality, values={**CONSIGNMENT, "reference": reference}))
+                modality=modality, dangerous_goods=[], values={**CONSIGNMENT, "reference": reference}))
         everything = client.get("/api/shipments").json()
         assert [s["reference"] for s in everything["items"]] == ["A-3", "B-2", "A-1"]
         assert everything["total"] == 3
@@ -504,4 +504,4 @@ def test_public_settings_say_whether_shipments_are_kept(db, monkeypatch):
 
 
 # These fixtures exercise document/retention behaviour with optional review off.
-pytestmark = pytest.mark.usefixtures("dg_review_disabled")
+pytestmark = pytest.mark.usefixtures("dg_review_disabled", "synthetic_templates")

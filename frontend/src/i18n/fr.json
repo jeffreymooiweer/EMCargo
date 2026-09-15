@@ -619,7 +619,10 @@
     "sourceLanguage": "Le texte complet ci-dessous est disponible en néerlandais. Vous pouvez en télécharger et conserver une copie.",
     "download": "Télécharger les conditions",
     "expandAll": "Ouvrir tous les articles",
-    "collapseAll": "Replier les articles"
+    "collapseAll": "Replier les articles",
+    "stationCredit": "Contient des informations de",
+    "stationDownload": "Télécharger la base des gares",
+    "thirdPartyNotices": "Mentions des tiers"
   },
   "compliance": {
     "title": "Contrôle de conformité des marchandises dangereuses",
@@ -873,6 +876,16 @@
       "ocr_missing": "La reconnaissance locale manque. L’administrateur doit installer Tesseract et ses données linguistiques.",
       "ocr_failed": "La reconnaissance a échoué. Essayez une image plus nette et correctement orientée.",
       "model_failed": "Le modèle local n’a pas pu préparer de proposition. La source et l’envoi sont conservés."
+    },
+    "templates": {
+      "unknown": "Ce modèle de document n’est pas enregistré.",
+      "size": "Choisissez un PDF non vide de 30 Mo maximum.",
+      "incompatible": "Ce PDF ne correspond pas à l’édition, aux pages et aux champs pris en charge. Le modèle actuel a été conservé.",
+      "source_required": "Documentez la source et le fondement de votre utilisation locale de ce modèle.",
+      "missing": "Importez le modèle pris en charge dans Administration, Modèles de documents."
+    },
+    "imdg": {
+      "source_verification_required": "Complétez l’évaluation IMDG de la matière et documentez la source et la vérification avant la validation."
     }
   },
   "instructions": {
@@ -1962,7 +1975,7 @@
     "about": "À propos de nous",
     "aboutTagline": "Du départ à destination. Tout au même endroit.",
     "aboutIntro": "EMCargo rassemble les expéditions, les documents de transport et les contrôles dans un seul espace de travail. Conçu pour le quotidien du transport et de la logistique.",
-    "openSource": "Open source",
+    "openSource": "Source available",
     "selfHosted": "Sur votre propre serveur",
     "fourLanguages": "Quatre langues",
     "aboutShipments": "Expéditions et trajets",
@@ -1975,7 +1988,7 @@
     "sourceCode": "Code source",
     "releaseNotes": "Quoi de neuf ?",
     "feedback": "Signaler une idée ou un problème",
-    "madeBy": "EMCargo · Open source pour la logistique",
+    "madeBy": "EMCargo · Logiciel logistique au code source accessible",
     "menu": "Menu du compte"
   },
   "work": {
@@ -2117,5 +2130,26 @@
       "booking_number": "Numéro de réservation",
       "purchase_order": "Numéro de commande"
     }
+  },
+  "templates": {
+    "title": "Modèles de documents",
+    "intro": "Importez les PDF pris en charge depuis une source que vous êtes autorisé à utiliser. Les fichiers restent dans cette installation. Une nouvelle édition exige une mise à jour de la correspondance des champs.",
+    "choose": "Choisir un modèle",
+    "available": "Disponible",
+    "missing": "Manquant",
+    "pages": "{{count}} pages",
+    "preview": "Voir le modèle actuel",
+    "file": "PDF pris en charge",
+    "source": "Source, édition et date",
+    "basis": "Fondement de l’utilisation locale (licence, autorisation ou autres conditions applicables)",
+    "import": "Vérifier et importer",
+    "importing": "Importation…",
+    "saved": "Modèle vérifié et enregistré."
+  },
+  "imdgSource": {
+    "title": "Évaluation des sources IMDG",
+    "explanation": "Si la DGL ne fournit pas de réponse définitive, évaluez le statut de polluant marin (P ou N), le transport en vrac le cas échéant et les règles de séparation conditionnelles à partir d’une source autorisée. Documentez la source et son édition/date.",
+    "reference": "Source et édition/date (par exemple FDS rubrique 14 et disposition IMDG)",
+    "confirm": "J’ai vérifié ces points propres à la matière dans la source indiquée."
   }
 }

@@ -54,8 +54,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Require rights for generated card distributions
+        run: python scripts/check_third_party_manifest.py --publish cards
+
       - name: Install generator dependencies
-        run: pip install reportlab pymupdf
+        run: pip install reportlab==4.2.5 pymupdf==1.25.5
 
       - name: Generate
         env:
@@ -76,6 +79,16 @@ jobs:
 
       - name: Validate
         run: python scripts/un_cards/validate.py --dir /tmp/cards
+
+      - name: Record actual card files and source inputs
+        run: |
+          python scripts/build_source_sbom.py --out /tmp/cards/source.cdx.json
+          cp THIRD_PARTY_NOTICES.md /tmp/cards/THIRD_PARTY_NOTICES.md
+          cp -r licenses /tmp/cards/licenses
+          python scripts/build_source_sbom.py --directory /tmp/cards --out /tmp/cards/cards.cdx.json
+          if [ -f /tmp/emcargo-un-cards.zip ]; then
+            (cd /tmp/cards && zip -qr /tmp/emcargo-un-cards.zip source.cdx.json cards.cdx.json THIRD_PARTY_NOTICES.md licenses)
+          fi
 
       - name: Upload as artifact (test mode)
         if: ${{ github.event_name == 'workflow_dispatch' && (!inputs.publish || inputs.scope != 'all') }}

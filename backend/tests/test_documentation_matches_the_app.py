@@ -34,10 +34,12 @@ import pytest
 from app.core.config import Settings
 
 ROOT = Path(__file__).resolve().parents[2]
+# Upstream license notices retain their original relative links unchanged;
+# compiled output also is not project-authored documentation.
 DOCS = sorted(
     path
     for path in ROOT.rglob("*.md")
-    if not any(part in {"node_modules", ".git", ".pytest_cache"} for part in path.parts)
+    if not any(part in {"node_modules", ".git", ".pytest_cache", "licenses", "dist"} for part in path.parts)
 )
 
 #: Variables that are read by the container or the runtime rather than by

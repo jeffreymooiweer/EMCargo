@@ -100,7 +100,7 @@ def test_a_packaging_code_becomes_a_supplement_to_the_description():
     assert _package_description("jerrycans") == "jerrycans"
 
 
-def test_the_cmr_keeps_the_whole_line_legible_even_without_a_choice():
+def test_the_cmr_keeps_the_whole_line_legible_even_without_a_choice(synthetic_templates):
     """5.4.1.1.2: the information must be legible. Even when no name was
     chosen and the full column goes on, the goods box wraps onto following
     rows instead of clipping — the tunnel code stays on the paper."""

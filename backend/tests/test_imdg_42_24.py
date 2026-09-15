@@ -299,13 +299,13 @@ def test_the_official_wording_reaches_the_substance():
     assert by_code["SG16"] == "Stow “separated from” class 4.1."
 
 
-def test_the_official_wording_beats_the_card_paraphrase():
-    """7.2.8 is the source; the sentence from the UN card is a paraphrase and differs."""
+def test_official_wording_is_the_only_rule_text():
+    """7.2.8 supplies the rule text after retirement of the separate card paraphrase."""
     from app.services.dg.compliance import _wording
     from app.services.dg.enrichment import segregation_provisions
     rules = segregation_provisions()
     assert _wording("SG16", rules) == "Stow “separated from” class 4.1."
-    assert _wording("SG16", rules) != rules.get("SG16", {}).get("text")
+    assert _wording("SG16", rules) == rules.get("SG16", {}).get("text")
 
 
 def test_an_unknown_code_falls_back_instead_of_going_blank():

@@ -619,7 +619,10 @@
     "sourceLanguage": "The complete text below is available in Dutch. You can download and keep a copy.",
     "download": "Download terms",
     "expandAll": "Expand all articles",
-    "collapseAll": "Collapse articles"
+    "collapseAll": "Collapse articles",
+    "stationCredit": "Contains information from",
+    "stationDownload": "Download station database",
+    "thirdPartyNotices": "Third-party notices"
   },
   "compliance": {
     "title": "Dangerous goods compliance check",
@@ -873,6 +876,16 @@
       "ocr_missing": "Local text recognition is missing. The administrator must install Tesseract and its language data.",
       "ocr_failed": "Text recognition failed. Try a sharper, upright image.",
       "model_failed": "The local model could not prepare a proposal. The source and your shipment are preserved."
+    },
+    "templates": {
+      "unknown": "This document template is not registered.",
+      "size": "Choose a non-empty PDF of at most 30 MB.",
+      "incompatible": "This PDF does not match the supported edition, pages and field mapping. The current template has been preserved.",
+      "source_required": "Record the source and your basis for using this template locally.",
+      "missing": "Import the supported template under Administration, Document templates."
+    },
+    "imdg": {
+      "source_verification_required": "Complete the IMDG substance assessment and record the source and verification before release."
     }
   },
   "instructions": {
@@ -1962,7 +1975,7 @@
     "about": "About us",
     "aboutTagline": "From departure to destination. All together.",
     "aboutIntro": "EMCargo brings shipments, transport documents and checks together in one workspace. Built for the daily work of transport and logistics.",
-    "openSource": "Open source",
+    "openSource": "Source available",
     "selfHosted": "On your own server",
     "fourLanguages": "Four languages",
     "aboutShipments": "Shipments & trips",
@@ -1975,7 +1988,7 @@
     "sourceCode": "Source code",
     "releaseNotes": "What’s new?",
     "feedback": "Share an idea or issue",
-    "madeBy": "EMCargo · Open source for logistics",
+    "madeBy": "EMCargo · Source available logistics software",
     "menu": "Account menu"
   },
   "work": {
@@ -2117,5 +2130,26 @@
       "booking_number": "Booking number",
       "purchase_order": "Order number"
     }
+  },
+  "templates": {
+    "title": "Document templates",
+    "intro": "Import the supported PDFs from a source you are entitled to use. Files stay in this installation. New editions require an updated field mapping.",
+    "choose": "Choose a template",
+    "available": "Available",
+    "missing": "Missing",
+    "pages": "{{count}} pages",
+    "preview": "Preview current template",
+    "file": "Supported PDF",
+    "source": "Source, edition and date",
+    "basis": "Basis for local use (licence, permission or other applicable terms)",
+    "import": "Validate and import",
+    "importing": "Importing…",
+    "saved": "Template validated and saved."
+  },
+  "imdgSource": {
+    "title": "IMDG source assessment",
+    "explanation": "Where the DGL gives no definitive answer, assess the marine pollutant status (P or N), bulk carriage if applicable and conditional segregation provisions using an authorised source. Record the source and edition/date.",
+    "reference": "Source and edition/date (for example SDS section 14 and IMDG provision)",
+    "confirm": "I have checked these substance-specific points against the recorded source."
   }
 }

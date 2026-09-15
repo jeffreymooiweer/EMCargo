@@ -53,7 +53,7 @@ def test_rejects_fully_white_image():
         decode_signature_image(_data_url(img))
 
 
-def test_cmr_signature_stamped(tmp_path):
+def test_cmr_signature_stamped(tmp_path, official_templates):
     pytest.importorskip("fitz")
     from app.services.documents.pdf_forms import fill_pdf_document, has_pdf_template
 

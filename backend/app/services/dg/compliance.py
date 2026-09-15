@@ -5892,8 +5892,8 @@ def check_compliance(
                 "columns 16a and 16b come from here"
             ),
             "IMDG_per_substance": (
-                "Amendment 41-22 (Cantell UN cards, 2023) with the 42-24 difference "
-                "layer — now only for marine pollutant and carriage in bulk"
+                "IMDG 42-24 DGL and code descriptions; missing marine pollutant "
+                "or bulk assessments require a recorded independent source"
             ),
             "IMDG_current_mandatory": (
                 "Amendment 42-24, mandatory since 1-1-2026 — difference layer applied; "
@@ -5906,6 +5906,10 @@ def check_compliance(
         },
     }
     normalized = {p.upper() for p in profiles}
+    if "IMDG" in normalized:
+        from app.services.dg.source_verification import findings
+        result["imdg_source_findings"] = findings(entries, language)
+
 
     # What this result was computed with, in one id — usable in a report and in
     # the compliance annex to an export.

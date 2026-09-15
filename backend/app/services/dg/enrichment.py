@@ -78,10 +78,10 @@ _MARINE_POLLUTANT_TEXT = {
         "nl": "Marine pollutant: ja — merken en vermelden op het vervoersdocument.",
         "en": "Marine pollutant: yes — mark and declare on the transport document.",
         "de": "Meeresschadstoff: ja — kennzeichnen und im Beförderungspapier angeben.", "fr": 'Polluant marin : oui — à marquer et à déclarer sur le document de transport.'},
-    "no": {
-        "nl": "Marine pollutant: nee.",
-        "en": "Marine pollutant: no.",
-        "de": "Meeresschadstoff: nein.", "fr": 'Polluant marin : non.'},
+    "unknown": {
+        "nl": "Marine pollutant: onbekend. Leg de stofbeoordeling en bron vast (IMDG 2.10).",
+        "en": "Marine pollutant: unknown. Record the substance assessment and source (IMDG 2.10).",
+        "de": "Meeresschadstoff: unbekannt. Stoffbeurteilung und Quelle dokumentieren (IMDG 2.10).", "fr": 'Polluant marin : inconnu. Documentez l’évaluation de la matière et la source (IMDG 2.10).'},
     "maybe": {
         "nl": "Marine pollutant: hangt van de stof af. Beoordeel aan de criteria van "
               "IMDG 2.10 en merk zo nodig alsnog.",
@@ -122,56 +122,20 @@ def segregation_groups_for(un_number: str, packing_group: str = "") -> list[str]
 
 
 def imdg_segregation_codes_for(un_number: str, packing_group: str = "") -> list[str]:
-    """The SG codes of column 16b.
-
-    The list itself takes precedence: it is complete and carries the 42-24
-    position. The UN cards (41-22) fill in where the list does not know a
-    substance — with an n.o.s. entry the consignor classifies themselves, for
-    instance.
-    """
-    digits = "".join(ch for ch in str(un_number or "") if ch.isdigit()).zfill(4)
-    row = dangerous_goods_list.entry_for(digits, packing_group)
-    if row:
-        return dangerous_goods_list.segregation_codes(row)
-    return list(card_data_for(digits).get("segregation_codes") or [])
-
-
-# Substance-specific IMDG data extracted from the third-party UN card set
-# (removed from the repository in v1.129.0; provenance in card_data.json and
-# the regulatory manifest): marine pollutant (column 4), stowage codes SW
-# (16a), segregation codes SG (16b) and bulk carriage. The segregation groups
-# above say which group a substance belongs to; these codes say what that means.
-_SEED_CARDS = Path(__file__).resolve().parents[3] / "seed" / "dg" / "card_data.json"
-_cards_cache: dict[str, Any] | None = None
-_provisions_cache: dict[str, Any] | None = None
-
-
-def _load_card_data() -> dict[str, Any]:
-    global _cards_cache
-    with _ems_lock:
-        if _cards_cache is None:
-            try:
-                _cards_cache = json.loads(_SEED_CARDS.read_text(encoding="utf-8"))["entries"]
-            except (OSError, ValueError, KeyError):  # pragma: no cover - seed ontbreekt
-                _cards_cache = {}
-    return _cards_cache
+    """Column 16b of the current DGL; no third-party card fallback."""
+    row = dangerous_goods_list.entry_for(un_number, packing_group)
+    return dangerous_goods_list.segregation_codes(row)
 
 
 def segregation_provisions() -> dict[str, Any]:
-    """The SG provisions with their meaning, as worded on the cards."""
-    global _provisions_cache
-    with _ems_lock:
-        if _provisions_cache is None:
-            try:
-                raw = json.loads(_SEED_CARDS.read_text(encoding="utf-8"))
-                _provisions_cache = raw.get("segregation_provisions", {})
-            except (OSError, ValueError):  # pragma: no cover - seed ontbreekt
-                _provisions_cache = {}
-    return _provisions_cache
+    """Interpret the independently sourced IMDG 7.2.8 descriptions."""
+    from app.services.dg.segregation_rules import parse_provision
+    return {code: parse_provision(code, text)
+            for code, text in _load_imdg_codes().get("segregation_codes", {}).get("codes", {}).items()}
 
 
 # The meaning of the codes from columns 16a and 16b, read from chapters 7.1.5,
-# 7.1.6 and 7.2.8 of the IMDG Code itself. The cards say *which* codes a
+# 7.1.6 and 7.2.8 of the IMDG Code itself. The DGL says which codes a
 # substance carries; this table says what they mean — previously only available
 # as a fragment from the card text.
 _SEED_CODES = Path(__file__).resolve().parents[3] / "seed" / "dg" / "imdg_codes.json"
@@ -212,13 +176,6 @@ def describe_imdg_codes(codes: list[str]) -> list[dict[str, str]]:
         if text:
             described.append({"code": str(code).strip().upper(), "text": text})
     return described
-
-
-def card_data_for(un_number: str) -> dict[str, Any]:
-    """IMDG data from the UN card, or an empty dict when there is none."""
-    digits = "".join(ch for ch in str(un_number or "") if ch.isdigit()).zfill(4)
-    entry = _load_card_data().get(digits)
-    return dict(entry) if isinstance(entry, dict) else {}
 
 
 def segregation_group_label(code: str, language: str = "nl") -> str:
@@ -570,54 +527,16 @@ def enrich_un_entry(entry: dict[str, Any], language: str = "nl") -> dict[str, An
             extras["ems_class_default"] = f"{default[0]}, {default[1]}"
             extras["ems_source"] = "class_default"
 
-    # Substance-specific IMDG data from the UN card (41-22), updated with the
-    # changes of Amendment 42-24 — the mandatory edition since 1 January 2026.
-    card = amendment_42_24.apply_card_overlay(un, card_data_for(un), packing_group)
-    if card:
-        extras["card_source"] = "imdg_un_card"
+    # The current DGL supplies stowage/segregation. Absence of a P mark is
+    # not evidence that a particular substance or mixture is non-polluting.
+    from app.services.dg.source_verification import marine_pollutant_status
+    pollutant = marine_pollutant_status(un, packing_group)
+    extras["marine_pollutant_status"] = pollutant
+    extras["marine_pollutant_text"] = pick(_MARINE_POLLUTANT_TEXT[pollutant], language)
+    extras["imdg_bulk_status"] = "unknown"
+    if pollutant == "yes":
+        extras["environmentally_hazardous"] = True
 
-        # Marine pollutant, column 4. For n.o.s. entries the source says
-        # "maybe": that depends on the actual substance and is up to the consignor.
-        pollutant = card.get("marine_pollutant")
-        if pollutant in {"yes", "no", "maybe"}:
-            extras["marine_pollutant_status"] = pollutant
-            extras["marine_pollutant_text"] = pick(_MARINE_POLLUTANT_TEXT[pollutant], language)
-            if pollutant == "yes":
-                extras["environmentally_hazardous"] = True
-
-        # Stowage (16a) and segregation (16b): the codes plus the card's
-        # explanation, because "SG35" says nothing to a user by itself.
-        if card.get("stowage_codes"):
-            extras["imdg_stowage_codes"] = card["stowage_codes"]
-            described = describe_imdg_codes(card["stowage_codes"])
-            if described:
-                extras["imdg_stowage_definitions"] = described
-        if card.get("segregation_codes"):
-            extras["imdg_segregation_codes"] = card["segregation_codes"]
-            described = describe_imdg_codes(card["segregation_codes"])
-            if described:
-                extras["imdg_segregation_definitions"] = described
-        for field, key in (("stowage_text", "imdg_stowage_text"),
-                           ("segregation_text", "imdg_segregation_text")):
-            value = card.get(field)
-            if isinstance(value, str) and value.strip():
-                extras[key] = value.strip()
-
-        bulk = str(card.get("bulk") or "")
-        if "bk" in bulk:
-            extras["imdg_bulk"] = bulk.upper().replace("BK", "BK")
-        elif bulk:
-            extras["imdg_bulk_forbidden"] = True
-
-        if card.get("stowage_category"):
-            extras["imdg_stowage_category"] = card["stowage_category"]
-
-    # The Dangerous Goods List itself, as it stands in 42-24. Where it knows the
-    # substance it takes precedence over the card: the cards are 41-22, cover
-    # nowhere near every substance and give columns 16a and 16b retold rather
-    # than as a code. That last point is not optional — 7.2.3.1 lets column 16b
-    # prevail over the segregation table of 7.2.4, so that column of all columns
-    # has to be complete.
     row = dangerous_goods_list.entry_for(un, packing_group)
     if row:
         extras["imdg_dgl_source"] = dangerous_goods_list.source().get("source", "")

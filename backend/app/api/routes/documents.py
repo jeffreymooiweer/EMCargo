@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.messages import detail as error_detail, error
 from app.core.ratelimit import (
     CARRIER_CONFIRMATION,
     DOCUMENT_BUNDLE,
@@ -111,6 +112,9 @@ def validate(payload: DocumentExportRequest, user: User = Depends(get_current_us
     errors, warnings = validate_document(
         document, payload.values, payload.lines, payload.dangerous_goods, payload.output_language
     )
+    if ((document.get("exporter") == "pdf_template" and not has_pdf_template(payload.document_key))
+            or (document.get("exporter") == "avc" and not has_avc_template())):
+        errors.append(error_detail("templates.missing"))
     return {"document_key": payload.document_key, "errors": errors, "warnings": warnings}
 
 
@@ -165,6 +169,9 @@ def _render_export(document: dict, payload: DocumentExportRequest,
     hands out.
     """
     exporter = document.get("exporter")
+    if ((exporter == "pdf_template" and not has_pdf_template(payload.document_key))
+            or (exporter == "avc" and not has_avc_template())):
+        raise error(409, "templates.missing")
     if exporter == "pdf_template" and has_pdf_template(payload.document_key):
         # Officieel, invulbaar formulier: template invullen.
         out_path = fill_pdf_document(

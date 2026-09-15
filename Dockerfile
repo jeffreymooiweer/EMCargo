@@ -32,15 +32,18 @@ RUN useradd -m -u 1000 -s /bin/bash emcargo
 
 WORKDIR /app
 
-COPY backend/requirements-runtime.txt ./requirements-runtime.txt
-RUN pip install -r requirements-runtime.txt && pip check
+COPY backend/requirements-runtime-lock.txt ./requirements-runtime-lock.txt
+RUN pip install --require-hashes -r requirements-runtime-lock.txt && pip check
 
 COPY backend/ ./backend/
+RUN rm -rf ./backend/tests ./backend/requirements.txt
 COPY templates/ ./templates/
 # The changelog the what's-new card serves after an update. Next to /app/backend
 # so app/services/changelog.py finds it where a checkout keeps it: one level up.
 COPY CHANGELOG.md ./CHANGELOG.md
 COPY TERMS.nl.md LICENSE ./
+COPY THIRD_PARTY_NOTICES.md TRADEMARKS.md ./
+COPY licenses/ ./licenses/
 # The UN cards are deliberately NOT in the image any more. The set (thousands
 # of generated PDFs) is published as a GitHub Release by the "Generate UN
 # cards" workflow and imported by an administrator into <data-dir>/un-cards/,

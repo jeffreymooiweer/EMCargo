@@ -2,3 +2,5 @@
 pytest==9.1.1
 pytest-asyncio==1.4.0
 pyflakes==3.2.0
+# Independent PDF render checks and historical extractors; not installed in production.
+pymupdf==1.25.5

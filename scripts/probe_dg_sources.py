@@ -1,35 +1,7 @@
-"""A survey of public sources for dangerous goods data.
+"""Inspect independently sourced regulatory publications.
 
-This script fetches nothing that ends up in the repo. It looks at whether a
-source exists, how big it is and whether it can be read by machine, and puts that
-outcome on the output. Meant to run via GitHub Actions, because the development
-environment has no outbound network.
-
-Two questions:
-
-1. Does Cantell publish a card set of an IMDG edition newer than ``imdg_2023``?
-   That set is the source of ``backend/seed/dg/card_data.json`` (Amendment
-   41-22). A 42-24 set would update the whole substance-specific layer at once,
-   along the same route we already use.
-2. Can the Dangerous Goods List of the UN Model Regulations Rev.23 be parsed?
-   UNECE publishes that edition free of charge and IMDG 42-24 is harmonised with
-   it, so it covers every column that is not IMDG-specific: class, packing group,
-   labels, special provisions, LQ/EQ and packing instructions. What it does not
-   cover is just as important to know: EmS, stowage category, the SW and SG codes
-   and the segregation groups are only in the IMDG Code itself.
-
-3. What is in the amendment document that CEPA — the employers' organisation of
-   the port of Antwerp — publishes openly on its own site? This script only
-   establishes *what* it is: publisher, size, which chapters. Whether it is the
-   full text of the Code or an overview of changes matters to us, because only
-   factual data ends up in the repo and never the regulatory text itself.
-
-Usage::
-
-    python scripts/probe_dg_sources.py cantell
-    python scripts/probe_dg_sources.py model-regs --sample-pages 60,61,120
-    python scripts/probe_dg_sources.py cepa
-    python scripts/probe_dg_sources.py dgl
+No third-party UN card source is fetched. Survey output is not permission to
+redistribute a publication or derived text; consult the rights register.
 """
 from __future__ import annotations
 
@@ -40,7 +12,6 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-CANTELL = "https://www.cantell.dk/image/catalog/Stofliste"
 UNECE = "https://unece.org/sites/default/files/2023-08"
 VOL1 = f"{UNECE}/ST-SG-AC10-1r23e_Vol1_WEB.pdf"
 VOL2 = f"{UNECE}/ST-SG-AC10-1r23e_Vol2_WEB.pdf"
@@ -104,65 +75,6 @@ def download(url: str, target: Path, timeout: int = 180) -> Path:
     with urllib.request.urlopen(request, timeout=timeout) as response:
         target.write_bytes(response.read())
     return target
-
-
-def card_url(collection: str, year: int, part: int) -> str:
-    prefix = "IMDG_EN/imdg" if collection == "imdg" else "ADR_EN/adr"
-    return f"{CANTELL}/{prefix}_{year}_-_en_part{part}.pdf"
-
-
-def count_parts(collection: str, year: int, ceiling: int = 8192) -> int:
-    """How many parts the set has, by doubling and then binary search.
-
-    Faster and more polite than thousands of separate requests; the 2023 set had
-    2,849, so walking it linearly is not an option.
-    """
-    low = 1
-    while low * 2 <= ceiling and exists(card_url(collection, year, low * 2)):
-        low *= 2
-    high = min(low * 2, ceiling + 1)
-    while high - low > 1:
-        middle = (low + high) // 2
-        if exists(card_url(collection, year, middle)):
-            low = middle
-        else:
-            high = middle
-    return low
-
-
-def probe_cantell() -> int:
-    """Which card sets Cantell publishes, and how big the newest one is."""
-    print("== Cantell ==")
-    available: list[tuple[str, int]] = []
-    for collection, year in [("imdg", y) for y in (2027, 2026, 2025, 2024, 2023)] + \
-                            [("adr", y) for y in (2027, 2025, 2023)]:
-        url = card_url(collection, year, 1)
-        status, size = head(url)
-        verdict = f"BESTAAT ({size} bytes)" if status == 200 and size > 2000 \
-            else f"afwezig (HTTP {status})"
-        print(f"  {collection}_{year:<6} {verdict}")
-        if status == 200 and size > 2000:
-            available.append((collection, year))
-
-    newest_imdg = next((y for c, y in available if c == "imdg"), None)
-    if newest_imdg is None:
-        print("\nNo IMDG set reachable at all.")
-        return 1
-
-    print(f"\nNewest IMDG set: imdg_{newest_imdg}")
-    if newest_imdg <= 2023:
-        print("That is the edition we have already processed (Amendment 41-22).")
-        print("There is nothing new to be had this way.")
-    else:
-        parts = count_parts("imdg", newest_imdg)
-        print(f"Size: roughly {parts} parts.")
-        print("This is a newer edition. EMCargo no longer bundles these cards")
-        print("(it generates its own, see docs/un-cards.md), but a newer set could")
-        print("refresh backend/seed/dg/card_data.json via extract_un_card_data.py.")
-
-    print(f"\n-- first card of imdg_{newest_imdg} --")
-    print(read_pdf_text(card_url("imdg", newest_imdg, 1), Path("/tmp/card.pdf"))[:2000])
-    return 0
 
 
 def read_pdf_text(url: str, target: Path, page: int = 0) -> str:
@@ -437,15 +349,13 @@ def probe_dangerous_goods_list() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("source", choices=["cantell", "model-regs", "cepa", "dgl", "all"])
+    parser.add_argument("source", choices=["model-regs", "cepa", "dgl", "all"])
     parser.add_argument("--sample-pages", default="60,61,120",
                         help="DGL pages to print as a sample of the output")
     args = parser.parse_args(argv)
 
     pages = [int(p) for p in args.sample_pages.split(",") if p.strip().isdigit()]
     status = 0
-    if args.source in {"cantell", "all"}:
-        status |= probe_cantell()
     if args.source in {"model-regs", "all"}:
         status |= probe_model_regulations(pages)
     if args.source in {"cepa", "all"}:

@@ -116,12 +116,13 @@ def test_cmr_without_dangerous_goods_keeps_plain_descriptions():
     assert "VakRood13" not in fields
 
 
-def test_the_official_avc_template_is_shipped():
+def test_the_official_avc_template_can_be_imported():
     """The waybill fills in an existing form; that template belongs in the repo."""
-    assert has_avc_template()
+    from app.services.document_templates import profiles
+    assert profiles()["avc"]["pages"] == 1
 
 
-def test_avc_waybill_fills_the_official_form(prepared):
+def test_avc_waybill_fills_the_official_form(prepared, official_templates):
     text, _words = _render(prepared)
 
     # The template itself stays: both panels and the AVC reference.
@@ -153,7 +154,7 @@ def test_avc_waybill_fills_the_official_form(prepared):
     assert "CONCEPT" in text
 
 
-def test_avc_values_land_inside_their_boxes(prepared):
+def test_avc_values_land_inside_their_boxes(prepared, official_templates):
     """The overlay is coordinate-driven: if that shifts, the form is wrong."""
     _text, words = _render(prepared)
 
@@ -184,21 +185,21 @@ def test_avc_values_land_inside_their_boxes(prepared):
     assert 350 < x1 <= 391
 
 
-def test_avc_waybill_without_dangerous_goods():
+def test_avc_waybill_without_dangerous_goods(official_templates):
     text, _words = _render(None)
     assert "jerrycan benzine" in text
     assert "UN 1203" not in text
     assert "vervoerscategorie" not in text
 
 
-def test_avc_waybill_in_english():
+def test_avc_waybill_in_english(official_templates):
     text, _words = _render(None, "en")
     # The template is Dutch; only our own text follows the language choice.
     assert "DRAFT" in text and "CONCEPT" not in text
     assert "jerrycan benzine" in text
 
 
-def test_avc_long_description_wraps_inside_the_contents_column(prepared):
+def test_avc_long_description_wraps_inside_the_contents_column(prepared, official_templates):
     """The 'inhoud' column must not run into the 'gewicht in kg' column."""
     _text, words = _render(prepared)
     goods = [w for w in words if 283 < w[1] < 552 and 240 < w[0] < 406]

@@ -145,7 +145,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res as unknown as T;
 }
 
+export interface DocumentTemplate {
+  id: string; name: string; kind: "form" | "model"; filename: string;
+  pages: number; sha256: string; available: boolean;
+}
+
 export const api = {
+  documentTemplates: () => request<DocumentTemplate[]>("/settings/document-templates"),
+  importDocumentTemplate: async (key: string, file: File, source: string, basis: string) => {
+    const body = new FormData(); body.append("file", file); body.append("source", source); body.append("rights_basis", basis);
+    const response = await fetch(`${API_BASE}/settings/document-templates/${encodeURIComponent(key)}`, { method: "POST", credentials: "include", body });
+    if (!response.ok) throw await refusal(response);
+    return response.json() as Promise<{ ok: boolean; sha256: string }>;
+  },
   readPackingDocument: (file: File, language: string, signal?: AbortSignal) =>
     uploadFile<PackingSource>(`/assistant/documents/read?language=${encodeURIComponent(language)}`, file, signal),
   proposePackingDocument: (lines: { id: string; text: string }[], signal?: AbortSignal) =>
@@ -1577,6 +1589,8 @@ export interface DgProduct {
   additional_information?: string;
   caliber?: string;
   marine_pollutant?: string;
+  imdg_source_reference?: string;
+  imdg_source_reviewed?: string;
   cargo_aircraft_only?: string;
   overpack?: string;
   emergency_contact?: string;
@@ -2408,6 +2422,7 @@ export interface DgComplianceResult {
     expired: string[];
   };
   imdg_segregation?: ComplianceWarning[];
+  imdg_source_findings?: ComplianceWarning[];
   imdg_note?: string;
   imdg_segregation_groups?: {
     note: string;

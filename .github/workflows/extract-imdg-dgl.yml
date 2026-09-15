@@ -70,4 +70,5 @@ jobs:
             -m "Read the Dangerous Goods List of IMDG Amendment 42-24" \
             -m "Column 16b takes precedence over the segregation table under 7.2.3.1, and until now the app only knew that column for the substances whose UN card happened to mention it. This is the column itself, for every entry in the list, alongside class, packing group, special provisions, packing instructions and EmS." \
             -m "Extracted by scripts/extract_imdg_dgl.py, which checks itself against class from ADR Table A and EmS from the EmS Guide and refuses to write below the agreement threshold. A factual table, not the regulatory text."
+          python scripts/check_third_party_manifest.py --publish source
           git push

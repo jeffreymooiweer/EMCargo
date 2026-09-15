@@ -21,7 +21,7 @@ from tests.test_export_bundle import CONSIGNMENT, DG, LINES
 
 
 @pytest.fixture
-def setup():
+def setup(synthetic_templates):
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     db = sessionmaker(bind=engine)()

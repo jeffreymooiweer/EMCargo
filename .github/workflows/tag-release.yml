@@ -66,6 +66,12 @@ jobs:
       - name: Verify the version files agree
         run: python scripts/check_versions.py
 
+      - name: Require source, native and image redistribution rights
+        run: |
+          python scripts/check_third_party_manifest.py --publish source
+          python scripts/check_third_party_manifest.py --publish native
+          python scripts/check_third_party_manifest.py --publish image
+
       - name: Resolve and validate release version
         id: release
         shell: bash
@@ -106,6 +112,61 @@ jobs:
       # one with workflow scope of its own, and that has to be a secret. If
       # RELEASE_TOKEN exists the push uses it; if it does not, the step says what
       # is missing rather than failing on a line about permissions.
+      - name: Prepare release notes
+        run: |
+          TAG="${{ steps.release.outputs.tag }}"
+          VERSION="${{ steps.release.outputs.version }}"
+          NOTES_FILE=".github/release-notes/${TAG}.md"
+          if [ -f "$NOTES_FILE" ]; then
+            cp "$NOTES_FILE" release-body.md
+          else
+            python3 - "$VERSION" <<'PY' > release-body.md
+          import re
+          import sys
+          from pathlib import Path
+
+          version = sys.argv[1]
+          text = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          pattern = rf"## \[{re.escape(version)}\][^\n]*\n(.*?)(?=\n## \[|\n## Previous releases|\Z)"
+          match = re.search(pattern, text, re.DOTALL)
+          print(match.group(1).strip() if match else f"Release {version}. See CHANGELOG.md for details.")
+          PY
+          fi
+
+      # The native bundle: what a host without Docker installs. The backend,
+      # the templates, the changelog the what's-new card reads, the deploy
+      # files, and the frontend built once here — the same tree the image
+      # carries under /app, as a tarball the install script unpacks.
+      - name: Set up Node for the native bundle
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build the native bundle
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          (cd frontend && npm ci --no-audit && npm run build)
+          STAGE="emcargo-$VERSION"
+          rm -rf "$STAGE" && mkdir -p "$STAGE"
+          cp -r backend templates deploy licenses compliance THIRD_PARTY_NOTICES.md TRADEMARKS.md CHANGELOG.md VERSION LICENSE TERMS.nl.md DISCLAIMER.md DISCLAIMER.nl.md "$STAGE/"
+          rm -rf "$STAGE/backend/tests" "$STAGE/backend/static" "$STAGE/backend/requirements.txt"
+          find "$STAGE" -name __pycache__ -type d -prune -exec rm -rf {} +
+          cp -r frontend/dist "$STAGE/backend/static"
+          python3 -m venv /tmp/emcargo-release-runtime
+          /tmp/emcargo-release-runtime/bin/pip install --require-hashes -r backend/requirements-runtime-lock.txt
+          /tmp/emcargo-release-runtime/bin/python scripts/build_sbom.py --out "$STAGE/compliance/python-runtime.cdx.json" --licenses "$STAGE/licenses/python"
+          cp frontend/dist/compliance/frontend.cdx.json "$STAGE/compliance/frontend.cdx.json"
+          python scripts/check_sbom.py "$STAGE/compliance/python-runtime.cdx.json" --channel native --publish
+          python scripts/check_sbom.py "$STAGE/compliance/frontend.cdx.json" --channel native --publish
+          python scripts/build_source_sbom.py --out "$STAGE/compliance/source.cdx.json"
+          python scripts/build_source_sbom.py --directory "$STAGE" --out "$STAGE/compliance/native-files.cdx.json"
+          tar -czf "emcargo-$VERSION-native.tar.gz" "$STAGE"
+          sha256sum "emcargo-$VERSION-native.tar.gz" > "emcargo-$VERSION-native.tar.gz.sha256"
+          ls -la emcargo-"$VERSION"-native.tar.gz*
+
       - name: Create and push tag
         env:
           RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
@@ -133,27 +194,6 @@ jobs:
           echo "::error::Could not push $TAG. A tag on a commit whose .github/workflows differs from the default branch needs a credential with workflow scope; add it as the RELEASE_TOKEN secret. Tagging the head of main does not need one."
           exit 1
 
-      - name: Prepare release notes
-        run: |
-          TAG="${{ steps.release.outputs.tag }}"
-          VERSION="${{ steps.release.outputs.version }}"
-          NOTES_FILE=".github/release-notes/${TAG}.md"
-          if [ -f "$NOTES_FILE" ]; then
-            cp "$NOTES_FILE" release-body.md
-          else
-            python3 - "$VERSION" <<'PY' > release-body.md
-          import re
-          import sys
-          from pathlib import Path
-
-          version = sys.argv[1]
-          text = Path("CHANGELOG.md").read_text(encoding="utf-8")
-          pattern = rf"## \[{re.escape(version)}\][^\n]*\n(.*?)(?=\n## \[|\n## Previous releases|\Z)"
-          match = re.search(pattern, text, re.DOTALL)
-          print(match.group(1).strip() if match else f"Release {version}. See CHANGELOG.md for details.")
-          PY
-          fi
-
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -164,32 +204,6 @@ jobs:
           else
             gh release create "$TAG" --title "EMCargo $TAG" --notes-file release-body.md
           fi
-
-      # The native bundle: what a host without Docker installs. The backend,
-      # the templates, the changelog the what's-new card reads, the deploy
-      # files, and the frontend built once here — the same tree the image
-      # carries under /app, as a tarball the install script unpacks.
-      - name: Set up Node for the native bundle
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Build the native bundle
-        env:
-          VERSION: ${{ steps.release.outputs.version }}
-        run: |
-          (cd frontend && npm ci --no-audit && npm run build)
-          STAGE="emcargo-$VERSION"
-          rm -rf "$STAGE" && mkdir -p "$STAGE"
-          cp -r backend templates deploy CHANGELOG.md VERSION LICENSE TERMS.nl.md DISCLAIMER.md DISCLAIMER.nl.md "$STAGE/"
-          rm -rf "$STAGE/backend/tests" "$STAGE/backend/static"
-          find "$STAGE" -name __pycache__ -type d -prune -exec rm -rf {} +
-          cp -r frontend/dist "$STAGE/backend/static"
-          tar -czf "emcargo-$VERSION-native.tar.gz" "$STAGE"
-          sha256sum "emcargo-$VERSION-native.tar.gz" > "emcargo-$VERSION-native.tar.gz.sha256"
-          ls -la emcargo-"$VERSION"-native.tar.gz*
 
       - name: Attach the native bundle to the release
         env:

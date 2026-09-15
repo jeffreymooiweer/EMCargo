@@ -1,263 +1,264 @@
 {
- "_comment": "Prescribed model documents (instructions in writing 5.4.3, ADN checklist 8.6.3), cut verbatim from the pinned editions by scripts/cut_model_documents.py. Nothing here is written or summarised: each file is the pages the book prints.",
- "generated_at": "2026-08-20T05:49:36Z",
- "models": [
-  {
-   "id": "adn_instructions_de",
-   "file": "adn-2025-instructions-de.pdf",
-   "provision": "5.4.3",
-   "regime": "adn",
-   "language": "de",
-   "source_document": "adn_de",
-   "source_sha256": "5061089af19f22d0c2670b757931a3de8712e31835b2da75735b88d392938bd0",
-   "source_pages": [
-    818,
-    821
-   ],
-   "pages": 4,
-   "size": 120871,
-   "sha256": "2255112f5a0cc4eea75232e7009284ad974aa1ea57081318dc6c3e3617d1c5e9"
-  },
-  {
-   "id": "adn_instructions_en",
-   "file": "adn-2025-instructions-en.pdf",
-   "provision": "5.4.3",
-   "regime": "adn",
-   "language": "en",
-   "source_document": "adn",
-   "source_sha256": "3ee6a1eba8408bea00099fce1a352fc142cc5352774696f384ac5523ea5267b9",
-   "source_pages": [
-    363,
-    366
-   ],
-   "pages": 4,
-   "size": 863093,
-   "sha256": "e1da503d4ca727471d76dd356b8bb2abb46cc5583554afe425fb18947dbf47fe"
-  },
-  {
-   "id": "adn_instructions_fr",
-   "file": "adn-2025-instructions-fr.pdf",
-   "provision": "5.4.3",
-   "regime": "adn",
-   "language": "fr",
-   "source_document": "adn_fr",
-   "source_sha256": "783cd7bc4573bf984d7f05dcbcad2e62b5f7ec0746e89feaf90782828b9a30a1",
-   "source_pages": [
-    375,
-    378
-   ],
-   "pages": 4,
-   "size": 907292,
-   "sha256": "5f7979de491ae1c4f9d211c19e897282b550f88ce220f9b0ef04fbdbcacaf976"
-  },
-  {
-   "id": "adn_instructions_nl",
-   "file": "adn-2025-instructions-nl.pdf",
-   "provision": "5.4.3",
-   "regime": "adn",
-   "language": "nl",
-   "source_document": "adn_nl_2025",
-   "source_sha256": "8efe4ac617076693acf5702fc65924e0e676a31b0e843faaf5dca8e57e046743",
-   "source_pages": [
-    746,
-    749
-   ],
-   "pages": 4,
-   "size": 125013,
-   "sha256": "81f8629e85b7d957a91208d74ff44a092d70ec050476d74c7da843eff9c97591"
-  },
-  {
-   "id": "adr_instructions_de",
-   "file": "adr-2025-instructions-de.pdf",
-   "provision": "5.4.3",
-   "regime": "adr",
-   "language": "de",
-   "source_document": "adr_de_2",
-   "source_sha256": "947ad3020df533c9d8d95c0c6a52167545733b114c646c68a6ed63b8e69ce463",
-   "source_pages": [
-    345,
-    348
-   ],
-   "pages": 4,
-   "size": 179810,
-   "sha256": "65c07cd1238e9b58e841218281689529bfb85a86c6fbba82cb37543d0ece57fc"
-  },
-  {
-   "id": "adr_instructions_en",
-   "file": "adr-2025-instructions-en.pdf",
-   "provision": "5.4.3",
-   "regime": "adr",
-   "language": "en",
-   "source_document": "adr2",
-   "source_sha256": "702d0ae5737d3bd228e0b332352deda626018ac9841339c0eca67e4209953f4b",
-   "source_pages": [
-    284,
-    287
-   ],
-   "pages": 4,
-   "size": 939287,
-   "sha256": "02b8b8ee52bdf93eb68a3c540ea08d5494d93e3e641b168e383245052081212b"
-  },
-  {
-   "id": "adr_instructions_fr",
-   "file": "adr-2025-instructions-fr.pdf",
-   "provision": "5.4.3",
-   "regime": "adr",
-   "language": "fr",
-   "source_document": "adr2_fr",
-   "source_sha256": "f99c20bd3c75c7d43d3715be145e8133e339270aec50eaadf6d67ce809295afa",
-   "source_pages": [
-    301,
-    304
-   ],
-   "pages": 4,
-   "size": 989470,
-   "sha256": "ad639eb008420fddc5e943c8f490ce8706c599b1ff97d7db8bca70e199b63116"
-  },
-  {
-   "id": "adr_instructions_nl",
-   "file": "adr-2025-instructions-nl.pdf",
-   "provision": "5.4.3",
-   "regime": "adr",
-   "language": "nl",
-   "source_document": "adr_nl_2025",
-   "source_sha256": "8162f1320e0bf58bb4eab876b360aeceecc75791e806a665d3fb510027e04326",
-   "source_pages": [
-    911,
-    916
-   ],
-   "pages": 6,
-   "size": 215352,
-   "sha256": "1884ce00675146c46cadb9dfbf31173fcc8eea7f8285850224a59e4cc004e9ac"
-  },
-  {
-   "id": "rid_instructions_de",
-   "file": "rid-2025-instructions-de.pdf",
-   "provision": "5.4.3",
-   "regime": "rid",
-   "language": "de",
-   "source_document": "rid_de",
-   "source_sha256": "a1e95c8de338edf9325b4b0b05595eaeaa830f88c479f455997cd0236e1ac90d",
-   "source_pages": [
-    916,
-    919
-   ],
-   "pages": 4,
-   "size": 182116,
-   "sha256": "b164ddbab57b832605423f49a7031ed15d89d0c4e74ce319814c3b638e58ae88"
-  },
-  {
-   "id": "rid_instructions_en",
-   "file": "rid-2025-instructions-en.pdf",
-   "provision": "5.4.3",
-   "regime": "rid",
-   "language": "en",
-   "source_document": "rid",
-   "source_sha256": "47403fbac0a16096e202b444d6006f1abf2c9c00263451f47a740401f9e78af6",
-   "source_pages": [
-    856,
-    859
-   ],
-   "pages": 4,
-   "size": 203076,
-   "sha256": "8ce9fbcc58eb660a5ac2deda801e5b7fd83c5d3ad1cdbce51d38ea3ee3ef059c"
-  },
-  {
-   "id": "rid_instructions_fr",
-   "file": "rid-2025-instructions-fr.pdf",
-   "provision": "5.4.3",
-   "regime": "rid",
-   "language": "fr",
-   "source_document": "rid_fr",
-   "source_sha256": "83170b449f03ea76876761abe82cfce826dc4be12a753c9442f11a12a0ea2688",
-   "source_pages": [
-    910,
-    913
-   ],
-   "pages": 4,
-   "size": 91998,
-   "sha256": "9ceaa7ede0cd6e545287ecb4bf71a6ce19f09279d71eb10ecc182865132bc545"
-  },
-  {
-   "id": "rid_instructions_nl",
-   "file": "rid-2025-instructions-nl.pdf",
-   "provision": "5.4.3",
-   "regime": "rid",
-   "language": "nl",
-   "source_document": "rid_nl_2025",
-   "source_sha256": "7b151bdea4aeab0dfb2417489e073e9a8d23c60c8a96d558fdd7616d4cd45a35",
-   "source_pages": [
-    981,
-    984
-   ],
-   "pages": 4,
-   "size": 181247,
-   "sha256": "3440a78a14e721bd82a7fea665a606b6103d3191e398ec9a4ecfb4598e01a286"
-  },
-  {
-   "id": "adn_checklist_de",
-   "file": "adn-2025-checklist-de.pdf",
-   "provision": "8.6.3",
-   "regime": "adn",
-   "language": "de",
-   "source_document": "adn_de",
-   "source_sha256": "5061089af19f22d0c2670b757931a3de8712e31835b2da75735b88d392938bd0",
-   "source_pages": [
-    941,
-    945
-   ],
-   "pages": 5,
-   "size": 118721,
-   "sha256": "7f7fad27b0e6c6c7b50e1d6604f48101fc4cb3e1f1783efdc3d71050912b4eaf"
-  },
-  {
-   "id": "adn_checklist_en",
-   "file": "adn-2025-checklist-en.pdf",
-   "provision": "8.6.3",
-   "regime": "adn",
-   "language": "en",
-   "source_document": "adn",
-   "source_sha256": "3ee6a1eba8408bea00099fce1a352fc142cc5352774696f384ac5523ea5267b9",
-   "source_pages": [
-    491,
-    495
-   ],
-   "pages": 5,
-   "size": 748555,
-   "sha256": "128837b1351015070ba47a39b96753e39d01b766ab20adeaf4478450cd663f84"
-  },
-  {
-   "id": "adn_checklist_fr",
-   "file": "adn-2025-checklist-fr.pdf",
-   "provision": "8.6.3",
-   "regime": "adn",
-   "language": "fr",
-   "source_document": "adn_fr",
-   "source_sha256": "783cd7bc4573bf984d7f05dcbcad2e62b5f7ec0746e89feaf90782828b9a30a1",
-   "source_pages": [
-    513,
-    517
-   ],
-   "pages": 5,
-   "size": 725994,
-   "sha256": "d126949a8543c25648c4bc76f9636a1879e906f61bdc2963b296b43bf6a2a372"
-  },
-  {
-   "id": "adn_checklist_nl",
-   "file": "adn-2025-checklist-nl.pdf",
-   "provision": "8.6.3",
-   "regime": "adn",
-   "language": "nl",
-   "source_document": "adn_nl_2025",
-   "source_sha256": "8efe4ac617076693acf5702fc65924e0e676a31b0e843faaf5dca8e57e046743",
-   "source_pages": [
-    858,
-    863
-   ],
-   "pages": 6,
-   "size": 140991,
-   "sha256": "a48010f3d9352164472ad76afc46ebb2ca386eb5238b3d1f69fdcfd13ec18c75"
-  }
- ],
- "missing": []
+  "_comment": "Historical fingerprints of the 16 model PDFs removed from the source distribution in v2.12.0. These records identify compatible operator-supplied editions; they do not grant redistribution rights. Models may be imported locally or cut from an independently obtained, hash-verified source volume.",
+  "generated_at": "2026-08-20T05:49:36Z",
+  "models": [
+    {
+      "id": "adn_instructions_de",
+      "file": "adn-2025-instructions-de.pdf",
+      "provision": "5.4.3",
+      "regime": "adn",
+      "language": "de",
+      "source_document": "adn_de",
+      "source_sha256": "5061089af19f22d0c2670b757931a3de8712e31835b2da75735b88d392938bd0",
+      "source_pages": [
+        818,
+        821
+      ],
+      "pages": 4,
+      "size": 120871,
+      "sha256": "2255112f5a0cc4eea75232e7009284ad974aa1ea57081318dc6c3e3617d1c5e9"
+    },
+    {
+      "id": "adn_instructions_en",
+      "file": "adn-2025-instructions-en.pdf",
+      "provision": "5.4.3",
+      "regime": "adn",
+      "language": "en",
+      "source_document": "adn",
+      "source_sha256": "3ee6a1eba8408bea00099fce1a352fc142cc5352774696f384ac5523ea5267b9",
+      "source_pages": [
+        363,
+        366
+      ],
+      "pages": 4,
+      "size": 863093,
+      "sha256": "e1da503d4ca727471d76dd356b8bb2abb46cc5583554afe425fb18947dbf47fe"
+    },
+    {
+      "id": "adn_instructions_fr",
+      "file": "adn-2025-instructions-fr.pdf",
+      "provision": "5.4.3",
+      "regime": "adn",
+      "language": "fr",
+      "source_document": "adn_fr",
+      "source_sha256": "783cd7bc4573bf984d7f05dcbcad2e62b5f7ec0746e89feaf90782828b9a30a1",
+      "source_pages": [
+        375,
+        378
+      ],
+      "pages": 4,
+      "size": 907292,
+      "sha256": "5f7979de491ae1c4f9d211c19e897282b550f88ce220f9b0ef04fbdbcacaf976"
+    },
+    {
+      "id": "adn_instructions_nl",
+      "file": "adn-2025-instructions-nl.pdf",
+      "provision": "5.4.3",
+      "regime": "adn",
+      "language": "nl",
+      "source_document": "adn_nl_2025",
+      "source_sha256": "8efe4ac617076693acf5702fc65924e0e676a31b0e843faaf5dca8e57e046743",
+      "source_pages": [
+        746,
+        749
+      ],
+      "pages": 4,
+      "size": 125013,
+      "sha256": "81f8629e85b7d957a91208d74ff44a092d70ec050476d74c7da843eff9c97591"
+    },
+    {
+      "id": "adr_instructions_de",
+      "file": "adr-2025-instructions-de.pdf",
+      "provision": "5.4.3",
+      "regime": "adr",
+      "language": "de",
+      "source_document": "adr_de_2",
+      "source_sha256": "947ad3020df533c9d8d95c0c6a52167545733b114c646c68a6ed63b8e69ce463",
+      "source_pages": [
+        345,
+        348
+      ],
+      "pages": 4,
+      "size": 179810,
+      "sha256": "65c07cd1238e9b58e841218281689529bfb85a86c6fbba82cb37543d0ece57fc"
+    },
+    {
+      "id": "adr_instructions_en",
+      "file": "adr-2025-instructions-en.pdf",
+      "provision": "5.4.3",
+      "regime": "adr",
+      "language": "en",
+      "source_document": "adr2",
+      "source_sha256": "702d0ae5737d3bd228e0b332352deda626018ac9841339c0eca67e4209953f4b",
+      "source_pages": [
+        284,
+        287
+      ],
+      "pages": 4,
+      "size": 939287,
+      "sha256": "02b8b8ee52bdf93eb68a3c540ea08d5494d93e3e641b168e383245052081212b"
+    },
+    {
+      "id": "adr_instructions_fr",
+      "file": "adr-2025-instructions-fr.pdf",
+      "provision": "5.4.3",
+      "regime": "adr",
+      "language": "fr",
+      "source_document": "adr2_fr",
+      "source_sha256": "f99c20bd3c75c7d43d3715be145e8133e339270aec50eaadf6d67ce809295afa",
+      "source_pages": [
+        301,
+        304
+      ],
+      "pages": 4,
+      "size": 989470,
+      "sha256": "ad639eb008420fddc5e943c8f490ce8706c599b1ff97d7db8bca70e199b63116"
+    },
+    {
+      "id": "adr_instructions_nl",
+      "file": "adr-2025-instructions-nl.pdf",
+      "provision": "5.4.3",
+      "regime": "adr",
+      "language": "nl",
+      "source_document": "adr_nl_2025",
+      "source_sha256": "8162f1320e0bf58bb4eab876b360aeceecc75791e806a665d3fb510027e04326",
+      "source_pages": [
+        911,
+        916
+      ],
+      "pages": 6,
+      "size": 215352,
+      "sha256": "1884ce00675146c46cadb9dfbf31173fcc8eea7f8285850224a59e4cc004e9ac"
+    },
+    {
+      "id": "rid_instructions_de",
+      "file": "rid-2025-instructions-de.pdf",
+      "provision": "5.4.3",
+      "regime": "rid",
+      "language": "de",
+      "source_document": "rid_de",
+      "source_sha256": "a1e95c8de338edf9325b4b0b05595eaeaa830f88c479f455997cd0236e1ac90d",
+      "source_pages": [
+        916,
+        919
+      ],
+      "pages": 4,
+      "size": 182116,
+      "sha256": "b164ddbab57b832605423f49a7031ed15d89d0c4e74ce319814c3b638e58ae88"
+    },
+    {
+      "id": "rid_instructions_en",
+      "file": "rid-2025-instructions-en.pdf",
+      "provision": "5.4.3",
+      "regime": "rid",
+      "language": "en",
+      "source_document": "rid",
+      "source_sha256": "47403fbac0a16096e202b444d6006f1abf2c9c00263451f47a740401f9e78af6",
+      "source_pages": [
+        856,
+        859
+      ],
+      "pages": 4,
+      "size": 203076,
+      "sha256": "8ce9fbcc58eb660a5ac2deda801e5b7fd83c5d3ad1cdbce51d38ea3ee3ef059c"
+    },
+    {
+      "id": "rid_instructions_fr",
+      "file": "rid-2025-instructions-fr.pdf",
+      "provision": "5.4.3",
+      "regime": "rid",
+      "language": "fr",
+      "source_document": "rid_fr",
+      "source_sha256": "83170b449f03ea76876761abe82cfce826dc4be12a753c9442f11a12a0ea2688",
+      "source_pages": [
+        910,
+        913
+      ],
+      "pages": 4,
+      "size": 91998,
+      "sha256": "9ceaa7ede0cd6e545287ecb4bf71a6ce19f09279d71eb10ecc182865132bc545"
+    },
+    {
+      "id": "rid_instructions_nl",
+      "file": "rid-2025-instructions-nl.pdf",
+      "provision": "5.4.3",
+      "regime": "rid",
+      "language": "nl",
+      "source_document": "rid_nl_2025",
+      "source_sha256": "7b151bdea4aeab0dfb2417489e073e9a8d23c60c8a96d558fdd7616d4cd45a35",
+      "source_pages": [
+        981,
+        984
+      ],
+      "pages": 4,
+      "size": 181247,
+      "sha256": "3440a78a14e721bd82a7fea665a606b6103d3191e398ec9a4ecfb4598e01a286"
+    },
+    {
+      "id": "adn_checklist_de",
+      "file": "adn-2025-checklist-de.pdf",
+      "provision": "8.6.3",
+      "regime": "adn",
+      "language": "de",
+      "source_document": "adn_de",
+      "source_sha256": "5061089af19f22d0c2670b757931a3de8712e31835b2da75735b88d392938bd0",
+      "source_pages": [
+        941,
+        945
+      ],
+      "pages": 5,
+      "size": 118721,
+      "sha256": "7f7fad27b0e6c6c7b50e1d6604f48101fc4cb3e1f1783efdc3d71050912b4eaf"
+    },
+    {
+      "id": "adn_checklist_en",
+      "file": "adn-2025-checklist-en.pdf",
+      "provision": "8.6.3",
+      "regime": "adn",
+      "language": "en",
+      "source_document": "adn",
+      "source_sha256": "3ee6a1eba8408bea00099fce1a352fc142cc5352774696f384ac5523ea5267b9",
+      "source_pages": [
+        491,
+        495
+      ],
+      "pages": 5,
+      "size": 748555,
+      "sha256": "128837b1351015070ba47a39b96753e39d01b766ab20adeaf4478450cd663f84"
+    },
+    {
+      "id": "adn_checklist_fr",
+      "file": "adn-2025-checklist-fr.pdf",
+      "provision": "8.6.3",
+      "regime": "adn",
+      "language": "fr",
+      "source_document": "adn_fr",
+      "source_sha256": "783cd7bc4573bf984d7f05dcbcad2e62b5f7ec0746e89feaf90782828b9a30a1",
+      "source_pages": [
+        513,
+        517
+      ],
+      "pages": 5,
+      "size": 725994,
+      "sha256": "d126949a8543c25648c4bc76f9636a1879e906f61bdc2963b296b43bf6a2a372"
+    },
+    {
+      "id": "adn_checklist_nl",
+      "file": "adn-2025-checklist-nl.pdf",
+      "provision": "8.6.3",
+      "regime": "adn",
+      "language": "nl",
+      "source_document": "adn_nl_2025",
+      "source_sha256": "8efe4ac617076693acf5702fc65924e0e676a31b0e843faaf5dca8e57e046743",
+      "source_pages": [
+        858,
+        863
+      ],
+      "pages": 6,
+      "size": 140991,
+      "sha256": "a48010f3d9352164472ad76afc46ebb2ca386eb5238b3d1f69fdcfd13ec18c75"
+    }
+  ],
+  "missing": [],
+  "distribution": "operator-supplied; source PDFs not bundled"
 }

@@ -1,10 +1,8 @@
 """IMDG Code Amendment 42-24 as a differences layer over the 41-22 data.
 
-The app carries ADR 2025 as its base table and the Cantell UN cards (41-22) as
-its substance-specific IMDG layer. Since 1 January 2026, 42-24 is mandatory.
-Instead of rebuilding the whole dataset — which needs the published text — this
-module lays the changes that can be derived from the source on top of the
-existing data, and says per substance what changed.
+Current substance data comes from the independently extracted 42-24 DGL.
+This module retains the edition-change explanations and explicitly scoped
+amendment facts. The historical Cantell seed and runtime overlay are retired.
 
 Two things decide what is and is not in here:
 

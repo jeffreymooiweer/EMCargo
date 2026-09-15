@@ -5,6 +5,7 @@ issuing body and are filled in — not rebuilt. Signature, carrier and
 operational fields are deliberately left empty.
 """
 
+import io
 import os
 import re
 import tempfile
@@ -13,14 +14,11 @@ from pathlib import Path
 from typing import Any
 
 from pypdf import PdfReader, PdfWriter
-from pypdf.generic import BooleanObject, NameObject
+from pypdf.generic import NameObject
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
 
-try:
-    import fitz
-except ImportError:  # pragma: no cover
-    fitz = None
-
-from app.core.config import get_settings
+from app.services.document_templates import resolve as resolve_template
 from app.core.languages import pick
 from app.services.dg.naming import resolve_for_profile
 from app.services.dg.autofill import adr_category_totals, description_line
@@ -36,20 +34,6 @@ _IATA_SHIPTYPE_STRIKE = "XXXXXXXXXXX"
 _IATA_SHIPTYPE_BLANK = " " * 12
 
 CMR_MAX_ROWS = 16
-
-
-def templates_forms_dir() -> Path:
-    settings = get_settings()
-    candidates = [
-        settings.data_dir / "templates" / "forms",
-        Path(__file__).resolve().parents[3] / ".." / "templates" / "forms",
-    ]
-    for path in candidates:
-        resolved = path.resolve()
-        if resolved.exists():
-            return resolved
-    # Fall back to the repo bundle so development without /data works too.
-    return (Path(__file__).resolve().parents[3] / ".." / "templates" / "forms").resolve()
 
 
 def _party(name: str, address: str, contact: str = "") -> str:
@@ -455,7 +439,7 @@ def build_fields(
 def has_pdf_template(document_key: str) -> bool:
     if document_key not in PDF_FILLERS:
         return False
-    return (templates_forms_dir() / PDF_FILLERS[document_key]).exists()
+    return resolve_template(Path(PDF_FILLERS[document_key]).stem) is not None
 
 
 # Where the consignor's signature is placed on each form.
@@ -471,112 +455,69 @@ _SIGNATURE_WIDGETS: dict[str, str] = {
 }
 
 
-def _stamp_signature(doc, document_key: str, signature_png: bytes) -> None:
-    spots: list[tuple[int, Any]] = list(_SIGNATURE_RECTS.get(document_key, []))
+def _signature_overlay(page, page_number: int, document_key: str,
+                       signature_png: bytes) -> None:
+    """Paint the existing visible signature using PDF coordinates.
+
+    The fixed CMR rectangles were measured from the top of the page. AcroForm
+    rectangles (IATA) already use PDF's bottom-left origin. Keeping these two
+    conversions explicit avoids moving the signature into an adjacent box.
+    """
+    height = float(page.mediabox.height)
+    spots = []
+    for number, (left, top, right, bottom) in _SIGNATURE_RECTS.get(document_key, []):
+        if number == page_number:
+            spots.append((left, height - bottom, right, height - top))
     widget_name = _SIGNATURE_WIDGETS.get(document_key)
     if widget_name:
-        for page_no in range(doc.page_count):
-            for widget in doc[page_no].widgets() or []:
-                if widget.field_name == widget_name:
-                    spots.append((page_no, tuple(widget.rect)))
-    for page_no, rect in spots:
-        if page_no >= doc.page_count:
-            continue
-        target = fitz.Rect(rect) + (2, 2, -2, -2)
-        doc[page_no].insert_image(target, stream=signature_png, keep_proportion=True)
+        for reference in page.get("/Annots", []):
+            widget = reference.get_object()
+            field = widget.get("/Parent", widget).get_object()
+            if widget.get("/T", field.get("/T")) == widget_name:
+                spots.append(tuple(float(value) for value in widget["/Rect"]))
+    if not spots:
+        return
+    content = io.BytesIO()
+    drawing = canvas.Canvas(content, pagesize=(float(page.mediabox.width), height))
+    signature = ImageReader(io.BytesIO(signature_png))
+    for left, bottom, right, top in spots:
+        drawing.drawImage(signature, left + 2, bottom + 2,
+                          width=right - left - 4, height=top - bottom - 4,
+                          preserveAspectRatio=True, anchor="c", mask="auto")
+    drawing.save()
+    page.merge_page(PdfReader(content).pages[0])
 
 
-def _fill_with_pymupdf(
-    template_path: Path,
-    fields: dict[str, str],
-    disclaimer: str,
-    document_key: str = "",
-    signature_png: bytes | None = None,
-) -> Path:
-    """Fill AcroForm fields and flatten them so values are visible in all PDF viewers.
+def _fill_with_pypdf(template_path: Path, fields: dict[str, str], disclaimer: str,
+                     document_key: str = "", signature_png: bytes | None = None) -> Path:
+    """Fill every page and bake appearances into completed transport documents.
 
-    ``widget.update()`` (appearance streams) alone is not enough for Chrome/Edge/
-    some Preview viewers: those ignore AcroForm appearances. ``bake()`` puts the
-    values permanently into the page content.
+    A value in /V alone is invisible in some viewers. pypdf's flatten option
+    paints appearances but retains widgets, so both the widget annotations and
+    the canonical field tree must be removed after painting. Every existing
+    value is included, including unmodified template defaults.
     """
-    if fitz is None:
-        raise RuntimeError("PyMuPDF (pymupdf) is required for PDF form filling")
-
-    doc = fitz.open(template_path)
-    try:
-        for page in doc:
-            for widget in page.widgets() or []:
-                name = widget.field_name
-                if not name or name not in fields:
-                    continue
-                widget.field_value = fields[name]
-                widget.update()
-
-        if signature_png:
-            _stamp_signature(doc, document_key, signature_png)
-
-        # Flattening: visible in the Chrome PDF viewer and the like, not only in
-        # Acrobat/MuPDF.
-        doc.bake(annots=True, widgets=True)
-
-        doc.set_metadata(
-            {
-                "producer": "EMCargo",
-                "creator": "EMCargo",
-                "subject": disclaimer,
-            }
-        )
-
-        fd, temp_name = tempfile.mkstemp(suffix=".pdf")
-        os.close(fd)
-        out_path = Path(temp_name)
-        try:
-            out_path.chmod(0o600)
-        except OSError:
-            pass
-        doc.save(str(out_path), garbage=3, deflate=True)
-        return out_path
-    finally:
-        doc.close()
-
-
-def _fill_with_pypdf(template_path: Path, fields: dict[str, str], disclaimer: str) -> Path:
-    """Fallback without visible appearances (/V values only)."""
-    reader = PdfReader(str(template_path))
     writer = PdfWriter()
-    writer.append(reader)
-
-    for page in writer.pages:
-        writer.update_page_form_field_values(page, fields, auto_regenerate=False)
-
-    try:
-        writer.add_metadata(
-            {
-                "/Producer": "EMCargo",
-                "/Creator": "EMCargo",
-                "/Subject": disclaimer,
-            }
-        )
-    except Exception:
-        pass
-
-    try:
-        writer.set_need_appearances_writer(True)
-    except Exception:
-        root = writer._root_object
-        if "/AcroForm" in root:
-            root["/AcroForm"][NameObject("/NeedAppearances")] = BooleanObject(True)
-
+    writer.clone_document_from_reader(PdfReader(template_path))
+    existing = writer.get_fields() or {}
+    values = {name: field.get("/V", "") for name, field in existing.items()
+              if field.get("/FT") in {"/Tx", "/Ch"}}
+    values.update(fields)
+    if signature_png:
+        for number, page in enumerate(writer.pages):
+            _signature_overlay(page, number, document_key, signature_png)
+    writer.update_page_form_field_values(None, values, auto_regenerate=False, flatten=True)
+    writer.remove_annotations(subtypes="/Widget")
+    writer.root_object.pop(NameObject("/AcroForm"), None)
+    writer.add_metadata({"/Producer": "EMCargo", "/Creator": "EMCargo", "/Subject": disclaimer})
     fd, temp_name = tempfile.mkstemp(suffix=".pdf")
-    os.close(fd)
-    out_path = Path(temp_name)
     try:
-        out_path.chmod(0o600)
-    except OSError:
-        pass
-    with open(out_path, "wb") as fh:
-        writer.write(fh)
-    return out_path
+        with os.fdopen(fd, "wb") as handle:
+            writer.write(handle)
+    except BaseException:
+        Path(temp_name).unlink(missing_ok=True)
+        raise
+    return Path(temp_name)
 
 
 def fill_pdf_document(
@@ -590,15 +531,13 @@ def fill_pdf_document(
     if document_key not in PDF_FILLERS:
         raise ValueError(f"No PDF template for {document_key}")
     template_name = PDF_FILLERS[document_key]
-    template_path = templates_forms_dir() / template_name
-    if not template_path.exists():
-        raise FileNotFoundError(f"PDF template not found: {template_path}")
+    template_path = resolve_template(Path(template_name).stem)
+    if template_path is None:
+        raise FileNotFoundError(f"Validated PDF template not found: {template_name}")
 
     fields = build_fields(document_key, values, lines, dangerous_goods, lang)
 
     from app.services.documents.notices import output_notice
     disclaimer = output_notice(lang)
 
-    if fitz is not None:
-        return _fill_with_pymupdf(template_path, fields, disclaimer, document_key, signature_png)
-    return _fill_with_pypdf(template_path, fields, disclaimer)
+    return _fill_with_pypdf(template_path, fields, disclaimer, document_key, signature_png)
