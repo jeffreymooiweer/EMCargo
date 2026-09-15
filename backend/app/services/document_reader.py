@@ -108,6 +108,7 @@ def _render(page, scale: float, *, preview: bool = False) -> bytes:
 def read(path: str, extension: str, language: str) -> dict:
     import pypdfium2 as pdfium
     from pypdf import PdfReader
+    from pypdf.errors import DependencyError
     from PIL import Image, ImageOps
 
     Image.MAX_IMAGE_PIXELS = MAX_SOURCE_PIXELS
@@ -145,7 +146,13 @@ def read(path: str, extension: str, language: str) -> dict:
                 finally:
                     image.close()
         else:
-            reader = PdfReader(io.BytesIO(data))
+            try:
+                reader = PdfReader(io.BytesIO(data))
+            except DependencyError as exc:
+                # Reader construction tries an empty password. AES can need
+                # an optional crypto provider before is_encrypted is readable.
+                # Intake rejects encrypted sources and never needs decryption.
+                raise ReadError("encrypted") from exc
             if reader.is_encrypted:
                 raise ReadError("encrypted")
             if not 0 < len(reader.pages) <= MAX_PAGES:
