@@ -3552,7 +3552,7 @@
       "paths": [
         "frontend/package.json"
       ],
-      "version": "audited at remediation",
+      "version": "EMCargo 2.12.2; dependency declarations unchanged",
       "source_url": null,
       "copyright_holder": "Original rights holders; see source notices",
       "license_expression": "LicenseRef-EMCargo",
@@ -3560,7 +3560,7 @@
       "redistribution_basis": "Project-authored build/dependency declaration; dependencies keep their own licenses.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package.json": "bd04557663879c9ade50a8eaf252918ef81d8f3f01b6ff4db7f26088ce065684"
+        "frontend/package.json": "8e76c3c6bbdb201157bad162bc828f34937575190346e56047eb9972ac7ce03d"
       },
       "distribution_channels": [
         "source"
@@ -3574,7 +3574,7 @@
       "paths": [
         "frontend/package-lock.json"
       ],
-      "version": "as audited at a12fc193",
+      "version": "EMCargo 2.12.2; dependency declarations unchanged",
       "source_url": null,
       "copyright_holder": "Jeffrey Mooiweer",
       "license_expression": "LicenseRef-EMCargo",
@@ -3582,7 +3582,7 @@
       "redistribution_basis": "The declaration is project-authored; the resolved packages retain their own licenses and require a generated SBOM.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package-lock.json": "850b3ff9de05d4d6347705d5c35e80874763ec8c1fc71859a8b2de02ad7c70f0"
+        "frontend/package-lock.json": "6a7661d4419ddb3f8d8aca2e04cbfa2e04e3ba0333aa81f9a7df8a0f90b0c20a"
       },
       "distribution_channels": [
         "image",

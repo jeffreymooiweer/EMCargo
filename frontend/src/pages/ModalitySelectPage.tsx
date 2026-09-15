@@ -9,10 +9,11 @@ import { usePreferences } from "../settings/preferences";
 export const MODALITIES = ["road", "rail", "sea", "inland", "air", "multimodal"] as const;
 export type ModalityKey = (typeof MODALITIES)[number];
 
-/** Only released modes may be selected, restored from a preference or opened
- * by URL. Sea is in development again at the product owner's request.
- * Existing sea calculations and saved records remain intact. */
-export const AVAILABLE_MODALITIES: readonly ModalityKey[] = ["road", "rail", "inland"];
+/** Released modes share one allowlist for tiles, preferences and wizard URLs.
+ * Sea was verified and released in v1.152.0. Restore access after the v2.4.0
+ * selection lock; document validation and specialist release still apply.
+ * Air and multimodal retain the coverage gaps documented in docs/dg-coverage.md. */
+export const AVAILABLE_MODALITIES: readonly ModalityKey[] = ["road", "rail", "sea", "inland"];
 
 export function isModalityKey(value: string | undefined): value is ModalityKey {
   return !!value && (MODALITIES as readonly string[]).includes(value);

@@ -33,8 +33,8 @@ New installations use the dark theme. Existing explicit theme choices are preser
 
 ## 1. Pick a transport mode
 
-Click **New shipment** and choose how the goods travel. **Road, rail and inland
-waterway are selectable**. Sea, air and multimodal appear alongside them with a
+Click **New shipment** and choose how the goods travel. **Road, rail, sea and inland
+waterway are selectable**. Air and multimodal appear alongside them with a
 short **In development** label and cannot be selected.
 The [roadmap](../ROADMAP.md) tracks when each one unlocks.
 

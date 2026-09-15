@@ -75,9 +75,10 @@ stops at the gate.
 
 EMCargo does that part for you. You enter your shipment once. It recognises what you
 are shipping, calculates the weights and volumes, and fills in the paperwork for the
-transport mode you picked. **Road, rail and inland waterway can be selected today**. Sea, air and multimodal
-are shown as in development. Sea’s existing calculations and saved records remain
-available internally; its wizard selection is disabled in this release.
+transport mode you picked. **Road, rail, sea and inland waterway can be selected
+today**. Air and multimodal are shown as in development. Sea offers B/L shipping
+instructions, VGM, the IMO dangerous goods declaration and container packing
+documents, with the existing validation and specialist release workflow.
 
 It runs on your own machine or server and always requires an account.
 An administrator can enable saved shipments and private
