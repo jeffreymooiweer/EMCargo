@@ -191,6 +191,7 @@ jobs:
           from the English volume II and the printed Dutch edition. A cell
           the two readings do not agree on carries both values and settles
           nothing."
+          python scripts/check_third_party_manifest.py --publish source
           git push origin HEAD:${GITHUB_REF_NAME}
 
       - name: What was read

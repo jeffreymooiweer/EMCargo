@@ -46,7 +46,7 @@ from reportlab.pdfgen import canvas
 
 from app.core.languages import pick
 from app.services.dg.autofill import adr_category_totals, description_line
-from app.services.documents.pdf_forms import templates_forms_dir
+from app.services.document_templates import resolve as resolve_template
 
 TEMPLATE = "avc.pdf"
 PAGE_W, PAGE_H = 595.0, 640.0
@@ -102,7 +102,7 @@ NOTE_WIDTH = 254.0          # width for the ADR closing line below the table
 
 def has_avc_template() -> bool:
     """Whether the official AVC form is available to be filled in."""
-    return (templates_forms_dir() / TEMPLATE).exists()
+    return resolve_template("avc") is not None
 
 
 def _y(top: float) -> float:
@@ -268,9 +268,9 @@ def fill_avc_waybill(
     signature_png: bytes | None = None,
 ) -> Path:
     """Fill in the official AVC form and produce a PDF."""
-    template_path = templates_forms_dir() / TEMPLATE
-    if not template_path.exists():
-        raise FileNotFoundError(f"PDF template not found: {template_path}")
+    template_path = resolve_template("avc")
+    if template_path is None:
+        raise FileNotFoundError("Validated AVC template not found")
 
     fd, overlay_name = tempfile.mkstemp(suffix=".pdf")
     os.close(fd)

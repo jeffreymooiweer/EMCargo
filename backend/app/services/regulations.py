@@ -37,12 +37,9 @@ from pathlib import Path
 _SEED_DIR = Path(__file__).resolve().parents[2] / "seed" / "dg"
 MANIFEST = _SEED_DIR / "sources.json"
 
-#: The prescribed models cut from the pinned editions in CI
-#: (scripts/cut_model_documents.py) and bundled with the application, so a
-#: fresh installation can hand over the instructions in writing without
-#: first collecting the books they are cut from. A book or cut the
-#: operator placed in the store still wins: the bundled copy is looked at
-#: after the store, never instead of it.
+#: Compatibility location for an existing installation's original model PDFs.
+#: Fresh releases do not bundle these files. Imports and the source volume
+#: store supply locally authorised copies, validated against pinned metadata.
 BUNDLED_MODELS = _SEED_DIR.parent / "models"
 
 #: The languages the application speaks. A model is offered per language, and
@@ -80,6 +77,9 @@ def locate(doc_id: str) -> Path | None:
     doc = documents().get(doc_id)
     if doc is None:
         return None
+    if doc.get("model_of"):
+        from app.services.document_templates import resolve
+        return resolve(doc_id)
     bases = [store_dir(), BUNDLED_MODELS,
              Path(manifest().get("store", {})
                   .get("fallback_path", "/tmp/emcargo-regulations"))]
@@ -131,7 +131,13 @@ def instruction_status(regime: str, language: str,
         return {**state, "available": True,
                 "source": "bundled" if bundled else "stored"}
     cut = doc.get("cut_from")
-    if cut and locate(cut["document"]) is not None:
+    if cut and (source := locate(cut["document"])) is not None:
+        from app.services.pdf_pages import verified_model_writer
+        try:
+            verified_model_writer(source, cut, documents()[cut["document"]].get("sha256"))
+        except (OSError, ValueError):
+            return {**state, "available": False, "reason": "source_mismatch",
+                    "needs": cut["document"]}
         return {**state, "available": True, "source": "cut",
                 "from_document": cut["document"]}
     return {**state, "available": False, "reason": "missing_in_store",
@@ -140,11 +146,11 @@ def instruction_status(regime: str, language: str,
 
 def instructions_pdf(regime: str, language: str,
                      provision: str = "5.4.3") -> Path | None:
-    """The four-page model as a file, cut from the edition if need be.
+    """The complete registered model as a file, cut from the edition if need be.
 
-    The cut is kept beside the store when the store is writable, so the second
-    driver of the day does not pay for it again; when it is not, the pages go
-    to a temporary file. Either way the caller gets a path to a PDF that holds
+    The source identity and complete page sequence are verified for every
+    derivation. A writable store keeps the result; otherwise it uses a temporary
+    file. Either way the caller gets a path to a PDF that holds
     the model and nothing the model does not have.
     """
     status = instruction_status(regime, language, provision)
@@ -168,31 +174,32 @@ def instructions_pdf(regime: str, language: str,
     edition = (documents()[cut["document"]].get("sha256") or "unpinned")[:12]
     stem = Path(doc["filename"]).stem
     target = store_dir() / "derived" / f"{stem}-{edition}-{first}-{last}.pdf"
-    if target.is_file() and target.stat().st_size > 0:
-        return target
-    # PyMuPDF, because that is what measured the range. The two PDF libraries
-    # this project has do not always agree on how many pages a file has: on the
-    # ADN volumes pypdf counts one page more than PyMuPDF does from the front,
-    # and a range measured with one and cut with the other put 5.4.3.5 on the
-    # driver's first sheet and left the equipment list off the last. Measuring
-    # and cutting with one library removes the question.
-    import fitz
+    from app.services.pdf_pages import verified_model_writer
 
-    with fitz.open(str(source)) as document:
-        pages = fitz.open()
-        pages.insert_pdf(document, from_page=first - 1,
-                         to_page=min(last, document.page_count) - 1)
-        try:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            pages.save(str(target))
-            pages.close()
-            return target
-        except OSError:
-            # A read-only store is a deployment choice, not an error: the pages
-            # still get cut, they are just not kept.
-            handle = tempfile.NamedTemporaryFile(
-                suffix=".pdf", prefix="instructions-", delete=False)
-            handle.close()
-            pages.save(handle.name)
-            pages.close()
+    pages = verified_model_writer(source, cut, documents()[cut["document"]].get("sha256"))
+    target = target.with_name(target.stem + "-pypdf.pdf")
+    temporary = None
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=target.parent, suffix=".pdf", delete=False) as handle:
+            temporary = Path(handle.name)
+            try:
+                pages.write(handle)
+                handle.flush()
+                os.fsync(handle.fileno())
+            except BaseException:
+                temporary.unlink(missing_ok=True)
+                raise
+        temporary.replace(target)
+        return target
+    except OSError:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+        # A read-only document store still permits a verified temporary export.
+        with tempfile.NamedTemporaryFile(suffix=".pdf", prefix="instructions-", delete=False) as handle:
+            try:
+                pages.write(handle)
+            except BaseException:
+                Path(handle.name).unlink(missing_ok=True)
+                raise
             return Path(handle.name)

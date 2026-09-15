@@ -28,7 +28,7 @@ def test_every_rule_set_names_its_edition_and_where_it_came_from():
         assert entry["edition"], entry["key"]
         assert entry["source"], entry["key"]
         assert entry["valid_from"], entry["key"]
-        assert entry["covers"], entry["key"]
+        assert entry["covers"] or entry.get("retired"), entry["key"]
 
 
 def test_every_file_a_rule_set_claims_actually_exists():

@@ -163,6 +163,10 @@ jobs:
       # cannot read; an artifact is repository-internal storage it can, for a
       # day. Nothing is published: an artifact is visible to the repository's
       # collaborators only, like the cache it comes from.
+      - name: Require rights before copying publications outside the store
+        if: ${{ inputs.artifact_path != '' }}
+        run: python scripts/check_third_party_manifest.py --publish regulations
+
       - name: Hand a part of the store back
         if: ${{ inputs.artifact_path != '' }}
         env:

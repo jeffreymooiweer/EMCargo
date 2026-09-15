@@ -48,24 +48,15 @@ def test_een_paginabereik_is_gemeten_en_niet_geraden():
         assert cut["document"] in {d["id"] for d in register()["documents"]}
 
 
-def test_alle_twaalf_instructies_zijn_meegeleverd():
-    """Since v1.130.0 the models are cut in CI from the pinned editions and
-    bundled (backend/seed/models), so a fresh installation with an empty
-    store can still hand the crew the paper — in all four languages, for
-    all three regimes. The manifest beside them records what each file was
-    cut from."""
-    for regime in regulations.REGIMES:
-        for language in regulations.LANGUAGES:
-            status = regulations.instruction_status(regime, language)
-            assert status["available"] is True, (regime, language)
-            assert status["source"] in ("bundled", "stored")
-    manifest = json.loads(
-        (regulations.BUNDLED_MODELS / "manifest.json").read_text(encoding="utf-8"))
-    by_id = {entry["id"]: entry for entry in manifest["models"]}
+def test_every_model_has_a_registered_compatible_import():
+    """Removal of the original PDFs must leave all twelve imports addressable."""
+    from app.services.document_templates import profiles
+    registered = profiles()
     for doc in regulations.instruction_documents():
-        entry = by_id[doc["id"]]
-        assert entry["source_document"] == doc["cut_from"]["document"]
-        assert entry["source_pages"] == doc["cut_from"]["pages"]
+        profile = registered[doc["id"]]
+        assert profile["pages"] >= 4
+        assert profile["filename"] == doc["filename"]
+        assert len(doc["cut_from"]["page_fingerprints"]) == profile["pages"]
 
 
 def test_wat_nergens_is_wordt_niet_verzonnen(tmp_path, monkeypatch):
@@ -84,9 +75,8 @@ def test_wat_nergens_is_wordt_niet_verzonnen(tmp_path, monkeypatch):
     assert regulations.instructions_pdf("adr", "nl") is None
 
 
-def test_de_opslag_van_de_beheerder_wint_van_de_meegeleverde_snede(tmp_path, monkeypatch):
-    """An operator who places a file under the registered name in the store
-    is served that file: the bundled copy is a floor, not an override."""
+def test_a_filename_alone_cannot_override_a_verified_model(tmp_path, monkeypatch):
+    """A local filename without compatible bytes is not a verified model."""
     doc = next(d for d in regulations.instruction_documents()
                if d["model_of"]["regime"] == "adr"
                and d["model_of"]["language"] == "nl")
@@ -94,8 +84,7 @@ def test_de_opslag_van_de_beheerder_wint_van_de_meegeleverde_snede(tmp_path, mon
     own.write_bytes(b"%PDF-operator")
     monkeypatch.setenv("EMCARGO_REGULATIONS_DIR", str(tmp_path))
     regulations.manifest.cache_clear()
-    assert regulations.locate(doc["id"]) == own
-    assert regulations.instruction_status("adr", "nl")["source"] == "stored"
+    assert regulations.locate(doc["id"]) != own
 
 
 @pytest.mark.parametrize("regime,language", [("adr", "nl"), ("adn", "en")])
@@ -150,8 +139,10 @@ def test_elke_taal_is_nu_te_downloaden():
     for regime in regulations.REGIMES:
         for language in regulations.LANGUAGES:
             response = client.get(f"/api/documents/instructions/{regime}/{language}")
-            assert response.status_code == 200, (regime, language)
-            assert response.content[:5] == b"%PDF-", (regime, language)
+            available = regulations.instruction_status(regime, language)["available"]
+            assert response.status_code == (200 if available else 409), (regime, language)
+            if available:
+                assert response.content[:5] == b"%PDF-", (regime, language)
 
 
 def test_een_ontbrekend_model_weigert_met_de_reden(tmp_path, monkeypatch):

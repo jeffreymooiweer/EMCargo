@@ -1,0 +1,1107 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "EMCargo Python runtime environment"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "alembic",
+      "version": "1.14.0",
+      "purl": "pkg:pypi/alembic@1.14.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"alembic-1.14.0/ce19e7ba2b77-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"SQLAlchemy >=1.3.0\", \"Mako\", \"typing-extensions >=4\", \"importlib-metadata ; python_version < \\\"3.9\\\"\", \"importlib-resources ; python_version < \\\"3.9\\\"\", \"backports.zoneinfo ; (python_version < \\\"3.9\\\") and extra == 'tz'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "annotated-doc",
+      "version": "0.0.5",
+      "purl": "pkg:pypi/annotated-doc@0.0.5",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"annotated-doc-0.0.5/fff170779a6a-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "annotated-types",
+      "version": "0.8.0",
+      "purl": "pkg:pypi/annotated-types@0.8.0",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"annotated-types-0.8.0/fe1049884b1a-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "anyio",
+      "version": "4.15.1",
+      "purl": "pkg:pypi/anyio@4.15.1",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"anyio-4.15.1/5361ac9dc58f-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"exceptiongroup>=1.0.2; python_version < \\\"3.11\\\"\", \"idna>=2.8\", \"typing_extensions>=4.16.0; python_version < \\\"3.15\\\"\", \"trio>=0.32.0; extra == \\\"trio\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "argon2-cffi",
+      "version": "23.1.0",
+      "purl": "pkg:pypi/argon2-cffi@23.1.0",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"argon2-cffi-23.1.0/b6944d386e87-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"argon2-cffi-bindings\", \"typing-extensions; python_version < '3.8'\", \"argon2-cffi[tests,typing]; extra == 'dev'\", \"tox>4; extra == 'dev'\", \"furo; extra == 'docs'\", \"myst-parser; extra == 'docs'\", \"sphinx; extra == 'docs'\", \"sphinx-copybutton; extra == 'docs'\", \"sphinx-notfound-page; extra == 'docs'\", \"hypothesis; extra == 'tests'\", \"pytest; extra == 'tests'\", \"mypy; extra == 'typing'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "argon2-cffi-bindings",
+      "version": "26.1.0",
+      "purl": "pkg:pypi/argon2-cffi-bindings@26.1.0",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"argon2-cffi-bindings-26.1.0/88707653d541-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"cffi>=1.0.1; python_version < \\\"3.14\\\"\", \"cffi>=2; python_version >= \\\"3.14\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "certifi",
+      "version": "2026.7.22",
+      "purl": "pkg:pypi/certifi@2026.7.22",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"certifi-2026.7.22/e93716da6b9c-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cffi",
+      "version": "2.1.1",
+      "purl": "pkg:pypi/cffi@2.1.1",
+      "licenses": [
+        {
+          "expression": "MIT-0"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"cffi-2.1.1/5ba24ddc5706-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"pycparser; implementation_name != \\\"PyPy\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "chardet",
+      "version": "7.6.0",
+      "purl": "pkg:pypi/chardet@7.6.0",
+      "licenses": [
+        {
+          "expression": "0BSD"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"chardet-7.6.0/0d4cf67e7a26-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "click",
+      "version": "8.5.0",
+      "purl": "pkg:pypi/click@8.5.0",
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"click-8.5.0/9a8ad106a394-LICENSE.txt\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "Deprecated",
+      "version": "1.3.1",
+      "purl": "pkg:pypi/deprecated@1.3.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"Deprecated-1.3.1/1e83edd15be4-LICENSE.rst\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"wrapt<3,>=1.10\", \"inspect2; python_version < \\\"3\\\"\", \"tox; extra == \\\"dev\\\"\", \"PyTest; extra == \\\"dev\\\"\", \"PyTest-Cov; extra == \\\"dev\\\"\", \"bump2version<1; extra == \\\"dev\\\"\", \"setuptools; python_version >= \\\"3.12\\\" and extra == \\\"dev\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "dnspython",
+      "version": "2.8.0",
+      "purl": "pkg:pypi/dnspython@2.8.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "ISC"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"dnspython-2.8.0/c3ea3ff5654b-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"black>=25.1.0; extra == 'dev'\", \"coverage>=7.0; extra == 'dev'\", \"flake8>=7; extra == 'dev'\", \"hypercorn>=0.17.0; extra == 'dev'\", \"mypy>=1.17; extra == 'dev'\", \"pylint>=3; extra == 'dev'\", \"pytest-cov>=6.2.0; extra == 'dev'\", \"pytest>=8.4; extra == 'dev'\", \"quart-trio>=0.12.0; extra == 'dev'\", \"sphinx-rtd-theme>=3.0.0; extra == 'dev'\", \"sphinx>=8.2.0; extra == 'dev'\", \"twine>=6.1.0; extra == 'dev'\", \"wheel>=0.45.0; extra == 'dev'\", \"cryptography>=45; extra == 'dnssec'\", \"h2>=4.2.0; extra == 'doh'\", \"httpcore>=1.0.0; extra == 'doh'\", \"httpx>=0.28.0; extra == 'doh'\", \"aioquic>=1.2.0; extra == 'doq'\", \"idna>=3.10; extra == 'idna'\", \"trio>=0.30; extra == 'trio'\", \"wmi>=1.5.1; (platform_system == 'Windows') and extra == 'wmi'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "email_validator",
+      "version": "2.2.0",
+      "purl": "pkg:pypi/email_validator@2.2.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "Unlicense"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"email_validator-2.2.0/672179752e10-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"dnspython >=2.0.0\", \"idna >=2.0.0\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "et_xmlfile",
+      "version": "2.0.0",
+      "purl": "pkg:pypi/et_xmlfile@2.0.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"et_xmlfile-2.0.0/4ccdaaebc0f4-LICENCE.python\", \"et_xmlfile-2.0.0/0c84bb42f5d3-LICENCE.rst\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fastapi",
+      "version": "0.141.1",
+      "purl": "pkg:pypi/fastapi@0.141.1",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"fastapi-0.141.1/4ec89ffc8148-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"starlette>=0.46.0\", \"pydantic>=2.9.0\", \"typing-extensions>=4.8.0\", \"typing-inspection>=0.4.2\", \"annotated-doc>=0.0.2\", \"fastapi-cli[standard]>=0.0.32; extra == \\\"standard\\\"\", \"fastar>=0.9.0; extra == \\\"standard\\\"\", \"httpx<1.0.0,>=0.23.0; extra == \\\"standard\\\"\", \"jinja2>=3.1.5; extra == \\\"standard\\\"\", \"python-multipart>=0.0.18; extra == \\\"standard\\\"\", \"email-validator>=2.0.0; extra == \\\"standard\\\"\", \"uvicorn[standard]>=0.12.0; extra == \\\"standard\\\"\", \"pydantic-settings>=2.0.0; extra == \\\"standard\\\"\", \"pydantic-extra-types>=2.0.0; extra == \\\"standard\\\"\", \"fastapi-cli[standard-no-fastapi-cloud-cli]>=0.0.32; extra == \\\"standard-no-fastapi-cloud-cli\\\"\", \"httpx<1.0.0,>=0.23.0; extra == \\\"standard-no-fastapi-cloud-cli\\\"\", \"jinja2>=3.1.5; extra == \\\"standard-no-fastapi-cloud-cli\\\"\", \"python-multipart>=0.0.18; extra == \\\"standard-no-fastapi-cloud-cli\\\"\", \"email-validator>=2.0.0; extra == \\\"standard-no-fastapi-cloud-cli\\\"\", \"uvicorn[standard]>=0.12.0; extra == \\\"standard-no-fastapi-cloud-cli\\\"\", \"pydantic-settings>=2.0.0; extra == \\\"standard-no-fastapi-cloud-cli\\\"\", \"pydantic-extra-types>=2.0.0; extra == \\\"standard-no-fastapi-cloud-cli\\\"\", \"fastapi-cli[standard]>=0.0.32; extra == \\\"all\\\"\", \"httpx<1.0.0,>=0.23.0; extra == \\\"all\\\"\", \"jinja2>=3.1.5; extra == \\\"all\\\"\", \"python-multipart>=0.0.18; extra == \\\"all\\\"\", \"itsdangerous>=1.1.0; extra == \\\"all\\\"\", \"pyyaml>=5.3.1; extra == \\\"all\\\"\", \"email-validator>=2.0.0; extra == \\\"all\\\"\", \"uvicorn[standard]>=0.12.0; extra == \\\"all\\\"\", \"pydantic-settings>=2.0.0; extra == \\\"all\\\"\", \"pydantic-extra-types>=2.0.0; extra == \\\"all\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "greenlet",
+      "version": "3.5.6",
+      "purl": "pkg:pypi/greenlet@3.5.6",
+      "licenses": [
+        {
+          "expression": "MIT AND PSF-2.0"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"greenlet-3.5.6/769831d6e5df-LICENSE\", \"greenlet-3.5.6/e5ff3c23c110-LICENSE.PSF\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"Sphinx; extra == \\\"docs\\\"\", \"furo; extra == \\\"docs\\\"\", \"objgraph; extra == \\\"test\\\"\", \"psutil; extra == \\\"test\\\"\", \"setuptools; extra == \\\"test\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "h11",
+      "version": "0.16.0",
+      "purl": "pkg:pypi/h11@0.16.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"h11-0.16.0/37db5bb85926-LICENSE.txt\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "httpcore",
+      "version": "1.0.9",
+      "purl": "pkg:pypi/httpcore@1.0.9",
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"httpcore-1.0.9/fdcb59154c74-LICENSE.md\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"certifi\", \"h11>=0.16\", \"anyio<5.0,>=4.0; extra == 'asyncio'\", \"h2<5,>=3; extra == 'http2'\", \"socksio==1.*; extra == 'socks'\", \"trio<1.0,>=0.22.0; extra == 'trio'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "httptools",
+      "version": "0.8.0",
+      "purl": "pkg:pypi/httptools@0.8.0",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"httptools-0.8.0/f4573e7cb767-LICENSE\", \"httptools-0.8.0/79e6ba8b687c-LICENSE-MIT\", \"httptools-0.8.0/628168d68bb5-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "httpx",
+      "version": "0.28.1",
+      "purl": "pkg:pypi/httpx@0.28.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"httpx-0.28.1/4ec59d544f12-LICENSE.md\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"anyio\", \"certifi\", \"httpcore==1.*\", \"idna\", \"brotli; (platform_python_implementation == 'CPython') and extra == 'brotli'\", \"brotlicffi; (platform_python_implementation != 'CPython') and extra == 'brotli'\", \"click==8.*; extra == 'cli'\", \"pygments==2.*; extra == 'cli'\", \"rich<14,>=10; extra == 'cli'\", \"h2<5,>=3; extra == 'http2'\", \"socksio==1.*; extra == 'socks'\", \"zstandard>=0.18.0; extra == 'zstd'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "idna",
+      "version": "3.19",
+      "purl": "pkg:pypi/idna@3.19",
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"idna-3.19/1a9a4f0e3d47-LICENSE.md\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"ruff >= 0.16.0 ; extra == \\\"all\\\"\", \"mypy >= 1.11.2 ; extra == \\\"all\\\"\", \"ty >= 0.0.37 ; extra == \\\"all\\\"\", \"pytest >= 8.3.2 ; extra == \\\"all\\\"\", \"hypothesis >= 6.141.1 ; extra == \\\"all\\\"\", \"coverage >= 7.10.0 ; extra == \\\"all\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "limits",
+      "version": "5.8.0",
+      "purl": "pkg:pypi/limits@5.8.0",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"limits-5.8.0/4fa8bb92aec5-LICENSE.txt\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"deprecated>=1.2\", \"packaging>=21\", \"typing-extensions\", \"memcachio>=0.3; extra == 'async-memcached'\", \"motor<4,>=3; extra == 'async-mongodb'\", \"coredis<6,>=3.4.0; extra == 'async-redis'\", \"valkey>=6; extra == 'async-valkey'\", \"pymemcache<5.0.0,>3; extra == 'memcached'\", \"pymongo<5,>4.1; extra == 'mongodb'\", \"redis!=4.5.2,!=4.5.3,<8.0.0,>3; extra == 'redis'\", \"redis!=4.5.2,!=4.5.3,>=4.2.0; extra == 'rediscluster'\", \"valkey>=6; extra == 'valkey'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "Mako",
+      "version": "1.4.1",
+      "purl": "pkg:pypi/mako@1.4.1",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"Mako-1.4.1/8c1d171bc5d3-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"MarkupSafe>=2.0\", \"pytest; extra == \\\"testing\\\"\", \"Babel; extra == \\\"babel\\\"\", \"lingua>=4.16; extra == \\\"lingua\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "MarkupSafe",
+      "version": "3.0.3",
+      "purl": "pkg:pypi/markupsafe@3.0.3",
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"MarkupSafe-3.0.3/489a8e110850-LICENSE.txt\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "openpyxl",
+      "version": "3.1.5",
+      "purl": "pkg:pypi/openpyxl@3.1.5",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"openpyxl-3.1.5/0c84bb42f5d3-LICENCE.rst\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"et-xmlfile\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "packaging",
+      "version": "26.3",
+      "purl": "pkg:pypi/packaging@26.3",
+      "licenses": [
+        {
+          "expression": "Apache-2.0 OR BSD-2-Clause"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"packaging-26.3/cad1ef5bd340-LICENSE\", \"packaging-26.3/0d542e0c8804-LICENSE.APACHE\", \"packaging-26.3/b70e7e9b742f-LICENSE.BSD\", \"packaging-26.3/590d12eee73d-__init__.py\", \"packaging-26.3/596ec35e2ca0-_spdx.py\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "passlib",
+      "version": "1.7.4",
+      "purl": "pkg:pypi/passlib@1.7.4",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"passlib-1.7.4/a95ba8f1af88-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"argon2-cffi (>=18.2.0) ; extra == 'argon2'\", \"bcrypt (>=3.1.0) ; extra == 'bcrypt'\", \"sphinx (>=1.6) ; extra == 'build_docs'\", \"sphinxcontrib-fulltoc (>=1.2.0) ; extra == 'build_docs'\", \"cloud-sptheme (>=1.10.1) ; extra == 'build_docs'\", \"cryptography ; extra == 'totp'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pillow",
+      "version": "12.3.0",
+      "purl": "pkg:pypi/pillow@12.3.0",
+      "licenses": [
+        {
+          "expression": "MIT-CMU"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"pillow-12.3.0/dda12a98c197-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"furo; extra == \\\"docs\\\"\", \"olefile; extra == \\\"docs\\\"\", \"sphinx>=8.2; extra == \\\"docs\\\"\", \"sphinx-autobuild; extra == \\\"docs\\\"\", \"sphinx-copybutton; extra == \\\"docs\\\"\", \"sphinx-inline-tabs; extra == \\\"docs\\\"\", \"sphinxext-opengraph; extra == \\\"docs\\\"\", \"olefile; extra == \\\"fpx\\\"\", \"olefile; extra == \\\"mic\\\"\", \"arro3-compute; extra == \\\"test-arrow\\\"\", \"arro3-core; extra == \\\"test-arrow\\\"\", \"nanoarrow; extra == \\\"test-arrow\\\"\", \"pyarrow; extra == \\\"test-arrow\\\"\", \"coverage>=7.4.2; extra == \\\"tests\\\"\", \"defusedxml; extra == \\\"tests\\\"\", \"markdown2; extra == \\\"tests\\\"\", \"olefile; extra == \\\"tests\\\"\", \"packaging; extra == \\\"tests\\\"\", \"pytest; extra == \\\"tests\\\"\", \"pytest-cov; extra == \\\"tests\\\"\", \"pytest-timeout; extra == \\\"tests\\\"\", \"pytest-xdist; extra == \\\"tests\\\"\", \"setuptools; extra == \\\"tests\\\"\", \"trove-classifiers>=2024.10.12; extra == \\\"tests\\\"\", \"defusedxml; extra == \\\"xmp\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pycparser",
+      "version": "3.0",
+      "purl": "pkg:pypi/pycparser@3.0",
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"pycparser-3.0/0c846399369e-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pydantic",
+      "version": "2.10.3",
+      "purl": "pkg:pypi/pydantic@2.10.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"pydantic-2.10.3/a9e186f3ca16-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"annotated-types>=0.6.0\", \"pydantic-core==2.27.1\", \"typing-extensions>=4.12.2\", \"email-validator>=2.0.0; extra == 'email'\", \"tzdata; (python_version >= '3.9' and platform_system == 'Windows') and extra == 'timezone'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pydantic-settings",
+      "version": "2.6.1",
+      "purl": "pkg:pypi/pydantic-settings@2.6.1",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"pydantic-settings-2.6.1/eb355a753e02-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"pydantic>=2.7.0\", \"python-dotenv>=0.21.0\", \"azure-identity>=1.16.0; extra == 'azure-key-vault'\", \"azure-keyvault-secrets>=4.8.0; extra == 'azure-key-vault'\", \"tomli>=2.0.1; extra == 'toml'\", \"pyyaml>=6.0.1; extra == 'yaml'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pydantic_core",
+      "version": "2.27.1",
+      "purl": "pkg:pypi/pydantic_core@2.27.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"pydantic_core-2.27.1/2afdd30d54b4-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"typing-extensions >=4.6.0, !=4.7.0\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "PyJWT",
+      "version": "2.13.0",
+      "purl": "pkg:pypi/pyjwt@2.13.0",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"PyJWT-2.13.0/925ce4346102-AUTHORS.rst\", \"PyJWT-2.13.0/797a7a20231d-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"typing_extensions>=4.0; python_version < \\\"3.11\\\"\", \"cryptography>=3.4.0; extra == \\\"crypto\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pypdf",
+      "version": "6.17.0",
+      "purl": "pkg:pypi/pypdf@6.17.0",
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"pypdf-6.17.0/a97ac230e5f3-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"typing_extensions >= 4.0; python_version < '3.11'\", \"cryptography>3.0 ; extra == \\\"crypto\\\"\", \"PyCryptodome ; extra == \\\"cryptodome\\\"\", \"flit ; extra == \\\"dev\\\"\", \"pip-tools ; extra == \\\"dev\\\"\", \"pre-commit ; extra == \\\"dev\\\"\", \"pytest-cov ; extra == \\\"dev\\\"\", \"pytest-socket ; extra == \\\"dev\\\"\", \"pytest-timeout ; extra == \\\"dev\\\"\", \"pytest-xdist ; extra == \\\"dev\\\"\", \"wheel ; extra == \\\"dev\\\"\", \"myst_parser ; extra == \\\"docs\\\"\", \"sphinx ; extra == \\\"docs\\\"\", \"sphinx_rtd_theme ; extra == \\\"docs\\\"\", \"fonttools ; extra == \\\"fonts\\\"\", \"arabic-reshaper ; extra == \\\"full\\\"\", \"cryptography>3.0 ; extra == \\\"full\\\"\", \"fonttools ; extra == \\\"full\\\"\", \"Pillow>=8.0.0 ; extra == \\\"full\\\"\", \"python-bidi ; extra == \\\"full\\\"\", \"Pillow>=8.0.0 ; extra == \\\"image\\\"\", \"arabic-reshaper ; extra == \\\"rtl-text\\\"\", \"python-bidi ; extra == \\\"rtl-text\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pypdfium2",
+      "version": "5.13.0",
+      "purl": "pkg:pypi/pypdfium2@5.13.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause, Apache-2.0, dependency licenses"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"pypdfium2-5.13.0/cfc7749b96f6-Apache-2.0.txt\", \"pypdfium2-5.13.0/a6d11f0694c0-BSD-3-Clause.txt\", \"pypdfium2-5.13.0/419896aea50c-CC-BY-4.0.txt\", \"pypdfium2-5.13.0/c79a7fea0e3c-abseil.txt\", \"pypdfium2-5.13.0/c110d3ea2ad7-agg23.txt\", \"pypdfium2-5.13.0/e562f3f974ce-fast_float.txt\", \"pypdfium2-5.13.0/f4b133e25df1-freetype.txt\", \"pypdfium2-5.13.0/e55522d81edc-icu.txt\", \"pypdfium2-5.13.0/7312b68c5b25-lcms.txt\", \"pypdfium2-5.13.0/75815e3bf648-libjpeg_turbo.ijg\", \"pypdfium2-5.13.0/96f5b328adbb-libjpeg_turbo.md\", \"pypdfium2-5.13.0/c5ab0890a737-libopenjpeg.txt\", \"pypdfium2-5.13.0/bdb0a645ea18-libpng.txt\", \"pypdfium2-5.13.0/92b72ba97e6c-libtiff.txt\", \"pypdfium2-5.13.0/ebcd9bbf783a-llvm-libc.txt\", \"pypdfium2-5.13.0/ba26c1263131-pdfium-binaries.txt\", \"pypdfium2-5.13.0/961eacd9633f-pdfium.txt\", \"pypdfium2-5.13.0/fc8dbc04e03a-simdutf.txt\", \"pypdfium2-5.13.0/33fd641c9f3b-zlib.txt\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "python-dotenv",
+      "version": "1.2.3",
+      "purl": "pkg:pypi/python-dotenv@1.2.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"python-dotenv-1.2.3/80619b7049f0-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"click>=5.0; extra == \\\"cli\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "python-multipart",
+      "version": "0.0.32",
+      "purl": "pkg:pypi/python-multipart@0.0.32",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"python-multipart-0.0.32/cfc7749b96f6-LICENSE.txt\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "PyYAML",
+      "version": "6.0.3",
+      "purl": "pkg:pypi/pyyaml@6.0.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"PyYAML-6.0.3/8d3928f9dc44-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "reportlab",
+      "version": "4.2.5",
+      "purl": "pkg:pypi/reportlab@4.2.5",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD license (see license.txt for details), Copyright (c) 2000-2022, ReportLab Inc."
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"reportlab-4.2.5/a02a6aeb5dde-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"pillow>=9.0.0\", \"chardet\", \"rl-accel<1.1,>=0.9.0; extra == \\\"accel\\\"\", \"rlPyCairo<1,>=0.2.0; extra == \\\"pycairo\\\"\", \"freetype-py<2.4,>=2.3.0; extra == \\\"pycairo\\\"\", \"rl-renderPM<4.1,>=4.0.3; extra == \\\"renderpm\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "segno",
+      "version": "1.6.6",
+      "purl": "pkg:pypi/segno@1.6.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "NOASSERTION"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"segno-1.6.6/de6c85fccf5d-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"importlib-metadata>=3.6.0; python_version < '3.10'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "slowapi",
+      "version": "0.1.9",
+      "purl": "pkg:pypi/slowapi@0.1.9",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"slowapi-0.1.9/29eefa286ff3-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"limits (>=2.3)\", \"redis (>=3.4.1,<4.0.0) ; extra == \\\"redis\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "SQLAlchemy",
+      "version": "2.0.36",
+      "purl": "pkg:pypi/sqlalchemy@2.0.36",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"SQLAlchemy-2.0.36/3c0f59ab887d-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"typing-extensions >=4.6.0\", \"greenlet !=0.4.17 ; python_version < \\\"3.13\\\" and (platform_machine == \\\"aarch64\\\" or (platform_machine == \\\"ppc64le\\\" or (platform_machine == \\\"x86_64\\\" or (platform_machine == \\\"amd64\\\" or (platform_machine == \\\"AMD64\\\" or (platform_machine == \\\"win32\\\" or platform_machine == \\\"WIN32\\\"))))))\", \"importlib-metadata ; python_version < \\\"3.8\\\"\", \"greenlet !=0.4.17 ; extra == 'aiomysql'\", \"aiomysql >=0.2.0 ; extra == 'aiomysql'\", \"greenlet !=0.4.17 ; extra == 'aioodbc'\", \"aioodbc ; extra == 'aioodbc'\", \"greenlet !=0.4.17 ; extra == 'aiosqlite'\", \"aiosqlite ; extra == 'aiosqlite'\", \"typing-extensions !=3.10.0.1 ; extra == 'aiosqlite'\", \"greenlet !=0.4.17 ; extra == 'asyncio'\", \"greenlet !=0.4.17 ; extra == 'asyncmy'\", \"asyncmy !=0.2.4,!=0.2.6,>=0.2.3 ; extra == 'asyncmy'\", \"mariadb !=1.1.10,!=1.1.2,!=1.1.5,>=1.0.1 ; extra == 'mariadb_connector'\", \"pyodbc ; extra == 'mssql'\", \"pymssql ; extra == 'mssql_pymssql'\", \"pyodbc ; extra == 'mssql_pyodbc'\", \"mypy >=0.910 ; extra == 'mypy'\", \"mysqlclient >=1.4.0 ; extra == 'mysql'\", \"mysql-connector-python ; extra == 'mysql_connector'\", \"cx-oracle >=8 ; extra == 'oracle'\", \"oracledb >=1.0.1 ; extra == 'oracle_oracledb'\", \"psycopg2 >=2.7 ; extra == 'postgresql'\", \"greenlet !=0.4.17 ; extra == 'postgresql_asyncpg'\", \"asyncpg ; extra == 'postgresql_asyncpg'\", \"pg8000 >=1.29.1 ; extra == 'postgresql_pg8000'\", \"psycopg >=3.0.7 ; extra == 'postgresql_psycopg'\", \"psycopg2-binary ; extra == 'postgresql_psycopg2binary'\", \"psycopg2cffi ; extra == 'postgresql_psycopg2cffi'\", \"psycopg[binary] >=3.0.7 ; extra == 'postgresql_psycopgbinary'\", \"pymysql ; extra == 'pymysql'\", \"sqlcipher3-binary ; extra == 'sqlcipher'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "starlette",
+      "version": "1.6.0",
+      "purl": "pkg:pypi/starlette@1.6.0",
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"starlette-1.6.0/dcb95677a022-LICENSE.md\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"anyio<5,>=3.6.2\", \"typing-extensions>=4.10.0; python_version < '3.13'\", \"httpx2>=2.0.0; extra == 'full'\", \"httpx<0.29.0,>=0.27.0; extra == 'full'\", \"itsdangerous; extra == 'full'\", \"jinja2; extra == 'full'\", \"python-multipart>=0.0.18; extra == 'full'\", \"pyyaml; extra == 'full'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "typing-inspection",
+      "version": "0.4.4",
+      "purl": "pkg:pypi/typing-inspection@0.4.4",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"typing-inspection-0.4.4/804b59b25f2c-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"typing-extensions>=4.15.0\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "purl": "pkg:pypi/typing_extensions@4.16.0",
+      "licenses": [
+        {
+          "expression": "PSF-2.0"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"typing_extensions-4.16.0/3b2f81fe21d1-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "uvicorn",
+      "version": "0.32.1",
+      "purl": "pkg:pypi/uvicorn@0.32.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"uvicorn-0.32.1/efe1acf3e62f-LICENSE.md\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"click>=7.0\", \"h11>=0.8\", \"typing-extensions>=4.0; python_version < '3.11'\", \"colorama>=0.4; (sys_platform == 'win32') and extra == 'standard'\", \"httptools>=0.6.3; extra == 'standard'\", \"python-dotenv>=0.13; extra == 'standard'\", \"pyyaml>=5.1; extra == 'standard'\", \"uvloop!=0.15.0,!=0.15.1,>=0.14.0; (sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')) and extra == 'standard'\", \"watchfiles>=0.13; extra == 'standard'\", \"websockets>=10.4; extra == 'standard'\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "uvloop",
+      "version": "0.22.1",
+      "purl": "pkg:pypi/uvloop@0.22.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT License"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"uvloop-0.22.1/377025287798-LICENSE-APACHE\", \"uvloop-0.22.1/6dd4c399f26d-LICENSE-MIT\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"aiohttp>=3.10.5; extra == \\\"test\\\"\", \"flake8~=6.1; extra == \\\"test\\\"\", \"psutil; extra == \\\"test\\\"\", \"pycodestyle~=2.11.0; extra == \\\"test\\\"\", \"pyOpenSSL~=25.3.0; extra == \\\"test\\\"\", \"mypy>=0.800; extra == \\\"test\\\"\", \"setuptools>=60; extra == \\\"dev\\\"\", \"Cython~=3.0; extra == \\\"dev\\\"\", \"Sphinx~=4.1.2; extra == \\\"docs\\\"\", \"sphinxcontrib-asyncio~=0.3.0; extra == \\\"docs\\\"\", \"sphinx_rtd_theme~=0.5.2; extra == \\\"docs\\\"\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "watchfiles",
+      "version": "1.2.0",
+      "purl": "pkg:pypi/watchfiles@1.2.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"watchfiles-1.2.0/4fd78355b67c-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"anyio>=3.0.0\"]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "websockets",
+      "version": "17.1",
+      "purl": "pkg:pypi/websockets@17.1",
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"websockets-17.1/3d6a0c050d8b-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "wrapt",
+      "version": "2.4.1",
+      "purl": "pkg:pypi/wrapt@2.4.1",
+      "licenses": [
+        {
+          "expression": "BSD-2-Clause"
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[\"wrapt-2.4.1/d4f66854a24d-LICENSE\"]"
+        },
+        {
+          "name": "emcargo:requires-dist",
+          "value": "[\"pytest; extra == \\\"dev\\\"\", \"setuptools; extra == \\\"dev\\\"\"]"
+        }
+      ]
+    }
+  ]
+}

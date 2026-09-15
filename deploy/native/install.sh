@@ -90,7 +90,15 @@ if [ ! -x "$PREFIX/venv/bin/python" ]; then
   "$PYTHON" -m venv "$PREFIX/venv"
 fi
 "$PREFIX/venv/bin/pip" install --quiet --upgrade pip
-"$PREFIX/venv/bin/pip" install --quiet -r "$RELEASE_DIR/backend/requirements-runtime.txt"
+"$PREFIX/venv/bin/pip" install --quiet --require-hashes -r "$RELEASE_DIR/backend/requirements-runtime-lock.txt"
+"$PREFIX/venv/bin/pip" uninstall --quiet -y PyMuPDF
+
+# Use the new implementation to retain existing local templates before moving
+# the current link. A fresh install has no previous release to migrate.
+if [ -d "$PREFIX/current/backend" ]; then
+  PYTHONPATH="$RELEASE_DIR/backend" DATA_DIR="$DATA_DIR" \
+    "$PREFIX/venv/bin/python" -m app.migrate_templates "$PREFIX/current" --env-file "$CONF_DIR/emcargo.env"
+fi
 
 # --- 4. configuration, kept if present -----------------------------------------------
 if [ ! -f "$CONF_DIR/emcargo.env" ]; then

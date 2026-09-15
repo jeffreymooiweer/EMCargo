@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "note": "Only the listed grants were reviewed. Architecture-specific native libraries, OS packages and remaining obligations keep publication held until independently recorded.",
+  "approvals": [
+    {
+      "purl": "pkg:pypi/pypdf@6.17.0",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "evidence": "licenses/python/pypdf-6.17.0/a97ac230e5f3-LICENSE",
+      "reviewer": "Codex: inspected the packaged BSD redistribution grant, 2026-09-15",
+      "obligations": "Preserve the full copyright notice, conditions and disclaimer in source/binary distributions; do not imply author endorsement. Dependencies require their own review."
+    },
+    {
+      "purl": "pkg:pypi/reportlab@4.2.5",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "BSD license (see license.txt for details), Copyright (c) 2000-2022, ReportLab Inc."
+          }
+        }
+      ],
+      "evidence": "licenses/python/reportlab-4.2.5/a02a6aeb5dde-LICENSE",
+      "reviewer": "Codex: inspected the packaged BSD redistribution grant, 2026-09-15",
+      "obligations": "Preserve the full copyright notice, conditions and disclaimer in source/binary distributions; do not imply author endorsement. Dependencies require their own review."
+    },
+    {
+      "purl": "pkg:pypi/segno@1.6.6",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "NOASSERTION"
+          }
+        }
+      ],
+      "evidence": "licenses/python/segno-1.6.6/de6c85fccf5d-LICENSE",
+      "reviewer": "Codex: inspected the packaged BSD redistribution grant, 2026-09-15",
+      "obligations": "Preserve the full copyright notice, conditions and disclaimer in source/binary distributions; do not imply author endorsement. Dependencies require their own review."
+    },
+    {
+      "purl": "pkg:npm/i18next@24.2.3",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "evidence": "licenses/javascript/i18next-24.2.3/LICENSE",
+      "reviewer": "Codex: inspected the packaged MIT grant, 2026-09-15",
+      "obligations": "Preserve full original copyright, permission and warranty notice; the browser build emits that notice beside its chunks. Application code does not relicense these packages."
+    },
+    {
+      "purl": "pkg:npm/react@19.2.8",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "evidence": "licenses/javascript/react-19.2.8/LICENSE",
+      "reviewer": "Codex: inspected the packaged MIT grant, 2026-09-15",
+      "obligations": "Preserve full original copyright, permission and warranty notice; the browser build emits that notice beside its chunks. Application code does not relicense these packages."
+    },
+    {
+      "purl": "pkg:npm/react-dom@19.2.8",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "evidence": "licenses/javascript/react-dom-19.2.8/LICENSE",
+      "reviewer": "Codex: inspected the packaged MIT grant, 2026-09-15",
+      "obligations": "Preserve full original copyright, permission and warranty notice; the browser build emits that notice beside its chunks. Application code does not relicense these packages."
+    },
+    {
+      "purl": "pkg:npm/react-i18next@15.7.4",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "evidence": "licenses/javascript/react-i18next-15.7.4/LICENSE",
+      "reviewer": "Codex: inspected the packaged MIT grant, 2026-09-15",
+      "obligations": "Preserve full original copyright, permission and warranty notice; the browser build emits that notice beside its chunks. Application code does not relicense these packages."
+    },
+    {
+      "purl": "pkg:npm/react-router@8.3.0",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "evidence": "licenses/javascript/react-router-8.3.0/LICENSE.md",
+      "reviewer": "Codex: inspected the packaged MIT grant, 2026-09-15",
+      "obligations": "Preserve full original copyright, permission and warranty notice; the browser build emits that notice beside its chunks. Application code does not relicense these packages."
+    },
+    {
+      "purl": "pkg:npm/scheduler@0.27.0",
+      "channels": [
+        "native"
+      ],
+      "detected_licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "evidence": "licenses/javascript/scheduler-0.27.0/LICENSE",
+      "reviewer": "Codex: inspected the packaged MIT grant, 2026-09-15",
+      "obligations": "Preserve full original copyright, permission and warranty notice; the browser build emits that notice beside its chunks. Application code does not relicense these packages."
+    }
+  ]
+}

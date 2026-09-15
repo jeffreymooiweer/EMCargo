@@ -144,31 +144,29 @@ def test_the_frontend_checks_survived_the_merge(step):
     assert step in (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
 
 
-# --- No emulation without publication ---------------------------------------
+# --- Both shipped architectures are inventoried before publication ---------
 
 
-def test_arm64_is_not_hardcoded_into_the_build():
-    """With it hard-coded, every pull request built it again — under QEMU, and
-    for nothing."""
-    ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
-    assert "platforms: linux/amd64,linux/arm64" not in ci
-    assert "platforms: ${{ steps.plan.outputs.platforms }}" in ci
+def test_both_architectures_are_inspected_before_publication():
+    """Native PDF/OCR wheels may carry different dependencies on each CPU."""
+    docker = load("ci.yml")["jobs"]["docker"]
+    assert docker["strategy"]["matrix"]["arch"] == ["amd64", "arm64"]
+    build = next(s for s in docker["steps"] if s.get("uses", "").startswith("docker/build-push-action"))
+    assert build["with"]["push"] is False
+    assert build["with"]["load"] is True
 
 
-def test_a_pull_request_builds_one_architecture_and_publishes_nothing():
-    plan = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
-    start = plan.index("Decide what to build")
-    branch = plan[start: plan.index("Set up QEMU")]
-    pull_request_half = branch[: branch.index("else")]
-    assert "linux/amd64" in pull_request_half
-    assert "linux/arm64" not in pull_request_half
-    assert "publishing=false" in pull_request_half
+def test_a_pull_request_never_publishes_an_image():
+    docker = load("ci.yml")["jobs"]["docker"]
+    publish = next(s for s in docker["steps"] if "docker push " in s.get("run", ""))
+    assert "github.event_name != 'pull_request'" in publish["if"]
+    assert "image_ready == 'true'" in publish["if"]
 
 
 def test_qemu_is_only_set_up_when_arm64_is_wanted():
-    ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
-    qemu = ci[ci.index("Set up QEMU"):]
-    assert "if: steps.plan.outputs.publishing == 'true'" in qemu[: qemu.index("uses:")]
+    steps = load("ci.yml")["jobs"]["docker"]["steps"]
+    qemu = next(s for s in steps if s.get("uses", "").startswith("docker/setup-qemu-action"))
+    assert qemu["if"] == "matrix.arch == 'arm64'"
 
 
 # --- Not the same result twice ----------------------------------------------

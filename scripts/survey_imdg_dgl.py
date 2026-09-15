@@ -39,7 +39,7 @@ from pathlib import Path
 
 SOURCE_URL = "https://www.cepa.be/wp-content/uploads/IMDG_Code-amdt_42_24.pdf"
 UA = {"User-Agent": "EMCargo data survey (github.com/jeffreymooiweer/emcargo)"}
-CARD_DATA = Path(__file__).resolve().parents[1] / "backend" / "seed" / "dg" / "card_data.json"
+ADR_DATA = Path(__file__).resolve().parents[1] / "backend" / "seed" / "dg" / "un_numbers.json"
 
 # A page of the list carries these headings. They are not all on every page — the
 # list runs across two facing pages — so two hits is enough to mark a page as a
@@ -63,9 +63,9 @@ def download(url: str, target: Path, timeout: int = 600) -> Path:
 
 
 def known_un_numbers() -> set[str]:
-    """The UN numbers we currently know from the 41-22 cards."""
+    """The independent UN numbers in ADR Table A."""
     try:
-        return set(json.loads(CARD_DATA.read_text(encoding="utf-8"))["entries"])
+        return {str(row["un"]) for row in json.loads(ADR_DATA.read_text(encoding="utf-8"))}
     except (OSError, ValueError, KeyError):  # pragma: no cover - seed ontbreekt
         return set()
 

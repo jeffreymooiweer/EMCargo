@@ -116,5 +116,6 @@ jobs:
             echo "nothing changed"
           else
             git commit -m "Extract UN card assets from the UNECE English ADR 2025"
+            python scripts/check_third_party_manifest.py --publish source
             git push origin HEAD:${{ inputs.branch }}
           fi

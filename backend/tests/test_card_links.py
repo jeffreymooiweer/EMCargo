@@ -350,6 +350,8 @@ def test_the_route_is_the_only_public_one(client):
     known_open = {
         # The application's own status, which carries no data about anybody.
         "/api/health", "/api/regulatory", "/api/setup-status",
+        # Exact public attribution/database downloads contain no tenant data.
+        "/api/legal/{document}",
         # Getting in, and getting back in. These cannot require a session:
         # they are how a session is obtained. All six are rate limited.
         "/api/auth/login", "/api/auth/login/two-factor",

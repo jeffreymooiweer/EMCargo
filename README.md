@@ -228,8 +228,23 @@ signature is only added if you draw or upload one yourself.
 
 ## Licence
 
-Apache License 2.0 with the Commons Clause — see [LICENSE](LICENSE).
+EMCargo is **source-available software** under Apache License 2.0 with the
+Commons Clause — see [LICENSE](LICENSE). Internal use and self-hosting are
+permitted subject to those terms. The restriction concerns “Sell” as defined
+in the Commons Clause, including relevant hosting and services; consult the
+actual text before offering a commercial service.
 
-You may use EMCargo inside your own organisation. Selling it, reselling it, hosting
-it as a paid service or otherwise commercially redistributing the software itself
-requires written permission from the copyright holder.
+Third-party software and data retain their own terms; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Official form PDFs and
+regulatory model PDFs are supplied locally through Administration → Document
+templates. Missing forms are reported explicitly and are not substituted with
+an unofficial rendition. The current supported editions and compatibility
+fingerprints are in `backend/app/config/document_templates.json`.
+
+The [license history](docs/licensing/license-history.md) records the earlier
+MIT revisions. Current restrictions do not retrospectively cancel valid rights
+in earlier copies. Fork branding follows [TRADEMARKS.md](TRADEMARKS.md).
+
+Publication of new images, native releases and card sets is held while the
+[rights register](docs/licensing/rights-register.md) or package reviews contain
+unresolved distribution questions. Development and local testing remain possible.

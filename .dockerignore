@@ -67,3 +67,18 @@ Thumbs.db
 # Locally generated UN card sets must never enter the image.
 un-cards*/
 emcargo-un-cards.zip
+
+# Locally supplied originals are not project distribution assets.
+templates/forms/*.pdf
+backend/seed/models/*.pdf
+backend/seed/dg/card_data.json
+
+# Distribution notices and template-import documentation belong in the image.
+!THIRD_PARTY_NOTICES.md
+!TRADEMARKS.md
+!licenses/**
+!templates/forms/README.md
+
+# Development tooling never enters any production image layer.
+backend/tests
+backend/requirements.txt

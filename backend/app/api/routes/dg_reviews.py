@@ -67,6 +67,9 @@ def decide_review(request: Request, review_id: str, payload: ReviewDecision,
     record = dg_review.get_visible(db, review_id, user)
     if payload.status == "changes_requested" and not payload.comment.strip():
         raise error(422, "review.comment_required")
+    if payload.status == "approved":
+        from app.services.dg.source_verification import require_verified_payload
+        require_verified_payload(json.loads(record.payload_json))
     # A conditional UPDATE prevents two open tabs overwriting one decision.
     updated = db.query(DgReview).filter_by(id=record.id, status="pending").update({
         "status": payload.status, "comment": payload.comment.strip(), "reviewed_by": user.username,

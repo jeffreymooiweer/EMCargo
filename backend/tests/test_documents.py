@@ -151,10 +151,11 @@ def test_official_forms_use_fillable_pdf_templates():
     docs = {doc["key"]: doc for doc in registry["documents"]}
     for key in ("cmr", "iata_dgd", "cim"):
         assert docs[key]["exporter"] == "pdf_template"
-        assert has_pdf_template(key), key
+        from app.services.document_templates import profiles
+        assert profiles()[key]["fields"], key
 
 
-def test_fill_cim_pdf_populates_boxes():
+def test_fill_cim_pdf_populates_boxes(official_templates):
     values = dict(
         BASE_VALUES,
         place_of_delivery="Berlin Hbf",
@@ -194,7 +195,7 @@ def _pdf_visible_text(path) -> str:
         doc.close()
 
 
-def test_fill_cmr_pdf_populates_official_boxes():
+def test_fill_cmr_pdf_populates_official_boxes(official_templates):
     values = dict(
         BASE_VALUES,
         place_of_delivery="Berlin Hafen",
@@ -219,7 +220,7 @@ def test_fill_cmr_pdf_populates_official_boxes():
         path.unlink(missing_ok=True)
 
 
-def test_fill_iata_pdf_strikes_non_applicable_and_lists_dg():
+def test_fill_iata_pdf_strikes_non_applicable_and_lists_dg(official_templates):
     values = dict(
         BASE_VALUES,
         awb_number="020-12345675",

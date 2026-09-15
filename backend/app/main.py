@@ -38,6 +38,8 @@ from app.api.routes.meta import router as meta_router
 from app.api.routes.nhm import router as nhm_router
 from app.api.routes.settings import public_router as settings_public_router
 from app.api.routes.settings import router as settings_router
+from app.api.routes.legal import router as legal_router
+from app.api.routes.document_templates import router as document_templates_router
 from app.api.routes.trips import router as trips_router
 from app.api.routes.un_cards_admin import router as un_cards_admin_router
 from app.api.routes.users import router as users_router
@@ -75,6 +77,7 @@ WORK_ROUTERS = (
 ACCOUNT_ROUTERS = (
     users_router,
     settings_router,
+    document_templates_router,
     equipment_router,
     documents_mail_router,
     un_cards_admin_router,
@@ -159,6 +162,7 @@ def create_app() -> FastAPI:
     # public. Account-bound API routes always enforce authentication, even
     # when an old deployment still contains EMCARGO_MODE=open.
     app.include_router(auth_router, prefix="/api")
+    app.include_router(legal_router, prefix="/api")
     app.include_router(branding_public_router, prefix="/api")
     for router in (*WORK_ROUTERS, *ACCOUNT_ROUTERS):
         app.include_router(router, prefix="/api")

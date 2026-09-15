@@ -20,9 +20,11 @@ rollback) to say what went wrong.
 from __future__ import annotations
 
 import json
+import io
 import os
 import sys
 import time
+import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -107,6 +109,38 @@ def successor_payload(old: dict, new_image: str) -> dict:
     return payload
 
 
+def retain_templates(client: httpx.Client, old_id: str) -> None:
+    """Keep existing compatible PDFs in the volume before removing their image.
+
+    Only registered template paths are requested. Archive paths are never
+    extracted, and the PDF must pass the same identity validation as an import.
+    """
+    from app.services.document_templates import MAX_BYTES, profiles, resolve, retain_legacy
+    for key, profile in profiles().items():
+        if resolve(key) is not None:
+            continue
+        base = "/app/templates/forms" if profile["kind"] == "form" else "/app/backend/seed/models"
+        path = f"{base}/{profile['filename']}"
+        with client.stream("GET", f"/containers/{old_id}/archive", params={"path": path}) as response:
+            if response.status_code == 404:
+                continue
+            response.raise_for_status()
+            content = bytearray()
+            for block in response.iter_bytes():
+                content.extend(block)
+                if len(content) > MAX_BYTES + 1024 * 1024:
+                    raise RuntimeError("Existing template archive exceeds the import limit")
+        try:
+            with tarfile.open(fileobj=io.BytesIO(content)) as archive:
+                members = archive.getmembers()
+                if len(members) != 1 or not members[0].isfile() or members[0].size > MAX_BYTES:
+                    raise ValueError("Unexpected template archive")
+                with archive.extractfile(members[0]) as handle:
+                    retain_legacy(key, handle.read(MAX_BYTES + 1), f"Previous local container: {path}")
+        except Exception as exc:
+            raise RuntimeError(f"Could not preserve existing template {key}") from exc
+
+
 def main() -> int:
     old_id, new_image = sys.argv[1], sys.argv[2]
     client = httpx.Client(
@@ -123,6 +157,7 @@ def main() -> int:
     new_id = None
 
     try:
+        retain_templates(client, old_id)
         write_state({"phase": "stopping", "to_image": new_image})
         client.post(f"/containers/{old_id}/stop", params={"t": 30},
                     timeout=90.0)

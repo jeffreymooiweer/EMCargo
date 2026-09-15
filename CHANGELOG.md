@@ -2,6 +2,19 @@
 
 All notable changes are documented here, following [Semantic Versioning](https://semver.org/).
 
+## [2.12.0] - 2026-09-15
+
+### Changed
+- Describe EMCargo consistently as source available and document the earlier MIT license grants, third-party rights and separate trademark policy. The Apache 2.0 + Commons Clause license is retained.
+- Remove PyMuPDF from production. pypdf fills/flattens the official forms and selects fingerprint-verified model pages; ReportLab overlays signatures. The isolated OCR reader uses PDFium. Runtime dependencies are pinned with hashes.
+- Stop bundling four third-party transport forms and sixteen regulatory model PDFs. Administrators can import a compatible original with its source/use basis; missing or incompatible originals produce an explicit refusal. Docker/native upgrades preserve existing compatible local originals.
+- Retire the Cantell-derived UN-card seed and runtime fallback. Current IMDG DGL/code sources supply the supported facts; unknown marine-pollutant/bulk/conditional segregation facts require a recorded source assessment at specialist approval and final output.
+- Include third-party notices, ODbL station-database access and actual bundled JavaScript license texts. Record file hashes and separate source, image, native, card and regulatory-volume distribution channels.
+- Build per-architecture container SBOMs before publication. Native and card artifacts carry their inventories and notices. Unresolved rights and package obligations hold new publication; technical tests remain available. Existing release history is unchanged.
+
+### Preparation
+- Add a contributor-agreement review draft, commercial-licensing ownership questions and unsent publisher-permission requests. These drafts do not establish ownership or contributor/publisher assent.
+
 ## [2.11.2] — 2026-09-14
 
 ### Keep the complete EMCargo wordmark visible

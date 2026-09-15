@@ -317,7 +317,8 @@ def test_the_export_route_produces_the_sheet():
             "document_key": "package_label_sheet",
             "values": CONSIGNMENT,
             "lines": [],
-            "dangerous_goods": [{"line_id": "1", "products": [goods("1263")]}],
+            "dangerous_goods": [{"line_id": "1", "products": [goods("1263", marine_pollutant="N",
+                imdg_source_reference="Synthetic test assessment, IMDG 42-24", imdg_source_reviewed="Y")]}],
             "output_language": "nl",
             "profiles": ["ADR", "IMDG"],
         })

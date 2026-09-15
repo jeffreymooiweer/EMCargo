@@ -1,0 +1,42 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, expect, it, vi } from "vitest";
+import DocumentTemplatesPanel from "./DocumentTemplatesPanel";
+import { api } from "../api/client";
+vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock("../api/client", () => ({ api: { documentTemplates: vi.fn(), importDocumentTemplate: vi.fn() } }));
+const items = ["cmr", "cim"].map(id => ({ id, name: id.toUpperCase(), kind: "form" as const, filename: `${id}.pdf`, pages: 4, sha256: "fixture", available: false }));
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(api.documentTemplates).mockResolvedValue(items);
+  vi.mocked(api.importDocumentTemplate).mockResolvedValue({} as never);
+});
+it("requires the local source and use basis, and reports a refused edition", async () => {
+  render(<DocumentTemplatesPanel />);
+  const user = userEvent.setup();
+  await user.selectOptions(await screen.findByRole("combobox"), "cmr");
+  const file = new File(["synthetic"], "original.pdf", { type: "application/pdf" });
+  await user.upload(screen.getByLabelText("templates.file"), file);
+  expect(screen.getByRole("button", { name: "templates.import" })).toBeDisabled();
+  await user.type(screen.getByLabelText("templates.source"), "Test author, edition 1");
+  await user.type(screen.getByLabelText("templates.basis"), "Original test grant");
+  vi.mocked(api.importDocumentTemplate).mockRejectedValueOnce(new Error("Unsupported edition"));
+  fireEvent.submit(screen.getByRole("button", { name: "templates.import" }).closest("form")!);
+  expect(await screen.findByRole("alert")).toHaveTextContent("Unsupported edition");
+  expect(api.importDocumentTemplate).toHaveBeenCalledWith("cmr", file, "Test author, edition 1", "Original test grant");
+  await user.selectOptions(screen.getByRole("combobox"), "cim");
+  expect(screen.getByLabelText("templates.source")).toHaveValue("");
+  expect(screen.getByRole("button", { name: "templates.import" })).toBeDisabled();
+});
+it("refreshes availability only after the server accepts the original", async () => {
+  render(<DocumentTemplatesPanel />);
+  const user = userEvent.setup();
+  await user.selectOptions(await screen.findByRole("combobox"), "cmr");
+  await user.upload(screen.getByLabelText("templates.file"), new File(["synthetic"], "original.pdf", { type: "application/pdf" }));
+  await user.type(screen.getByLabelText("templates.source"), "Test author");
+  await user.type(screen.getByLabelText("templates.basis"), "Original test grant");
+  vi.mocked(api.documentTemplates).mockResolvedValue(items.map(i => ({ ...i, available: true })));
+  fireEvent.submit(screen.getByRole("button", { name: "templates.import" }).closest("form")!);
+  await waitFor(() => expect(screen.getByRole("link", { name: "templates.preview" })).toHaveAttribute("href", "/api/settings/document-templates/cmr/preview"));
+  expect(screen.getByRole("status")).toHaveTextContent("templates.saved");
+});

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { useToast } from "../toast/ToastProvider";
 import ConfirmDialog from "../toast/ConfirmDialog";
 import UpdatePanel from "../components/UpdatePanel";
+import DocumentTemplatesPanel from "../components/DocumentTemplatesPanel";
 import NumberInput from "../components/NumberInput";
 import {
   AssistantStatus,
@@ -56,6 +57,7 @@ const TABS = [
   { key: "updates", label: "settings.adminUpdates", admin: true, group: "system", icon: RefreshIcon },
   { key: "network", label: "settingsNav.connections", admin: true, group: "system", icon: NetworkIcon },
   { key: "cards", label: "settingsNav.cards", admin: true, group: "system", icon: DocumentIcon },
+  { key: "templates", label: "templates.title", admin: true, group: "system", icon: DocumentIcon },
   { key: "assistant", label: "settingsNav.assistant", admin: true, group: "system", icon: SettingsIcon },
 ] as const;
 
@@ -372,6 +374,7 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
       {active === "admin" && user.role === "super_user" && <OrganisationPanel />}
       {active === "updates" && user.role === "admin" && <UpdatePanel />}
       {active === "cards" && user.role === "admin" && <UnCardsAdminPanel />}
+      {active === "templates" && user.role === "admin" && <DocumentTemplatesPanel />}
       {active === "assistant" && user.role === "admin" && <AssistantAdmin />}
       </div>
       </div>

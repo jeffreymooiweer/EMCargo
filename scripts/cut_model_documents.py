@@ -16,9 +16,9 @@ For every register entry with ``model_of`` and ``cut_from`` it:
    fallback), and **verifies its SHA-256 against the pin in the register** —
    a book that does not hash to the recorded edition is not cut, because the
    page range was measured on that edition and no other;
-2. cuts the pinned page range with PyMuPDF — the same library that measured
-   the ranges (``scripts/find_instructions_pages.py``) and the same one the
-   server cuts with, so all three agree on what a page number means;
+2. selects every page by its registered content fingerprint with pypdf;
+   historical MuPDF page numbers are search hints, not permission to copy
+   unchecked pages from a different parser's page tree;
 3. writes the cut under its registered filename into ``backend/seed/models/``
    and records the provenance (source id, source hash, pages, cut hash) in
    ``manifest.json`` beside it.
@@ -35,9 +35,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-import fitz  # PyMuPDF
-
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "backend"))
+from app.services.pdf_pages import verified_model_writer  # noqa: E402
+
 REGISTER = ROOT / "backend" / "seed" / "dg" / "sources.json"
 DEFAULT_OUT = ROOT / "backend" / "seed" / "models"
 STORES = (Path("/data/regulations"), Path("/tmp/emcargo-regulations"))
@@ -106,16 +107,13 @@ def main() -> int:
 
         first, last = cut["pages"]
         target = args.out / doc["filename"]
-        with fitz.open(str(source)) as book:
-            if last > book.page_count:
-                problems.append(f"{doc['id']}: range {first}-{last} exceeds the "
-                                f"{book.page_count} pages of {source_doc['id']}")
-                continue
-            pages = fitz.open()
-            pages.insert_pdf(book, from_page=first - 1, to_page=last - 1)
-            pages.save(str(target), garbage=4, deflate=True)
-            page_count = pages.page_count
-            pages.close()
+        try:
+            pages = verified_model_writer(source, cut, pin)
+        except ValueError as exc:
+            problems.append(f"{doc['id']}: {exc}")
+            continue
+        pages.write(target)
+        page_count = len(pages.pages)
         entries.append({
             "id": doc["id"],
             "file": doc["filename"],

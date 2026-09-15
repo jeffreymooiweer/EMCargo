@@ -88,6 +88,8 @@ def approved(db: Session, review_id: str | None, user: User) -> DgReview:
 
 
 def enforce_document(db: Session, user: User, payload: DocumentExportRequest) -> None:
+    from app.services.dg.source_verification import require_verified_payload
+    require_verified_payload(payload.model_dump())
     if not instance_settings(db).dg_review_enabled or not (has_dg(payload) or payload.dg_review_id):
         return
     record = approved(db, payload.dg_review_id, user)
@@ -98,6 +100,8 @@ def enforce_document(db: Session, user: User, payload: DocumentExportRequest) ->
 
 
 def enforce_bundle(db: Session, user: User, payload: DocumentBundleRequest, *, required: bool = False) -> None:
+    from app.services.dg.source_verification import require_verified_payload
+    require_verified_payload(payload.model_dump())
     if not instance_settings(db).dg_review_enabled or not (required or has_dg(payload) or payload.dg_review_id):
         return
     record = approved(db, payload.dg_review_id, user)
@@ -107,6 +111,9 @@ def enforce_bundle(db: Session, user: User, payload: DocumentBundleRequest, *, r
 
 
 def enforce_shipment(db: Session, user: User, payload: ShipmentIn) -> None:
+    if not payload.draft:
+        from app.services.dg.source_verification import require_verified_payload
+        require_verified_payload(payload.model_dump())
     if payload.draft or not instance_settings(db).dg_review_enabled or not (has_dg(payload) or payload.dg_review_id):
         return
     record = approved(db, payload.dg_review_id, user)

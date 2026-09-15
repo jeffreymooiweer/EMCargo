@@ -1,0 +1,127 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "EMCargo compiled browser bundle"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "i18next",
+      "version": "24.2.3",
+      "purl": "pkg:npm/i18next@24.2.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[{\"path\":\"licenses/i18next-24.2.3/LICENSE\",\"sha256\":\"def56080ea8d5d30d11771d221d1c9e98f3942afb8c61dd6136be5e806c926d6\"}]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "react",
+      "version": "19.2.8",
+      "purl": "pkg:npm/react@19.2.8",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[{\"path\":\"licenses/react-19.2.8/LICENSE\",\"sha256\":\"da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93\"}]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "react-dom",
+      "version": "19.2.8",
+      "purl": "pkg:npm/react-dom@19.2.8",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[{\"path\":\"licenses/react-dom-19.2.8/LICENSE\",\"sha256\":\"da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93\"}]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "react-i18next",
+      "version": "15.7.4",
+      "purl": "pkg:npm/react-i18next@15.7.4",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[{\"path\":\"licenses/react-i18next-15.7.4/LICENSE\",\"sha256\":\"95bdba2cfae72e5337ecc7ccc33154492e33a533549628e385d32d98d1642859\"}]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "react-router",
+      "version": "8.3.0",
+      "purl": "pkg:npm/react-router@8.3.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[{\"path\":\"licenses/react-router-8.3.0/LICENSE.md\",\"sha256\":\"77c9ee6a9c5d5782fb0c50b50d101189116314c14f7df0a1b0d385fc96a7ba49\"}]"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "scheduler",
+      "version": "0.27.0",
+      "purl": "pkg:npm/scheduler@0.27.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "emcargo:license-files",
+          "value": "[{\"path\":\"licenses/scheduler-0.27.0/LICENSE\",\"sha256\":\"da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93\"}]"
+        }
+      ]
+    }
+  ]
+}

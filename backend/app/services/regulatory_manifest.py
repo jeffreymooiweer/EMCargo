@@ -162,7 +162,7 @@ RULE_SETS: list[dict[str, Any]] = [
         "edition": "41-22 (2023)",
         # The card PDFs themselves left the repository in v1.129.0 (the
         # application now generates its own cards); the data extracted from
-        # them lives on in card_data.json with this provenance.
+        # them is retired; this record only preserves the historical provenance.
         "source": "Cantell IMDG UN cards, 2023 edition (source PDFs no longer bundled)",
         "valid_from": "2024-01-01",
         "valid_until": "2025-12-31",
@@ -172,8 +172,9 @@ RULE_SETS: list[dict[str, Any]] = [
             "The class is unusable for UN 2984-2992, 3548 and 3550: those "
             "hold sequence numbers instead of classes.",
         ],
-        "covers": ["marine pollutant (column 4)", "carriage in bulk"],
-        "files": ["card_data.json"],
+        "covers": [],
+        "files": [],
+        "retired": True,
     },
 ]
 

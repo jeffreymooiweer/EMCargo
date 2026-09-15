@@ -2,7 +2,7 @@
 
 The class segregation table of 7.2.4 works on class. Column 16b adds provisions
 per *substance* — "stow separated from acids" — which the app now knows for 840
-UN numbers. The meaning of each SG code is read from the cards themselves rather
+UN numbers. The meaning of each SG code is read from the IMDG 7.2.8 source rather
 than typed from memory, because a wrong segregation rule is a safety-relevant
 error, not a cosmetic one.
 
@@ -12,7 +12,7 @@ These tests pin the parsed rules and the behaviour that follows from them.
 import pytest
 
 from app.services.dg.compliance import check_imdg_segregation_provisions
-from app.services.dg.enrichment import card_data_for, segregation_provisions
+from app.services.dg.enrichment import imdg_segregation_codes_for, segregation_provisions
 
 
 def shipment(*products):
@@ -28,10 +28,10 @@ def rules():
     return segregation_provisions()
 
 
-def test_the_provisions_were_parsed_from_the_cards(rules):
-    assert len(rules) == 70
-    actionable = [c for c, r in rules.items() if not r.get("informational")]
-    assert len(actionable) == 49
+def test_provisions_include_codes_previously_absent_from_the_cards(rules):
+    for code, group in (("SG51", "SGG8"), ("SG56", "SGG12"), ("SG58", "SGG13")):
+        assert rules[code]["targets"] == {"groups": [group]}
+    assert rules["SG67"]["manual_review"] is True
 
 
 def test_a_provision_naming_a_class_is_actionable(rules):
@@ -128,7 +128,7 @@ def test_two_acids_together_are_not_reported():
         shipment({"un_number": "2031", "class": "8"}, {"un_number": "1789", "class": "8"}), "nl"
     )
     assert "IMDG 16b (SG35)" not in codes(warnings)
-    assert card_data_for("2031")["segregation_codes"] == [
+    assert imdg_segregation_codes_for("2031") == [
         "SG6", "SG16", "SG17", "SG19", "SG36", "SG49"
     ]
 
@@ -177,9 +177,9 @@ def test_a_group_stand_in_admits_that_it_is_broader():
     from pathlib import Path as _Path
 
     entries = _json.loads(
-        (_Path(__file__).resolve().parents[1] / "seed" / "dg" / "card_data.json").read_text(encoding="utf-8")
+        (_Path(__file__).resolve().parents[1] / "seed" / "dg" / "imdg_dgl.json").read_text(encoding="utf-8")
     )["entries"]
-    source = next(un for un, e in entries.items() if "SG22" in (e.get("segregation_codes") or []))
+    source = next(e["un_number"] for e in entries if "SG22" in (e.get("segregation") or "").split())
     warnings = check_imdg_segregation_provisions(
         shipment(
             {"un_number": source, "class": "5.1"},
@@ -209,9 +209,9 @@ def test_a_conditional_cargo_provision_needs_its_class_present():
     from pathlib import Path as _Path
 
     entries = _json.loads(
-        (_Path(__file__).resolve().parents[1] / "seed" / "dg" / "card_data.json").read_text(encoding="utf-8")
+        (_Path(__file__).resolve().parents[1] / "seed" / "dg" / "imdg_dgl.json").read_text(encoding="utf-8")
     )["entries"]
-    source = next(un for un, e in entries.items() if "SG26" in (e.get("segregation_codes") or []))
+    source = next(e["un_number"] for e in entries if "SG26" in (e.get("segregation") or "").split())
 
     alone = check_imdg_segregation_provisions(shipment({"un_number": source, "class": "5.1"}), "nl")
     beside_flammable = check_imdg_segregation_provisions(
@@ -236,9 +236,9 @@ def test_only_definitions_and_table_references_remain_as_text(rules):
     cargo = set(config["imdg_segregation_cargo_requirements"]) - {"_comment"}
     checkable = {
         code for code, rule in rules.items()
-        if rule.get("targets") or rule.get("as_class")
+        if rule.get("targets") or rule.get("as_class") or rule.get("manual_review")
     } | named | cargo
-    assert set(rules) - checkable == {"SG1", "SG48", "SG69", "SG71", "SG72", "SG77"}
+    assert set(rules) - checkable == {"SG48", "SG52", "SG71", "SG72"}
 
 
 # --- IMDG 7.2.6.3: the exemption SG72 points at ------------------------------

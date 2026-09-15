@@ -117,9 +117,21 @@ Then the ground rules are the ones the project already follows:
 
 Participation is covered by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## Licence
+## Licence and contribution rights
 
-EMCargo is Apache 2.0 **with the Commons Clause** — you may use, modify and
-self-host it freely, but you may not sell it or a service whose value derives
-substantially from it. Anything you contribute is taken to be offered under those same
-terms. See [LICENSE](LICENSE).
+EMCargo is source available under Apache 2.0 **with the Commons Clause**.
+Contributions offered for inclusion are offered under the current terms in
+[LICENSE](LICENSE); contributors retain their copyright. This does not establish
+that the maintainer owns every contribution or can relicense it unilaterally.
+
+Identify third-party material, source editions, licenses and applicable notices
+with your contribution. Do not add official forms, regulatory text or extracted
+datasets on the assumption that a public download permits redistribution.
+Changes to registered assets need updated provenance, exact hashes and a review
+of the relevant distribution channels. Run `python scripts/check_third_party_manifest.py`.
+
+A [CLA review draft](docs/licensing/CLA-DRAFT.md) describes a proposed arrangement
+for future commercial sublicensing. It is **not activated** and no contributor
+is treated as having accepted it. Existing contributions do not acquire broader
+grants retrospectively. Employer/contractor ownership questions must be settled
+before anyone grants rights they do not hold.

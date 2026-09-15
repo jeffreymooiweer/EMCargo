@@ -159,4 +159,5 @@ jobs:
 
           Column (2) of table A, from the official UNECE editions, checked
           against the Dutch table A already in the repository."
+          python scripts/check_third_party_manifest.py --publish source
           git push origin HEAD:${GITHUB_REF_NAME}

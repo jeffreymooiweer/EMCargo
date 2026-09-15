@@ -42,7 +42,7 @@ def test_an_unrecognised_shape_keeps_the_consignor_s_own_words():
     assert "Onbekend" not in text
 
 
-def test_the_whole_plates_ride_produces_a_correct_cmr(db):
+def test_the_whole_plates_ride_produces_a_correct_cmr(db, synthetic_templates):
     state = {"modality": "road", "draft_lines": [], "dg_entries": [], "doc_values": {}}
     pending = None
     turns = [

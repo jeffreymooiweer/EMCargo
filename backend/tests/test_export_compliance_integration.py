@@ -233,3 +233,6 @@ def test_an_export_without_dangerous_goods_is_not_blocked_by_the_dg_check(profil
     document = get_document("cmr" if profile != "IATA" else "iata_dgd")
     errors, _ = validate_document(document, BASE_VALUES, LINES, [], profile)
     assert not any("7.5.2" in e or "5.0.2.11" in e for e in errors), errors
+
+
+pytestmark = pytest.mark.usefixtures("synthetic_templates")

@@ -34,6 +34,8 @@ export default function LegalPage() {
           form and therefore hard-coded rather than translated — only the
           sentence around it changes language. */}
       <div className={`${panelClass} p-5 sm:p-6`}>
+        <p className="mb-3 text-sm">{t("legal.stationCredit")} <a className="underline" href="https://github.com/trainline-eu/stations" target="_blank" rel="noreferrer">Trainline EU stations</a> · <a className="underline" href="/api/legal/odbl">ODbL 1.0</a></p>
+        <div className="flex flex-wrap gap-4 mb-4 text-sm"><a className="underline" href="/api/legal/stations">{t("legal.stationDownload")}</a><a className="underline" href="/api/legal/third-party-notices">{t("legal.thirdPartyNotices")}</a></div>
         <h3 className="font-semibold text-slate-900 dark:text-slate-100">{t("legal.creditsHeading")}</h3>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 dark:text-slate-300">
           {t("legal.creditsBody")}

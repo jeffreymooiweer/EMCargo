@@ -619,7 +619,10 @@
     "sourceLanguage": "De volledige tekst hieronder is in het Nederlands beschikbaar. U kunt de tekst downloaden en bewaren.",
     "download": "Voorwaarden downloaden",
     "expandAll": "Alle artikelen openen",
-    "collapseAll": "Artikelen inklappen"
+    "collapseAll": "Artikelen inklappen",
+    "stationCredit": "Bevat gegevens van",
+    "stationDownload": "Stationsdatabase downloaden",
+    "thirdPartyNotices": "Kennisgevingen van derden"
   },
   "compliance": {
     "title": "Nalevingscontrole gevaarlijke stoffen",
@@ -873,6 +876,16 @@
       "ocr_missing": "Lokale tekstherkenning ontbreekt. De beheerder moet Tesseract en de taalbestanden installeren.",
       "ocr_failed": "Tekstherkenning is mislukt. Probeer een scherpere, rechtopstaande afbeelding.",
       "model_failed": "Het lokale model kon geen voorstel maken. De bron en uw huidige zending zijn behouden."
+    },
+    "templates": {
+      "unknown": "Dit documentsjabloon is niet geregistreerd.",
+      "size": "Kies een niet-lege PDF van maximaal 30 MB.",
+      "incompatible": "Deze PDF komt niet overeen met de ondersteunde editie, pagina’s en veldindeling. Het huidige sjabloon is behouden.",
+      "source_required": "Leg de bron en uw grondslag voor lokaal gebruik van dit sjabloon vast.",
+      "missing": "Importeer het ondersteunde sjabloon onder Beheer, Documentsjablonen."
+    },
+    "imdg": {
+      "source_verification_required": "Voltooi de IMDG-stofbeoordeling en leg de bron en controle vast vóór vrijgave."
     }
   },
   "instructions": {
@@ -1962,7 +1975,7 @@
     "about": "Over ons",
     "aboutTagline": "Van vertrek tot bestemming. Alles bij elkaar.",
     "aboutIntro": "EMCargo brengt zendingen, vervoersdocumenten en controles samen in één werkplek. Ontwikkeld voor de dagelijkse praktijk van transport en logistiek.",
-    "openSource": "Open source",
+    "openSource": "Source available",
     "selfHosted": "Op uw eigen server",
     "fourLanguages": "Vier talen",
     "aboutShipments": "Zendingen & ritten",
@@ -1975,7 +1988,7 @@
     "sourceCode": "Broncode",
     "releaseNotes": "Wat is er nieuw?",
     "feedback": "Idee of probleem melden",
-    "madeBy": "EMCargo · Open source voor de logistiek",
+    "madeBy": "EMCargo · Logistieke software met openbare broncode",
     "menu": "Gebruikersmenu"
   },
   "work": {
@@ -2117,5 +2130,26 @@
       "booking_number": "Boekingsnummer",
       "purchase_order": "Ordernummer"
     }
+  },
+  "templates": {
+    "title": "Documentsjablonen",
+    "intro": "Importeer de ondersteunde PDF’s uit een bron die u mag gebruiken. Bestanden blijven in deze installatie. Nieuwe edities vereisen een bijgewerkte veldindeling.",
+    "choose": "Kies een sjabloon",
+    "available": "Beschikbaar",
+    "missing": "Ontbreekt",
+    "pages": "{{count}} pagina’s",
+    "preview": "Huidig sjabloon bekijken",
+    "file": "Ondersteunde PDF",
+    "source": "Bron, editie en datum",
+    "basis": "Grondslag voor lokaal gebruik (licentie, toestemming of andere toepasselijke voorwaarden)",
+    "import": "Controleren en importeren",
+    "importing": "Importeren…",
+    "saved": "Sjabloon gecontroleerd en opgeslagen."
+  },
+  "imdgSource": {
+    "title": "IMDG-bronbeoordeling",
+    "explanation": "Beoordeel waar de DGL geen uitsluitsel geeft de marine-pollutantstatus (P of N), bulkvervoer indien van toepassing en voorwaardelijke scheidingsregels aan een toegestane bron. Leg bron en editie/datum vast.",
+    "reference": "Bron en editie/datum (bijvoorbeeld SDS rubriek 14 en IMDG-bepaling)",
+    "confirm": "Ik heb deze stofgebonden punten gecontroleerd aan de vastgelegde bron."
   }
 }

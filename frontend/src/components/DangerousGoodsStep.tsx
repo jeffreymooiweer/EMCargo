@@ -335,6 +335,7 @@ export default function DangerousGoodsStep({
   };
 
   const updateProduct = (entryIndex: number, productIndex: number, patch: Partial<DgProduct>) => {
+    if (!("imdg_source_reviewed" in patch)) patch = { ...patch, imdg_source_reviewed: "N" };
     const entry = entries[entryIndex];
     const products = entry.products.map((product, i) => (i === productIndex ? { ...product, ...patch } : product));
     updateEntry(entryIndex, { products });
@@ -551,6 +552,13 @@ export default function DangerousGoodsStep({
 
             return (
             <div key={productIndex} className="dg-product space-y-4">
+              {profiles.some((p) => p.toUpperCase() === "IMDG") && <fieldset className="rounded-lg border border-amber-300 dark:border-amber-700 p-3 space-y-3">
+                <legend className="px-1 font-medium">{t("imdgSource.title")}</legend>
+                <p className="text-sm">{t("imdgSource.explanation")}</p>
+                <label className="block"><span>{t("imdgSource.reference")}</span><input className={inputClass} maxLength={1000} value={product.imdg_source_reference || ""} onChange={(e) => updateProduct(entryIndex, productIndex, { imdg_source_reference: e.target.value })} /></label>
+                <label className="flex gap-2 items-start"><input type="checkbox" checked={product.imdg_source_reviewed === "Y"} disabled={!product.imdg_source_reference?.trim()} onChange={(e) => updateProduct(entryIndex, productIndex, { imdg_source_reviewed: e.target.checked ? "Y" : "N" })} /><span className="text-sm">{t("imdgSource.confirm")}</span></label>
+              </fieldset>}
+
               <div className={`grid gap-4 ${showAll ? "md:grid-cols-2" : ""}`}>
                 <div className="dg-identity-search">
                   <div className="flex items-center gap-1.5">
