@@ -5,7 +5,7 @@ import DocumentTemplatesPanel from "./DocumentTemplatesPanel";
 import { api } from "../api/client";
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock("../api/client", () => ({ api: { documentTemplates: vi.fn(), importDocumentTemplate: vi.fn() } }));
-const items = ["cmr", "cim"].map(id => ({ id, name: id.toUpperCase(), kind: "form", filename: `${id}.pdf`, pages: 4, sha256: "fixture", available: false }));
+const items = ["cmr", "cim"].map(id => ({ id, name: id.toUpperCase(), kind: "form" as const, filename: `${id}.pdf`, pages: 4, sha256: "fixture", available: false }));
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.documentTemplates).mockResolvedValue(items);
