@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.12.3] - 2026-09-15
+
+### Changed
+
+- Apply the dossier document style to self-designed PDFs: embedded Cal Sans and
+  DejaVu Sans, blue accents, quiet tables and aligned headers/footers. Keep
+  installation branding, official form layouts and prescribed label geometry.
+- Give IMDG substances readable, labelled blocks instead of ten narrow columns;
+  allow long addresses, goods tables and annual-report answers to flow across pages.
+- Use the same style for newly generated UN cards, retaining all four shipping-name
+  translations and full provisions/provenance. Existing installed PDFs require
+  regeneration and import; all publication-rights gates remain in force.
+- Bundle font notices with card packages and accept the workflow's bounded source
+  inventories/notices without permitting archive path traversal.
+
 ## [2.12.2] - 2026-09-15
 
 ### Fixed

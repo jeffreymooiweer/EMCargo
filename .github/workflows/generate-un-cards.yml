@@ -17,7 +17,9 @@ on:
       - scripts/un_cards/**
       - backend/seed/dg/**
       - backend/app/config/dg_compliance.json
-      - frontend/public/shipping.png
+      - backend/app/pdf_style.py
+      - backend/app/assets/fonts/**
+      - backend/app/assets/logo.png
   workflow_dispatch:
     inputs:
       scope:
@@ -85,6 +87,7 @@ jobs:
           python scripts/build_source_sbom.py --out /tmp/cards/source.cdx.json
           cp THIRD_PARTY_NOTICES.md /tmp/cards/THIRD_PARTY_NOTICES.md
           cp -r licenses /tmp/cards/licenses
+          cp backend/app/assets/fonts/*LICENSE.txt /tmp/cards/licenses/
           python scripts/build_source_sbom.py --directory /tmp/cards --out /tmp/cards/cards.cdx.json
           if [ -f /tmp/emcargo-un-cards.zip ]; then
             (cd /tmp/cards && zip -qr /tmp/emcargo-un-cards.zip source.cdx.json cards.cdx.json THIRD_PARTY_NOTICES.md licenses)

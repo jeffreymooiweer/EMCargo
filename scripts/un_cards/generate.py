@@ -180,6 +180,10 @@ def build_zip(out_dir: Path, manifest: dict, zip_path: Path) -> None:
         archive.write(out_dir / "manifest.json", arcname="manifest.json")
         archive.write(out_dir / "generation-report.json",
                       arcname="generation-report.json")
+        archive.write(REPO / "THIRD_PARTY_NOTICES.md", arcname="THIRD_PARTY_NOTICES.md")
+        for license_name in ("CalSans-LICENSE.txt", "DejaVu-LICENSE.txt"):
+            archive.write(REPO / "backend/app/assets/fonts" / license_name,
+                          arcname=f"licenses/{license_name}")
         for card in manifest["cards"]:
             archive.write(out_dir / card["file"], arcname=card["file"])
 

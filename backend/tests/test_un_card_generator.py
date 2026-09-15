@@ -130,6 +130,10 @@ def test_the_store_accepts_what_the_generator_packages(generated, generator,
         from app.services.documents import un_card_store
         result = un_card_store.import_package(package)
         assert result["imported"] == manifest["total_cards"]
+        for filename in ("CalSans-LICENSE.txt", "DejaVu-LICENSE.txt"):
+            assert (un_card_store.store_dir() / "licenses" / filename).read_bytes() == (
+                REPO / "backend/app/assets/fonts" / filename).read_bytes()
+        assert (un_card_store.store_dir() / "THIRD_PARTY_NOTICES.md").is_file()
         assert un_card_store.card_path("1203", "ADR") is not None
         assert un_card_store.card_path("1203", "RID") is not None
         assert un_card_store.card_path("1203", "ICAO") is None

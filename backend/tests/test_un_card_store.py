@@ -304,3 +304,26 @@ def test_status_and_upload_import_through_the_api(data_dir, tmp_path):
             assert client.post("/api/un-cards/remove").json()["removed"] is True
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize("name", ["source.cdx.json", "cards.cdx.json",
+                                 "licenses/python/reportlab-4.2.5/LICENSE"])
+def test_published_package_metadata_is_preserved(data_dir, tmp_path, name):
+    """The workflow appends source inventories and notices to the ZIP.
+    Accepting only manifest/report made that published ZIP unimportable,
+    even though a package generated locally passed the import test.
+    """
+    package = make_package(tmp_path / "p.zip", extra_member=name)
+    assert un_card_store.import_package(package)["imported"] == 1
+    assert (un_card_store.store_dir() / name).read_bytes() == b"whatever"
+
+
+@pytest.mark.parametrize("name", ["licenses/../outside.txt", "licenses/a/../../outside.txt",
+                                 "licenses//absolute.txt", "licenses/./hidden.txt",
+                                 "licenses/..\\outside.txt", "licenses/.hidden.txt"])
+def test_notice_paths_cannot_escape_their_metadata_directory(data_dir, tmp_path, name):
+    """Allowing nested notices must not widen the archive traversal surface."""
+    package = make_package(tmp_path / "p.zip", extra_member=name)
+    with pytest.raises(un_card_store.UnCardImportError, match="Unexpected file"):
+        un_card_store.import_package(package)
+    assert not un_card_store.store_dir().exists()

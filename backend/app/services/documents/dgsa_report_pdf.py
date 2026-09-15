@@ -17,15 +17,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from reportlab.lib import colors
-from reportlab.platypus import KeepTogether, PageBreak, Spacer, Table, TableStyle
+from reportlab.platypus import PageBreak, Spacer, Table, TableStyle
 
 from app.core.languages import pick
+from app.pdf_style import table_commands
 from app.services.dgsa_form import checklist_rows
 from app.services.documents.frame import branded_document
 from app.services.documents.pdf_render import (
     BRAND,
-    GRID,
     _fields_table,
     _grid_table,
     _output_path,
@@ -77,19 +76,7 @@ def _yes_no_table(questions: list[dict[str, Any]], answers: dict[str, Any], labe
         answer, details = _answer_text(answers.get(question["key"]), labels, lang)
         rows.append([question["text"], answer, details])
     header = [_t("question", lang), _t("answer", lang), labels.get("details", "")]
-    data = [[_p(h, styles["cellh"]) for h in header]]
-    for row in rows:
-        data.append([_p(c, styles["cell"]) for c in row])
-    t = Table(data, colWidths=[width * 0.50, width * 0.14, width * 0.36], repeatRows=1)
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), BRAND),
-        ("GRID", (0, 0), (-1, -1), 0.4, GRID),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
-    ]))
-    return t
+    return _grid_table(header, rows, styles, width, col_weights=[.50, .14, .36])
 
 
 def _text_rows(questions: list[dict[str, Any]], answers: dict[str, Any], lang: str) -> list[tuple[str, Any]]:
@@ -131,16 +118,7 @@ def _transport_table(question: dict[str, Any], value: dict[str, Any], styles: di
         if cls == "7" and row.get("designs"):
             band = f"{band} · " + ", ".join(design_labels.get(d, d) for d in row["designs"])
         rows.append([cls, ops, band, "; ".join(counted)])
-    data = [[_p(h, styles["cellh"]) for h in header]] + [[_p(c, styles["cell"]) for c in r] for r in rows]
-    t = Table(data, colWidths=[width * 0.10, width * 0.42, width * 0.22, width * 0.26], repeatRows=1)
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), BRAND),
-        ("GRID", (0, 0), (-1, -1), 0.4, GRID),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-    ]))
-    return t
+    return _grid_table(header, rows, styles, width, col_weights=[.10, .42, .22, .26])
 
 
 def _incidents_table(question: dict[str, Any], rows: list[dict[str, Any]], styles: dict, width: float, lang: str):
@@ -149,15 +127,7 @@ def _incidents_table(question: dict[str, Any], rows: list[dict[str, Any]], style
     body = [[r.get("date", ""), r.get("place", ""), r.get("description", "")] for r in rows or []]
     if not body:
         body = [["", "", _t("not_answered", lang)]]
-    data = [[_p(h, styles["cellh"]) for h in header]] + [[_p(c, styles["cell"]) for c in r] for r in body]
-    t = Table(data, colWidths=[width * 0.16, width * 0.26, width * 0.58], repeatRows=1)
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), BRAND),
-        ("GRID", (0, 0), (-1, -1), 0.4, GRID),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-    ]))
-    return t
+    return _grid_table(header, body, styles, width, col_weights=[.16, .26, .58])
 
 
 def render_dgsa_report(report: dict[str, Any], definition: dict[str, Any], answers: dict[str, Any],
@@ -219,9 +189,7 @@ def render_dgsa_report(report: dict[str, Any], definition: dict[str, Any], answe
             block.append(Spacer(1, 18))
             block.append(_p(_t("responsible_signature", lang) + ": ______________________________", styles["note"]))
         block.append(Spacer(1, 8))
-        story.append(KeepTogether(block) if len(block) <= 3 else block[0])
-        if len(block) > 3:
-            story.extend(block[1:])
+        story.extend(block)
 
     # Appendix: what the history counted.
     story.append(PageBreak())
@@ -272,13 +240,9 @@ def render_dgsa_report(report: dict[str, Any], definition: dict[str, Any], answe
             additional_started = True
         data.append([_p(row["code"], styles["cell"]), _p(row["text"], styles["cell"]),
                      _p(row["answer"], styles["cell"]), _p(row["section"], styles["cell"])])
-    t = Table(data, colWidths=[width * 0.10, width * 0.52, width * 0.16, width * 0.22], repeatRows=1)
-    style = [
-        ("BACKGROUND", (0, 0), (-1, 0), BRAND),
-        ("GRID", (0, 0), (-1, -1), 0.4, GRID),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-    ]
+    t = Table(data, colWidths=[width * .12, width * .50, width * .16, width * .22],
+              repeatRows=1, splitByRow=1, splitInRow=1, hAlign="LEFT")
+    style = table_commands()
     for index, row in enumerate(data):
         if index and row[1] == "":
             style += [("BACKGROUND", (0, index), (-1, index), BRAND), ("SPAN", (0, index), (-1, index))]

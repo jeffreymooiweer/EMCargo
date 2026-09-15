@@ -38,8 +38,8 @@ def expected_channels(name: str) -> set[str]:
     channels = {"source"}
     if name.startswith(("backend/seed/", "backend/app/config/", "backend/app/assets/", "templates/", "frontend/public/", "licenses/")):
         channels |= {"image", "native"}
-    if name.startswith(("backend/seed/dg/", "scripts/un_cards/assets/")) or name in {
-        "backend/app/config/dg_compliance.json", "frontend/public/shipping.png"}:
+    if name.startswith(("backend/seed/dg/", "scripts/un_cards/assets/", "backend/app/assets/fonts/")) or name in {
+        "backend/app/config/dg_compliance.json", "backend/app/assets/logo.png", "frontend/public/shipping.png"}:
         channels.add("cards")
     return channels
 

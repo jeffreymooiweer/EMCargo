@@ -247,9 +247,9 @@ def render_packing_certificate(
         _section_header(_t("pc_declare", lang), styles, width),
         _grid_table(
             ["", ""],
-            # Helvetica has no ballot-box glyph; brackets render in every font.
+            # Empty brackets keep every declaration visibly unconfirmed.
             [["[   ]", pick(item, lang)] for item in DECLARATIONS],
-            styles, width),
+            styles, width, col_weights=[.08, .92]),
         Spacer(1, 4),
         _p(_t("pc_nothing_prefilled", lang), styles["meta"]),
         _p(_t("pc_single_document", lang), styles["meta"]),
@@ -380,10 +380,10 @@ def render_onboard_documents(
         _p(f"{datetime.now().strftime('%Y-%m-%d %H:%M')}", styles["meta"]),
         Spacer(1, 6),
         _section_header(_t("ob_from_app", lang), styles, width),
-        _grid_table(header, made, styles, width),
+        _grid_table(header, made, styles, width, col_weights=[.13, .62, .25]),
         Spacer(1, 6),
         _section_header(_t("ob_bring", lang), styles, width),
-        _grid_table(header, bring, styles, width),
+        _grid_table(header, bring, styles, width, col_weights=[.13, .62, .25]),
         Spacer(1, 6),
         _p(_t("ob_note", lang), styles["meta"]),
     ]

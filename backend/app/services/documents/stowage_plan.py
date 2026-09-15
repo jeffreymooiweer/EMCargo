@@ -25,7 +25,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from reportlab.platypus import KeepTogether, Spacer
+from reportlab.platypus import Spacer
 
 from app.services.dg.autofill import description_line
 from app.services.documents.frame import branded_document
@@ -192,20 +192,20 @@ def render_stowage_plan(
         rows = places[place]
         block = [
             _section_header(place[1], styles, width),
-            _grid_table(headers, rows, styles, width),
+            _grid_table(headers, rows, styles, width, col_weights=[.11, .64, .25]),
         ]
         if place[0] == 3:
             block.append(_p(_t("unassigned_note", lang), styles["note"]))
         block.append(Spacer(1, 6))
-        story.append(KeepTogether(block))
+        story.extend(block)
 
     if containers:
-        story.append(KeepTogether([
+        story.extend([
             _section_header(_t("containers", lang), styles, width),
             _grid_table(_t("container_headers", lang).split("|"), containers,
-                        styles, width),
+                        styles, width, col_weights=[.24, .18, .58]),
             Spacer(1, 6),
-        ]))
+        ])
 
     story.append(Spacer(1, 6))
     story.append(_p(_t("not_a_drawing", lang), styles["disclaimer"]))

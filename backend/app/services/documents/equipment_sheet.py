@@ -120,7 +120,7 @@ def render_equipment_sheet(
             ["", _t("provision", lang), ""],
             [["[   ]", item.get("rule", ""), item.get("text", "")]
              for item in items],
-            styles, width))
+            styles, width, col_weights=[.075, .19, .735]))
     else:
         story.append(_p(_t("no_dg", lang), styles["meta"]))
     if result.get("note"):

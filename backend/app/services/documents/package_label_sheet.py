@@ -1010,18 +1010,18 @@ def render_package_label_sheet(
         story.append(_p(f"{_t('consignment', lang)}: {reference}", styles["meta"]))
         story.append(Spacer(1, 4))
 
-    story.append(KeepTogether([
+    story.extend([
         _section_header(_t("goods", lang), styles, width),
         _grid_table(_label_header(lang), _label_rows(result, lang), styles, width),
-    ]))
+    ])
     story.append(Spacer(1, 8))
 
     # What the check could not settle, in the provision's own terms. The
     # placarding sheet set this pattern: an answer that hides its own gaps is
     # worse than one that names them.
     if "orientation_arrows" in result.get("not_assessed", []):
-        story.append(_p(f"<b>{_t('not_assessed', lang)}.</b> "
-                        f"{_t('orientation_arrows', lang)}", styles["fixed"]))
+        story.append(_p(_t("not_assessed", lang), styles["label"]))
+        story.append(_p(_t("orientation_arrows", lang), styles["fixed"]))
         story.append(Spacer(1, 6))
 
     story.extend(_column_6_block(result, styles, width, lang))

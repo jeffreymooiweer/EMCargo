@@ -201,8 +201,13 @@ def test_the_material_warning_is_on_every_page_that_gets_cut_up():
 
 
 def test_the_orientation_arrows_are_named_as_not_assessed():
+    """The warning stays visible as text; passing HTML to the escaping
+    paragraph helper used to print literal <b> tags on the working sheet.
+    """
     text = pages(sheet(goods("1263")))[0].replace("\n", " ")
     assert "5.2.1.10" in text
+    assert "Niet beoordeeld" in text
+    assert "<b>" not in text and "</b>" not in text
 
 
 # --- the marks, now that their figures are measured ---
