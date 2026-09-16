@@ -1,7 +1,6 @@
-import json
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -10,6 +9,9 @@ from app.core.messages import error as api_error
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_manager
 from app.models.user import Equipment, User
+from app.models.equipment import EquipmentEvent, EquipmentFile
+from app.schemas.equipment import EquipmentMovement
+from app.services import equipment as library
 from app.schemas import EquipmentBase, EquipmentOut, EquipmentUpdate
 from app.services.equipment_import import (
     EQUIPMENT_EXAMPLE,
@@ -48,52 +50,35 @@ class EquipmentImportResultOut(BaseModel):
     errors: list[MessageOut]
 
 
-def _equipment_out(item: Equipment) -> EquipmentOut:
-    return EquipmentOut(
-        id=item.id,
-        specifications=item.specifications,
-        length_cm=item.length_cm,
-        width_cm=item.width_cm,
-        height_cm=item.height_cm,
-        wall_thickness_mm=item.wall_thickness_mm,
-        weight_kg=item.weight_kg,
-        aliases=json.loads(item.aliases_json or "[]"),
-        language_labels=json.loads(item.language_labels_json or "{}"),
-        source=item.source,
-        notes=item.notes,
-        active=item.active,
-    )
+def _equipment_out(item: Equipment, db: Session) -> EquipmentOut:
+    return EquipmentOut(**library.to_dict(item, library.list_files(db, item.id)))
 
 
 @equipment_router.get("", response_model=list[EquipmentOut])
-def list_equipment(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    items = db.query(Equipment).order_by(Equipment.specifications).all()
-    return [_equipment_out(i) for i in items]
+def list_equipment(q: str = Query(default="", max_length=120),
+                   active_only: bool = False, user: User = Depends(get_current_user),
+                   db: Session = Depends(get_db)):
+    from sqlalchemy import or_
+    query = db.query(Equipment)
+    if active_only:
+        query = query.filter(Equipment.active.is_(True))
+    if q.strip():
+        needle = f"%{q.strip()}%"
+        query = query.filter(or_(Equipment.specifications.ilike(needle), Equipment.asset_code.ilike(needle),
+                                 Equipment.container_number.ilike(needle), Equipment.details_json.ilike(needle)))
+    items = query.order_by(Equipment.specifications, Equipment.id).all()
+    files: dict[int, list[EquipmentFile]] = {}
+    for file in db.query(EquipmentFile).order_by(EquipmentFile.created_at.desc(), EquipmentFile.id):
+        files.setdefault(file.equipment_id, []).append(file)
+    return [library.to_dict(item, files.get(item.id, [])) for item in items]
 
 
 @equipment_router.post("", response_model=EquipmentOut)
-def create_equipment(
-    payload: EquipmentBase,
-    admin: User = Depends(require_manager),
-    db: Session = Depends(get_db),
-):
-    item = Equipment(
-        specifications=payload.specifications,
-        length_cm=payload.length_cm,
-        width_cm=payload.width_cm,
-        height_cm=payload.height_cm,
-        wall_thickness_mm=payload.wall_thickness_mm,
-        weight_kg=payload.weight_kg,
-        aliases_json=json.dumps(payload.aliases),
-        language_labels_json=json.dumps(payload.language_labels),
-        source=payload.source,
-        notes=payload.notes,
-        active=payload.active,
-    )
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    return _equipment_out(item)
+def create_equipment(payload: EquipmentBase, admin: User = Depends(require_manager),
+                     db: Session = Depends(get_db)):
+    item = library.save(db, payload.model_dump(mode="json"), admin)
+    library.commit(db)
+    return _equipment_out(item, db)
 
 
 @equipment_router.get("/import-template")
@@ -148,7 +133,7 @@ async def import_equipment_file(
         )
     except ImportLimitError as exc:
         raise api_error(422, exc.code, **exc.params) from exc
-    result = import_equipment_rows(db, rows)
+    result = import_equipment_rows(db, rows, user=admin)
     if result.created == 0 and result.updated == 0 and not result.errors:
         raise api_error(400, "import.no_usable_lines")
     return EquipmentImportResultOut(
@@ -159,35 +144,83 @@ async def import_equipment_file(
     )
 
 
+@equipment_router.get("/{item_id}")
+def equipment_detail(item_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    item = library.get(db, item_id)
+    files = library.list_files(db, item_id)
+    return {**library.to_dict(item, files), "files": [library.file_info(file) for file in files]}
+
+
+@equipment_router.get("/{item_id}/events")
+def equipment_events(item_id: int, before: int | None = Query(default=None, gt=0),
+                     user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    library.get(db, item_id)
+    query = db.query(EquipmentEvent).filter_by(equipment_id=item_id)
+    if before:
+        query = query.filter(EquipmentEvent.id < before)
+    events = query.order_by(EquipmentEvent.id.desc()).limit(51).all()
+    return {"events": [{key: getattr(event, key) for key in (
+        "id", "actor_name", "action", "from_location", "to_location", "availability", "reference", "notes", "created_at")}
+        for event in events[:50]], "next_before": events[49].id if len(events) > 50 else None}
+
+
 @equipment_router.patch("/{item_id}", response_model=EquipmentOut)
-def update_equipment(
-    item_id: int,
-    payload: EquipmentUpdate,
-    admin: User = Depends(require_manager),
-    db: Session = Depends(get_db),
-):
-    item = db.query(Equipment).filter(Equipment.id == item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Equipment not found")
-    data = payload.model_dump(exclude_unset=True)
-    aliases = data.pop("aliases", None)
-    labels = data.pop("language_labels", None)
-    for key, value in data.items():
-        setattr(item, key, value)
-    if aliases is not None:
-        item.aliases_json = json.dumps(aliases)
-    if labels is not None:
-        item.language_labels_json = json.dumps(labels)
-    db.commit()
-    db.refresh(item)
-    return _equipment_out(item)
+def update_equipment(item_id: int, payload: EquipmentUpdate, admin: User = Depends(require_manager),
+                     db: Session = Depends(get_db)):
+    item = library.save(db, payload.model_dump(exclude_unset=True), admin, existing=library.get(db, item_id))
+    library.commit(db)
+    return _equipment_out(item, db)
+
+
+@equipment_router.post("/{item_id}/movements", response_model=EquipmentOut)
+def confirm_movement(item_id: int, payload: EquipmentMovement, admin: User = Depends(require_manager),
+                     db: Session = Depends(get_db)):
+    item = library.move(db, library.get(db, item_id), payload, admin)
+    library.commit(db)
+    return _equipment_out(item, db)
+
+
+@equipment_router.post("/{item_id}/files")
+async def upload_equipment_file(item_id: int, file: UploadFile = File(...),
+                                admin: User = Depends(require_manager), db: Session = Depends(get_db)):
+    item = library.get(db, item_id)
+    content = await file.read(library.MAX_FILE_BYTES + 1)
+    record = library.attach(db, item, content, file.filename or "document")
+    library.commit(db)
+    return library.file_info(record)
+
+
+def _file(db: Session, item_id: int, file_id: str) -> EquipmentFile:
+    record = db.query(EquipmentFile).filter_by(id=file_id, equipment_id=item_id).first()
+    if record is None:
+        raise api_error(404, "equipment.file_missing")
+    return record
+
+
+@equipment_router.get("/{item_id}/files/{file_id}")
+def read_equipment_file(item_id: int, file_id: str, user: User = Depends(get_current_user),
+                        db: Session = Depends(get_db)):
+    from urllib.parse import quote
+    record = _file(db, item_id, file_id)
+    disposition = "inline" if record.kind == "photo" else "attachment"
+    return Response(content=record.content, media_type=record.media_type, headers={
+        "Content-Disposition": f"{disposition}; filename*=UTF-8''{quote(record.name, safe='')}",
+        "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@equipment_router.delete("/{item_id}/files/{file_id}")
+def remove_equipment_file(item_id: int, file_id: str, admin: User = Depends(require_manager),
+                          db: Session = Depends(get_db)):
+    db.delete(_file(db, item_id, file_id))
+    library.commit(db)
+    return {"ok": True}
 
 
 @equipment_router.delete("/{item_id}")
 def delete_equipment(item_id: int, admin: User = Depends(require_manager), db: Session = Depends(get_db)):
-    item = db.query(Equipment).filter(Equipment.id == item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Equipment not found")
+    item = library.get(db, item_id)
+    db.query(EquipmentFile).filter_by(equipment_id=item_id).delete(synchronize_session=False)
+    db.query(EquipmentEvent).filter_by(equipment_id=item_id).delete(synchronize_session=False)
     db.delete(item)
-    db.commit()
+    library.commit(db)
     return {"ok": True}

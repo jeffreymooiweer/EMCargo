@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { api, CatalogSearchHit, EquipmentItem } from "../api/client";
+import { api, CatalogSearchHit, EquipmentItem, EquipmentSnapshot } from "../api/client";
+import { equipmentSnapshot } from "../utils/equipment";
 import { documentLanguage } from "../i18n/language";
 
 const inputClass =
@@ -13,7 +14,7 @@ const DEBOUNCE_MS = 280;
 interface Props {
   id?: string;
   value: string;
-  onChange: (value: string, equipment?: EquipmentItem | null) => void;
+  onChange: (value: string, equipment?: EquipmentSnapshot | null) => void;
   placeholder?: string;
   /** The input itself, so a caller can put the cursor in it — the goods step
    *  focuses the description of a line it has just added. */
@@ -29,6 +30,7 @@ interface Props {
  *  shared; a failure is not cached, so a box mounted after the network came
  *  back asks again. */
 let libraryPromise: Promise<EquipmentItem[]> | null = null;
+export function invalidateEquipmentLibrary() { libraryPromise = null; }
 
 function library(): Promise<EquipmentItem[]> {
   if (!libraryPromise) {
@@ -158,7 +160,7 @@ export default function EquipmentCombobox({
 
   const sourceLabel = (source: CatalogSearchHit["source"]) => t(`review.catalogSource.${source}` as "review.catalogSource.equipment");
 
-  const pickValue = (label: string, item?: EquipmentItem | null) => {
+  const pickValue = (label: string, item?: EquipmentSnapshot | null) => {
     setQuery(label);
     onChange(label, item ?? null);
     setOpen(false);
@@ -229,7 +231,7 @@ export default function EquipmentCombobox({
                 <button
                   type="button"
                   className="w-full px-3 py-2.5 text-left hover:bg-brand-50 dark:hover:bg-brand-950/40 border-t border-slate-100 dark:border-slate-800"
-                  onClick={() => pickValue(hit.value)}
+                  onClick={() => pickValue(hit.value, hit.equipment)}
                 >
                   <span className="flex items-center gap-2">
                     <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{hit.label}</span>
@@ -249,13 +251,13 @@ export default function EquipmentCombobox({
           {!showCatalog &&
             browseEquipment.map((item) => {
               const label = item.specifications;
-              const sub = null;
+              const sub = item.asset_code || item.container_number || item.registration || null;
               return (
                 <li key={item.id}>
                   <button
                     type="button"
                     className="w-full px-3 py-2.5 text-left hover:bg-brand-50 dark:hover:bg-brand-950/40 border-t border-slate-100 dark:border-slate-800"
-                    onClick={() => pickValue(label, item)}
+                    onClick={() => pickValue(label, equipmentSnapshot(item))}
                   >
                     <span className="flex items-center gap-2">
                       <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{label}</span>

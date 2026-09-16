@@ -25,6 +25,8 @@ def parse_text(payload: ParseRequest, user: User = Depends(get_current_user), db
 @router.post("/calculate")
 def calculate(payload: CalculateRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if payload.lines:
+        from app.services.container_loading import assess
+        payload.lines, _ = assess(payload.lines)
         result = {
             "success": True,
             "column_map": payload.column_map or {},

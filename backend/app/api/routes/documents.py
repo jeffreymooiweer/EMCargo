@@ -168,6 +168,8 @@ def _render_export(document: dict, payload: DocumentExportRequest,
     can never contain a different rendering than the per-document button
     hands out.
     """
+    from app.services.container_loading import assess
+    payload = payload.model_copy(update={"lines": assess(payload.lines)[0]})
     exporter = document.get("exporter")
     if ((exporter == "pdf_template" and not has_pdf_template(payload.document_key))
             or (exporter == "avc" and not has_avc_template())):

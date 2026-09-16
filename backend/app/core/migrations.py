@@ -164,6 +164,25 @@ def _009_work_queue(conn: Connection) -> None:
     backfill(conn)
 
 
+def _010_equipment_assets(conn: Connection) -> None:
+    """Preserve the old library and add typed assets, movements and files."""
+    from app.models.equipment import EquipmentEvent, EquipmentFile
+    from app.models.user import Equipment
+    Equipment.__table__.create(conn, checkfirst=True)
+    for definition in (
+        "kind VARCHAR(16) NOT NULL DEFAULT 'other'",
+        "asset_code VARCHAR(64)",
+        "container_number VARCHAR(32)",
+        "details_json TEXT NOT NULL DEFAULT '{}'",
+        "version INTEGER NOT NULL DEFAULT 1",
+    ):
+        add_column(conn, "equipment_items", definition)
+    for name in ("asset_code", "container_number"):
+        conn.execute(text(f"CREATE UNIQUE INDEX IF NOT EXISTS uq_equipment_{name} ON equipment_items ({name})"))
+    EquipmentEvent.__table__.create(conn, checkfirst=True)
+    EquipmentFile.__table__.create(conn, checkfirst=True)
+
+
 #: In order. Append; never renumber, never remove.
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "shipments", _001_shipments),
@@ -175,6 +194,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (7, "trips", _007_trips),
     (8, "shipment_drafts", _008_shipment_drafts),
     (9, "work_queue", _009_work_queue),
+    (10, "equipment_assets", _010_equipment_assets),
 ]
 
 

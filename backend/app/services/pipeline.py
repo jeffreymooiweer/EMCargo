@@ -102,6 +102,9 @@ class LineResult:
     # description of a line counted in packages. Feeds the DG derivation so
     # the net-per-package question never has to be asked.
     package_content: str | None = None
+    equipment: dict[str, Any] | None = None
+    equipment_role: str = "cargo"
+    container_line_id: int | None = None
 
 
 def _load_aliases_json(raw: str) -> list[str]:
@@ -159,6 +162,7 @@ def match_equipment(text: str, db: Session) -> Equipment | None:
     lower = text.lower()
     best: Equipment | None = None
     best_len = 0
+    ambiguous = False
     for item in db.query(Equipment).filter(Equipment.active.is_(True)).all():
         aliases = [item.specifications.lower()]
         aliases.extend(a.lower() for a in _load_aliases_json(item.aliases_json))
@@ -168,7 +172,10 @@ def match_equipment(text: str, db: Session) -> Equipment | None:
             if alias and alias in lower and len(alias) > best_len:
                 best = item
                 best_len = len(alias)
-    return best
+                ambiguous = False
+            elif alias and alias in lower and len(alias) == best_len and best is not item:
+                ambiguous = True
+    return None if ambiguous else best
 
 
 def build_output_description(description: str, product_type: str | None, dims: Dimensions, lang: str) -> str:
@@ -299,19 +306,30 @@ def process_line(
             weight_total = weight_each * qty
         method = "reference_weight"
 
-    equipment = match_equipment(row.description, db)
-    if equipment and product_type not in STEEL_PRODUCT_TYPES:
+    frozen = overrides.get("equipment")
+    equipment = None
+    if frozen:
+        from pydantic import ValidationError
+        from types import SimpleNamespace
+        from app.schemas.equipment import EquipmentSnapshot
+        from app.core.messages import error as api_error
+        try:
+            frozen = EquipmentSnapshot.model_validate(frozen).model_dump(mode="json")
+        except ValidationError as exc:
+            raise api_error(422, "equipment.snapshot_invalid") from exc
+        equipment = SimpleNamespace(**frozen)
+    else:
+        equipment = match_equipment(row.description, db)
+    if equipment and (frozen or product_type not in STEEL_PRODUCT_TYPES):
         product_type = "equipment"
         weight_each = equipment.weight_kg
         if qty:
             weight_total = weight_each * qty
-        length_cm = equipment.length_cm
-        width_cm = equipment.width_cm
-        height_cm = equipment.height_cm
-        if equipment.length_cm and equipment.width_cm and equipment.height_cm and qty:
-            transport_vol = (
-                equipment.length_cm * equipment.width_cm * equipment.height_cm / 1_000_000
-            ) * qty
+        length_cm = meters_to_cm(overrides.get("length_m")) or equipment.length_cm
+        width_cm = meters_to_cm(overrides.get("width_m")) or equipment.width_cm
+        height_cm = meters_to_cm(overrides.get("height_m")) or equipment.height_cm
+        if length_cm and width_cm and height_cm and qty:
+            transport_vol = length_cm * width_cm * height_cm / 1_000_000 * qty
         method = "equipment_catalog"
         ref = None
 
@@ -513,7 +531,7 @@ def process_line(
         density = STEEL_DENSITY
 
     output_desc = overrides.get("output_description") or (
-        equipment.specifications
+        " · ".join(filter(None, (equipment.specifications, frozen.get("asset_code") or frozen.get("container_number") or frozen.get("registration"), frozen.get("configuration")))) if frozen else equipment.specifications
         if equipment and product_type == "equipment"
         else build_output_description(row.description, product_type, dims, output_language)
     )
@@ -588,6 +606,9 @@ def process_line(
         detected_un_numbers=detected_un_numbers,
         dg_name_candidates=dg_name_candidates,
         package_content=package_content,
+        equipment=frozen,
+        equipment_role=overrides.get("equipment_role") or "cargo",
+        container_line_id=overrides.get("container_line_id"),
     )
 
 
@@ -609,14 +630,11 @@ def parse_and_calculate(
             idx, row, db, input_language, output_language, overrides_by_id.get(idx)
         )
         lines.append(line)
-    if mode == "strict" and any(l.status in {"error", "needs_review"} for l in lines):
-        return {
-            "success": False,
-            "column_map": mapping,
-            "lines": [asdict(l) for l in lines],
-            "totals": {},
-            "errors": [l.messages for l in lines if l.messages],
-        }
+    from app.services.container_loading import assess
+    prepared, _ = assess([asdict(line) for line in lines])
+    if mode == "strict" and any(line["status"] in {"error", "needs_review"} for line in prepared):
+        return {"success": False, "column_map": mapping, "lines": prepared, "totals": {},
+                "errors": [line["messages"] for line in prepared if line["messages"]]}
     included = [l for l in lines if l.include]
     totals = {
         "line_count": len(lines),
@@ -624,14 +642,14 @@ def parse_and_calculate(
         "total_quantity": sum(l.quantity or 0 for l in included),
         "total_weight_kg": round(sum(l.weight_total_kg or 0 for l in included), 2),
         "total_material_volume_m3": round(sum(l.material_volume_m3 or 0 for l in included), 6),
-        "total_transport_volume_m3": round(sum(l.transport_volume_m3 or 0 for l in included), 6),
-        "warning_count": sum(1 for l in lines if l.status in {"warning", "needs_review"}),
-        "error_count": sum(1 for l in lines if l.status == "error"),
+        "total_transport_volume_m3": round(sum(l.get("transport_volume_m3") or 0 for l in prepared if l["include"]), 6),
+        "warning_count": sum(1 for l in prepared if l["status"] in {"warning", "needs_review"}),
+        "error_count": sum(1 for l in prepared if l["status"] == "error"),
     }
     return {
         "success": True,
         "column_map": mapping,
-        "lines": [asdict(l) for l in lines],
+        "lines": prepared,
         "totals": totals,
         "errors": [],
     }

@@ -8,14 +8,20 @@ import { PlusIcon, CopyIcon, TrashIcon, MoreIcon, ChevronDownIcon } from "./icon
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LineItem, UnitCatalogue, api, ArticleRef } from "../api/client";
+import { LineItem, UnitCatalogue, api, ArticleRef, EquipmentSnapshot } from "../api/client";
 import EquipmentCombobox from "./EquipmentCombobox";
+import { equipmentPatch } from "../utils/equipment";
+import EquipmentPicker from "./EquipmentPicker";
+import EquipmentLineFields from "./EquipmentLineFields";
 import GoodsImport from "./GoodsImport";
 import LineDetails, { ROUND_TYPES, WALL_PROFILE_TYPES, isDangerous } from "./LineDetails";
 import NumberInput from "./NumberInput";
 import UnitSelect from "./UnitSelect";
 
 export interface DraftLine {
+  equipment?: EquipmentSnapshot;
+  equipment_role?: "cargo" | "container";
+  container_line_id?: number;
   id: number;
   description: string;
   quantity: number | "";
@@ -85,6 +91,7 @@ interface Props {
   onRemoveLine: (id: number) => void;
   onDuplicateLine: (id: number) => void;
   onAddLine: () => void;
+  onChooseEquipment?: (item: EquipmentSnapshot) => void;
   onImport?: (text: string, mode: "append" | "replace") => void;
   onLineWeightChange?: (lineId: number, field: "weight_each_kg" | "weight_total_kg", value: number | null) => void;
   initialPaste?: boolean;
@@ -123,6 +130,7 @@ function needsAttention(item: LineItem | null): boolean {
  *  signature have the same answer; a line whose signature moved has none yet. */
 function signatureOf(line: DraftLine): string {
   return JSON.stringify([
+    line.equipment, line.equipment_role, line.container_line_id,
     line.description.trim(), line.quantity, line.unit, line.cargo_form ?? "",
     line.length_cm ?? "", line.width_cm ?? "", line.height_cm ?? "", line.wall_thickness_mm ?? "",
   ]);
@@ -140,11 +148,13 @@ export default function ReviewLinesPanel({
   onDuplicateLine,
   onAddLine,
   onImport,
+  onChooseEquipment,
   onLineWeightChange,
   translateMessage,
   initialPaste,
 }: Props) {
   const { t, i18n } = useTranslation();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const number = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 3 });
   const canRemove = draftLines.length > 1;
 
@@ -237,7 +247,7 @@ export default function ReviewLinesPanel({
     seen.current = ids;
     // Exactly one new line is somebody adding or duplicating one. A handful at
     // once is an import, and an import should not drag the page to its last row.
-    if (added.length === 1) {
+    if (added.length === 1 && !draftLines.find(line => line.id === added[0])?.equipment) {
       const input = inputs.current.get(added[0]);
       input?.focus();
       // jsdom has no layout, so it has no scrollIntoView either.
@@ -299,6 +309,8 @@ export default function ReviewLinesPanel({
     >
       <div className="goods-heading">
         <h3>{t("review.linesTitle")}</h3>
+        {onChooseEquipment && <button type="button" className="action-secondary" onClick={() => setPickerOpen(true)}>{t("assets.choose")}</button>}
+        {pickerOpen && onChooseEquipment && <EquipmentPicker onClose={() => setPickerOpen(false)} onPick={item => { onChooseEquipment(item); setPickerOpen(false); }} />}
         {onImport && <GoodsImport initialPaste={initialPaste} hasLines={hasLines} onImport={onImport}
           dropped={dropped} onDroppedHandled={() => setDropped(null)} />}
       </div>
@@ -332,7 +344,7 @@ export default function ReviewLinesPanel({
                   <label className="goods-field-label" htmlFor={`goods-description-${line.id}`}>{t("wizard.stageGoods")}</label>
                   <EquipmentCombobox id={`goods-description-${line.id}`} value={line.description}
                     placeholder={t("review.simplePlaceholder")}
-                    onChange={(value) => updateDraft(line.id, { description: value })}
+                    onChange={(value, selected) => updateDraft(line.id, selected ? equipmentPatch(selected) : { description: value, ...(line.equipment ? { equipment: undefined, equipment_role: undefined, length_cm: undefined, width_cm: undefined, height_cm: undefined, weight_each_kg: undefined, weight_total_kg: undefined } : {}) })}
                     inputRef={(element) => {
                       if (element) inputs.current.set(line.id, element);
                       else inputs.current.delete(line.id);
@@ -384,6 +396,7 @@ export default function ReviewLinesPanel({
                   {t("review.lineDetails")}<DetailsIcon open={open} />
                 </button>
               </div>
+              <EquipmentLineFields line={line} lines={draftLines} result={item} onChange={(patch) => updateDraft(line.id, patch)} />
               <Derived line={line} item={item} stale={stale} expanded={open} translateMessage={translateMessage} />
               <SubstanceQuestion line={line} item={item} expanded={open} onAnswer={(patch) => answer(line, patch)} />
               {open && <LineDetails line={line} result={item} position={index + 1} catalogue={catalogue} id={panelId}

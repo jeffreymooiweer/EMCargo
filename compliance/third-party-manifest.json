@@ -234,7 +234,7 @@
       "redistribution_basis": "Project configuration and original document field mappings; no permission to redistribute the referenced source forms is inferred.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "backend/app/config/document_registry.json": "217d4d4c62e3cc76035f01308f7b94f9076a8300380e1f0fb0b2ed4c277f4ee2"
+        "backend/app/config/document_registry.json": "6c5524672f5c96e3c57ed20d20b1036e1fdd916254602e7abe2dbd34fc6af47f"
       },
       "distribution_channels": [
         "image",
@@ -3561,7 +3561,7 @@
       "redistribution_basis": "Project-authored build/dependency declaration; dependencies keep their own licenses.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package.json": "21232a6076a932d5cd0d4255f821c6bf032755bf580c2f8e541d13ebc92c9328"
+        "frontend/package.json": "f15672564e880db8673f6d2dfb082d400805f878bb373c1b38744090c2a4b23b"
       },
       "distribution_channels": [
         "source"
@@ -3583,7 +3583,7 @@
       "redistribution_basis": "The declaration is project-authored; the resolved packages retain their own licenses and require a generated SBOM.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package-lock.json": "54df9bf7e635d80a35070f7e4c16aace4420dfd31d8b3a37b4c6e94dc95ada5e"
+        "frontend/package-lock.json": "613a2b7c40aa62d2ff5d1f377431ea30e2aff50da7caebdc9ea7ef6ebafe52e4"
       },
       "distribution_channels": [
         "image",

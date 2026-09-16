@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.13.0] - 2026-09-16
+
+### Added
+
+- Expand Library → Equipment into vehicles, machines, containers and other
+  equipment, with photographs, asset numbers, transport configurations,
+  accessories, loading instructions, condition, planning and local files.
+- Track confirmed transfers in an equipment history. Editing a shipment does not
+  move an asset, and stale library edits cannot overwrite a confirmed transfer.
+- Select equipment by identity in the shipment wizard and freeze its transport
+  facts. Later library changes do not rewrite the selected shipment data.
+- Assign goods to carrying containers; count tare once, use the outer container
+  volume for transport totals, and recheck payload/gross limits on document export.
+- Preserve old equipment imports and add an extended spreadsheet round trip for
+  asset metadata. Archive/restore retains equipment history and files.
+
+### Fixed
+
+- Show the material's density under profile suggestions instead of the repeated
+  “Add dimensions” example. A shape without a known material invents no density.
+- Keep container tare fixed when correcting a shipment's total weight and exclude
+  it from the cargo mass suggested on the VGM form. Existing single-container sea
+  forms require a separate shipment per carrying container; road lists and shipment
+  JSON retain multiple allocations. A calculated mass never fills verified VGM.
+
 ## [2.12.3] - 2026-09-16
 
 ### Changed

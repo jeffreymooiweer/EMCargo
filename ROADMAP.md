@@ -1,6 +1,6 @@
 # Roadmap
 
-Current direction, reviewed on 15 September 2026 against v2.12.2 and the product
+Current direction, reviewed on 16 September 2026 against v2.13.0 and the product
 owner's decisions. Completed work is in [CHANGELOG.md](CHANGELOG.md). Historical
 research remains in [Roadmap research](docs/roadmap-research.md),
 [The database](docs/database-plan.md) and the usability plans; older release
@@ -27,7 +27,7 @@ dependencies, acceptance criteria and delivery gates for v2.11.0.
 | Dangerous goods | Regulation-specific checks and specialist release by default; known gaps in [DG coverage](docs/dg-coverage.md) |
 | Organisation work | Optional saved shipments/private drafts, templates, departments, address book, own goods, trips and DGSA reports |
 | Trips | Combined-load assembly and assessment; no spatial load or route optimisation |
-| Library | Own goods and equipment; density references with source provenance and conditions |
+| Library | Own goods; vehicles, machines and containers with frozen shipment selections, local files and confirmed location history; sourced density references |
 | Density catalogue | 23,957 rows; measurements, manufacturer data, estimates and unverified legacy values distinguished |
 | Accounts | Mandatory sign-in, roles, personal settings, avatars, two-factor authentication and audit metadata |
 | Deployment | Docker/GHCR, Unraid, native bundles, Kubernetes and updates where supported |
@@ -62,7 +62,7 @@ Specialist modules remain optional projects using the core API and shipment data
 |---|---|
 | Visual load planning | 2D/3D placement, dimensions, stacking, weight distribution and spatial segregation, accessible from Trips |
 | Route planning | Mode-specific journeys and restrictions, including dangerous goods constraints |
-| Container fleet management | Position, condition, inspections and custody |
+| Container fleet extensions | Telemetry, inspection workflows and per-container document bundles; basic inventory, condition, inspection dates and confirmed custody history are available in the equipment library |
 | Vessel design | Separate sea-going and inland-vessel tooling |
 | Specialist military transport | Separate private module; no operational data or military forms in the public civilian core |
 | Plugins and community | Admin-controlled installation, documented integration contracts and a community catalogue |

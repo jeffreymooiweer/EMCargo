@@ -617,3 +617,14 @@ See [Dangerous goods](dangerous-goods.md#what-one-un-number-gives-you).
   without internet. Only address autocomplete needs a connection.
 - **Check before you sign.** Every document is a draft. The app is a typing assistant,
   not a safety adviser.
+
+
+## Equipment, machines and containers
+
+Open **Library → Equipment** to maintain vehicles, machines, containers and other
+transport items. The library stores their transport dimensions and weight, asset
+numbers, photographs, files and confirmed location history. In a shipment, use
+**Choose equipment** to copy the selected item's data; later library edits do not
+change that saved selection. Containers can travel empty or carry allocated goods,
+with their tare counted once. See [Equipment library](equipment-library.md) for
+configurations, confirmed transfers, imports and container document scope.
