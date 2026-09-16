@@ -80,6 +80,28 @@ def test_upgrade_preserves_old_equipment_and_is_repeatable(tmp_path):
     engine.dispose()
 
 
+@pytest.mark.parametrize("legacy_dimension", [0, -1, float("inf")])
+def test_legacy_unknown_dimensions_stay_readable_and_selectable(client, db, legacy_dimension):
+    """The old API accepted unrestricted optional dimensions, and spreadsheets
+    could use zero for unknown. Stricter input validation must not make a whole
+    existing library fail to load or prevent selection of its known weight.
+    Reading must also leave the stored legacy record unchanged.
+    """
+    record = machine(db)
+    dimensions = ("length_cm", "width_cm", "height_cm", "wall_thickness_mm")
+    for key in dimensions:
+        setattr(record, key, legacy_dimension)
+    db.commit()
+    response = client.get("/api/equipment")
+    assert response.status_code == 200
+    assert all(response.json()[0][key] is None for key in dimensions)
+    frozen = library.snapshot(record)
+    assert frozen["weight_kg"] == 7000 and frozen["length_cm"] is None
+    db.refresh(record)
+    assert all(getattr(record, key) == legacy_dimension for key in dimensions)
+    assert client.patch(f"/api/equipment/{record.id}", json={"length_cm": 0}).status_code == 422
+
+
 def test_confirmed_transfer_cannot_be_undone_by_stale_edit_or_import(db):
     record = machine(db)
     before = library.to_dict(record)

@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import math
 import re
 import uuid
 
@@ -39,7 +40,14 @@ def details(item: Equipment) -> dict:
 def to_dict(item: Equipment, files: list[EquipmentFile] | None = None) -> dict:
     attached = files or []
     photo = next((file for file in attached if file.kind == "photo"), None)
-    return {**details(item), **{key: getattr(item, key) for key in BASE_FIELDS},
+    base = {key: getattr(item, key) for key in BASE_FIELDS}
+    # Older imports accepted zero/invalid optional dimensions as unknown. Keep
+    # those rows readable without weakening validation for new measurements.
+    for key in ("length_cm", "width_cm", "height_cm", "wall_thickness_mm"):
+        value = base[key]
+        if value is not None and (not math.isfinite(value) or value <= 0):
+            base[key] = None
+    return {**details(item), **base,
             "asset_code": item.asset_code or "", "container_number": item.container_number or "",
             "id": item.id, "version": item.version or 1,
             "aliases": json.loads(item.aliases_json or "[]"),

@@ -18,6 +18,7 @@
 
 ### Fixed
 
+- Upgrade older equipment tables and keep legacy unknown dimensions readable.
 - Show the material's density under profile suggestions instead of the repeated
   “Add dimensions” example. A shape without a known material invents no density.
 - Keep container tare fixed when correcting a shipment's total weight and exclude

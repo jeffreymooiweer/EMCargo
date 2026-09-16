@@ -100,6 +100,8 @@ def migrate_equipment_columns(db: Session) -> None:
     column is only added when absent, and the old one only dropped when
     present. A SQLite too old for DROP COLUMN keeps the dead column — it is
     nullable, so nothing breaks; it is simply no longer read or written.
+    The asset migration is also applied here so callers of this compatibility
+    helper can read the current equipment model immediately afterwards.
     """
     from sqlalchemy import inspect, text
 
@@ -121,6 +123,11 @@ def migrate_equipment_columns(db: Session) -> None:
         except Exception as exc:  # pragma: no cover - old SQLite without DROP COLUMN
             db.rollback()
             logger.warning("Could not drop the retired SAP code column: %s", exc)
+
+    from app.core.migrations import _010_equipment_assets
+
+    _010_equipment_assets(db.connection())
+    db.commit()
 
 
 def seed_catalogs(db: Session) -> None:

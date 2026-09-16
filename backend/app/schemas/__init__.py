@@ -158,6 +158,3 @@ class ReferenceItemOut(ReferenceItemBase):
 
     class Config:
         from_attributes = True
-
-
-from app.schemas.equipment import EquipmentBase, EquipmentOut, EquipmentUpdate  # noqa: E402, F401

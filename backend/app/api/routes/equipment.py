@@ -10,9 +10,8 @@ from app.core.database import get_db
 from app.core.deps import get_current_user, require_manager
 from app.models.user import Equipment, User
 from app.models.equipment import EquipmentEvent, EquipmentFile
-from app.schemas.equipment import EquipmentMovement
+from app.schemas.equipment import EquipmentBase, EquipmentMovement, EquipmentOut, EquipmentUpdate
 from app.services import equipment as library
-from app.schemas import EquipmentBase, EquipmentOut, EquipmentUpdate
 from app.services.equipment_import import (
     EQUIPMENT_EXAMPLE,
     EQUIPMENT_HEADERS,

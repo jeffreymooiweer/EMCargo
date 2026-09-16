@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 
 from app.core.messages import detail as message_detail
 from app.models.user import Equipment, User
-from app.schemas.equipment import EquipmentDetails
 from app.services import equipment as library
 from app.core.messages import ApiError
 from app.services.spreadsheet_io import normalize_header
