@@ -1,3 +1,5 @@
+import { containerAutoValues } from "../utils/containerValues";
+import { equipmentPatch } from "../utils/equipment";
 import { useDgReview, DgReviewGate } from "../wizard/useDgReview";
 import { ArrowRightIcon, ChevronDownIcon, DownloadIcon, DocumentIcon } from "../components/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -612,6 +614,7 @@ export default function WizardPage() {
   const signatureOf = (lines: DraftLine[]) =>
     JSON.stringify(
       lines.map((line) => [
+        line.equipment, line.equipment_role, line.container_line_id,
         line.description.trim(),
         line.quantity,
         line.unit,
@@ -768,10 +771,8 @@ export default function WizardPage() {
   };
 
   const autoValues = useMemo(
-    () => ({
-      total_weight_kg: result?.totals.total_weight_kg != null ? String(result.totals.total_weight_kg) : "",
-    }),
-    [result],
+    () => containerAutoValues(result, docValues.container_number ?? ""),
+    [result, docValues.container_number],
   );
 
   const exportValuesFor = (doc: DocumentDefinition): Record<string, string> => {
@@ -1466,7 +1467,7 @@ export default function WizardPage() {
   }, [searchParams, restorePending, preferencesLoaded]);
 
   const translateMessage = (msg: string) => {
-    const key = `messages.${msg}`;
+    const key = msg.startsWith("equipment.") ? `errors.${msg}` : `messages.${msg}`;
     const translated = t(key as "messages.dg_un_detected");
     return translated === key ? msg : translated;
   };
@@ -1674,6 +1675,15 @@ export default function WizardPage() {
             onAddLine={addLine}
             onImport={handleImport}
             onLineWeightChange={result ? handleLineWeightChange : undefined}
+            onChooseEquipment={equipment => {
+              const blank = draftLines.find(line => !line.description.trim());
+              if (blank) setDraftLines(lines => lines.map(line => line.id === blank.id ? { ...line, ...equipmentPatch(equipment) } : line));
+              else {
+                setDraftLines(lines => [...lines, { id: nextId, description: equipment.specifications, quantity: 1, unit: "pcs", ...equipmentPatch(equipment) }]);
+                setNextId(value => value + 1);
+              }
+              setResult(null);
+            }}
             translateMessage={translateMessage}
           />
 

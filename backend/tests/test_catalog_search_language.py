@@ -72,10 +72,19 @@ def test_a_template_suggestion_follows_the_language_too(db):
     assert any("Angle Profile" in label for label in labels(db, "hoekprofiel", "en"))
 
 
-def test_the_hint_under_a_suggestion_is_translated(db):
-    hits = search_catalog(db, "hoekprofiel", limit=5, language="de")
-    template = next(h for h in hits if h["source"] == "template")
-    assert "Abmessungen" in template["sublabel"]
+@pytest.mark.parametrize("language", SUPPORTED)
+def test_profile_suggestions_show_actual_density_without_dimension_prompt(db, language):
+    """The mobile dropdown must show the material density just like ordinary
+    goods. A made-up example size distracted from selection and looked required.
+    A shape without a known material has no density to invent.
+    """
+    hits = search_catalog(db, "staal hoekprofiel", limit=25, language=language)
+    templates = [hit for hit in hits if hit["source"] == "template"]
+    assert templates
+    assert any(hit["sublabel"] == "7850 kg/m³" for hit in templates)
+    assert all("kg/m³" in hit["sublabel"] for hit in templates if hit["sublabel"])
+    bare = search_catalog(db, "hoekprofiel", limit=5, language=language)
+    assert next(hit for hit in bare if hit["source"] == "template")["sublabel"] is None
 
 
 def test_an_unknown_language_falls_back_rather_than_returning_nothing(db):

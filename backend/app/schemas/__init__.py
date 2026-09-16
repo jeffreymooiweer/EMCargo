@@ -158,39 +158,3 @@ class ReferenceItemOut(ReferenceItemBase):
 
     class Config:
         from_attributes = True
-
-
-class EquipmentBase(BaseModel):
-    specifications: str = Field(min_length=1, max_length=255)
-    length_cm: float | None = None
-    width_cm: float | None = None
-    height_cm: float | None = None
-    #: Millimetres, as a wall is written down.
-    wall_thickness_mm: float | None = None
-    weight_kg: float = Field(gt=0)
-    aliases: list[str] = Field(default_factory=list)
-    language_labels: dict = Field(default_factory=dict)
-    source: str | None = None
-    notes: str | None = None
-    active: bool = True
-
-
-class EquipmentUpdate(BaseModel):
-    specifications: str | None = Field(default=None, min_length=1, max_length=255)
-    length_cm: float | None = None
-    width_cm: float | None = None
-    height_cm: float | None = None
-    wall_thickness_mm: float | None = None
-    weight_kg: float | None = Field(default=None, gt=0)
-    aliases: list[str] | None = None
-    language_labels: dict | None = None
-    source: str | None = None
-    notes: str | None = None
-    active: bool | None = None
-
-
-class EquipmentOut(EquipmentBase):
-    id: int
-
-    class Config:
-        from_attributes = True

@@ -1,4 +1,4 @@
-import { CalcResult, LineItem } from "../api/client";
+import { CalcResult, LineItem, EquipmentSnapshot } from "../api/client";
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -51,6 +51,18 @@ export function scaleLinesToTotalWeight(lines: LineItem[], newTotal: number): Li
   const included = lines.filter((line) => line.include);
   if (included.length === 0) return lines;
 
+  const fixed = included.filter(line => line.equipment_role === "container");
+  if (fixed.length) {
+    const tare = fixed.reduce((sum, line) => sum + (line.weight_total_kg ?? 0), 0);
+    const cargo = included.filter(line => line.equipment_role !== "container");
+    if (newTotal <= tare || !cargo.length) return lines;
+    const current = cargo.reduce((sum, line) => sum + (line.weight_total_kg ?? 0), 0);
+    return lines.map(line => {
+      if (!line.include || line.equipment_role === "container") return line;
+      const total = round2(current > 0 ? (line.weight_total_kg ?? 0) * (newTotal - tare) / current : (newTotal - tare) / cargo.length);
+      return { ...line, weight_total_kg: total, weight_each_kg: round2(total / (line.quantity || 1)) };
+    });
+  }
   const currentTotal = included.reduce((sum, line) => sum + (line.weight_total_kg || 0), 0);
   if (currentTotal <= 0) {
     const perLine = newTotal / included.length;
@@ -102,6 +114,10 @@ export function weightOverridesFromLines(lines: LineItem[]) {
  */
 export function dimensionOverridesFromDrafts(
   drafts: {
+    id?: number;
+    equipment?: EquipmentSnapshot;
+    equipment_role?: "cargo" | "container";
+    container_line_id?: number;
     description: string;
     cargo_form?: string;
     wall_thickness_mm?: number | "";
@@ -112,12 +128,22 @@ export function dimensionOverridesFromDrafts(
     weight_total_kg?: number | "";
   }[],
 ) {
-  const overrides: Record<string, number | string>[] = [];
-  drafts
-    .filter((draft) => draft.description.trim())
-    .forEach((draft, index) => {
-      const entry: Record<string, number | string> = { line_id: index + 1 };
+  const overrides: Record<string, unknown>[] = [];
+  const filled = drafts.filter((draft) => draft.description.trim());
+  const ids = new Map(filled.map((draft, index) => [draft.id, index + 1]));
+  filled.forEach((draft, index) => {
+      const entry: Record<string, unknown> = { line_id: index + 1 };
       let any = false;
+      if (draft.equipment) {
+        entry.equipment = draft.equipment;
+        entry.equipment_role = draft.equipment_role ?? "cargo";
+        any = true;
+      }
+      if (draft.container_line_id != null) {
+        // A missing parent stays invalid; never silently drop an allocation.
+        entry.container_line_id = ids.get(draft.container_line_id) ?? -1;
+        any = true;
+      }
       if (draft.cargo_form) {
         entry.cargo_form = draft.cargo_form;
         any = true;
@@ -154,9 +180,9 @@ export function dimensionOverridesFromDrafts(
 
 /** Weight and dimension overrides together, merged per line. */
 export function mergeOverrides(
-  ...groups: Record<string, number | string>[][]
-): Record<string, number | string>[] {
-  const byLine = new Map<number, Record<string, number | string>>();
+  ...groups: Record<string, unknown>[][]
+): Record<string, unknown>[] {
+  const byLine = new Map<number, Record<string, unknown>>();
   groups.flat().forEach((entry) => {
     const id = Number(entry.line_id);
     const existing = byLine.get(id) ?? { line_id: id };

@@ -78,6 +78,7 @@ class SearchHit:
     sublabel: str | None
     value: str
     score: float
+    equipment: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -87,6 +88,7 @@ class SearchHit:
             "sublabel": self.sublabel,
             "value": self.value,
             "score": round(self.score, 2),
+            **({"equipment": self.equipment} if self.equipment else {}),
         }
 
 
@@ -327,13 +329,17 @@ def _material_terms(material: Material) -> list[str]:
 
 
 def _search_equipment(db: Session, query: str, normalized: str, query_tokens: set[str]) -> list[SearchHit]:
+    from app.services.equipment import details, snapshot
     hits: list[SearchHit] = []
     for item in db.query(Equipment).filter(Equipment.active.is_(True)).all():
+        data = details(item)
         labels = json.loads(item.language_labels_json or "{}")
         alias_list = [
             item.specifications,
             *_load_aliases(item.aliases_json),
             *labels.values(),
+            item.asset_code or "", item.container_number or "", data["registration"], data["serial_number"],
+            data["brand"], data["model_name"],
         ]
         terms = _collect_terms(*alias_list)
         score = max(
@@ -355,9 +361,10 @@ def _search_equipment(db: Session, query: str, normalized: str, query_tokens: se
                 id=f"equipment:{item.id}",
                 source="equipment",
                 label=label,
-                sublabel=f"{item.weight_kg} kg",
+                sublabel=" · ".join(filter(None, [item.asset_code or item.container_number, f"{item.weight_kg:g} kg"])),
                 value=_merge_label(label, query),
                 score=score,
+                equipment=snapshot(item),
             )
         )
     return hits
@@ -475,15 +482,6 @@ def _template_suggestions(
 
     product_name = product_label(product_type, language)
     suffix = _dimension_suffix(query)
-    dim_hint = suffix or pick(
-        {"nl": "bijv. 80x80x8x6000", "en": "e.g. 80x80x8x6000", "de": "z. B. 80x80x8x6000", "fr": 'p. ex. 80x80x8x6000'},
-        language,
-    )
-    add_dims = pick(
-        {"nl": "Voeg afmetingen toe", "en": "Add dimensions", "de": "Abmessungen ergänzen", "fr": 'Ajouter les dimensions'},
-        language,
-    )
-    dims_label = pick({"nl": "Afmetingen", "en": "Dimensions", "de": "Abmessungen", "fr": 'Dimensions'}, language)
 
     if materials:
         for material in materials:
@@ -500,8 +498,7 @@ def _template_suggestions(
                     id=f"template:{material.canonical_name}:{product_type}",
                     source="template",
                     label=base.title() if mat_name.islower() else base,
-                    sublabel=(f"{add_dims}: {dim_hint}" if not suffix
-                              else f"{dims_label}: {suffix}"),
+                    sublabel=f"{material.density_kg_m3:g} kg/m³" if material.density_kg_m3 else None,
                     value=value,
                     score=8.0,
                 )
@@ -514,8 +511,7 @@ def _template_suggestions(
                 id=f"template::{product_type}",
                 source="template",
                 label=base.title(),
-                sublabel=(f"{add_dims}: {dim_hint}" if not suffix
-                          else f"{dims_label}: {suffix}"),
+                sublabel=None,
                 value=value,
                 score=6.0,
             )

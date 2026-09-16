@@ -487,6 +487,12 @@ export const api = {
     request<User>(`/users/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteUser: (id: number) => request<{ ok: boolean }>(`/users/${id}`, { method: "DELETE" }),
   listEquipment: () => request<EquipmentItem[]>("/equipment"),
+  getEquipment: (id: number) => request<EquipmentItem & { files: EquipmentFile[] }>(`/equipment/${id}`),
+  equipmentEvents: (id: number, before?: number) => request<{ events: EquipmentEvent[]; next_before: number | null }>(`/equipment/${id}/events${before ? `?before=${before}` : ""}`),
+  moveEquipment: (id: number, payload: { version: number; to_location: string; availability: string; reference: string; notes: string }) =>
+    request<EquipmentItem>(`/equipment/${id}/movements`, { method: "POST", body: JSON.stringify(payload) }),
+  uploadEquipmentFile: (id: number, file: File) => uploadFile<EquipmentFile>(`/equipment/${id}/files`, file),
+  deleteEquipmentFile: (id: number, fileId: string) => request<{ ok: boolean }>(`/equipment/${id}/files/${fileId}`, { method: "DELETE" }),
   createEquipment: (payload: Partial<EquipmentItem>) =>
     request<EquipmentItem>("/equipment", { method: "POST", body: JSON.stringify(payload) }),
   updateEquipment: (id: number, payload: Partial<EquipmentItem>) =>
@@ -1377,6 +1383,11 @@ export interface DensityPage {
 }
 
 export interface LineItem {
+  equipment?: EquipmentSnapshot | null;
+  equipment_role?: "cargo" | "container";
+  container_line_id?: number | null;
+  package_transport_volume_m3?: number | null;
+  container_load?: { tare_kg: number | null; cargo_kg: number; gross_kg: number | null; complete: boolean; line_ids: number[] };
   line_id: number;
   raw: string;
   description: string;
@@ -1728,6 +1739,7 @@ export interface DgInstructions {
 }
 
 export interface CatalogSearchHit {
+  equipment?: EquipmentSnapshot;
   id: string;
   source: "equipment" | "profile" | "reference" | "template" | "material";
   label: string;
@@ -1760,7 +1772,34 @@ export interface GeoAddress {
   countrycode: string;
 }
 
+export type EquipmentKind = "vehicle" | "machine" | "container" | "other";
+export interface TransportConfiguration {
+  name: string; length_cm?: number | null; width_cm?: number | null; height_cm?: number | null;
+  weight_kg: number; instructions?: string;
+}
+export interface EquipmentSnapshot {
+  equipment_id: number; version: number; specifications: string; kind: EquipmentKind;
+  asset_code?: string; container_number?: string; registration?: string; serial_number?: string;
+  length_cm?: number | null; width_cm?: number | null; height_cm?: number | null; weight_kg: number;
+  inner_length_cm?: number | null; inner_width_cm?: number | null; inner_height_cm?: number | null;
+  max_payload_kg?: number | null; max_gross_kg?: number | null;
+  transport_instructions?: string; accessories?: string; configuration?: string;
+  configurations?: TransportConfiguration[];
+}
+export interface EquipmentFile { id: string; name: string; kind: string; size: number; created_at: string; }
+export interface EquipmentEvent {
+  id: number; action: string; actor_name: string; from_location: string; to_location: string;
+  availability: string; reference: string; notes: string; created_at: string;
+}
 export interface EquipmentItem {
+  kind?: EquipmentKind; version?: number; asset_code?: string; container_number?: string;
+  brand?: string; model_name?: string; registration?: string; serial_number?: string; propulsion?: string;
+  transport_instructions?: string; accessories?: string; container_type?: string;
+  inner_length_cm?: number | null; inner_width_cm?: number | null; inner_height_cm?: number | null;
+  max_payload_kg?: number | null; max_gross_kg?: number | null; inspection_due?: string | null;
+  current_location?: string; availability?: string; condition?: string;
+  planned_reference?: string; planned_date?: string | null;
+  configurations?: TransportConfiguration[]; photo_url?: string | null; file_count?: number;
   id?: number;
   /** Millimetres, as a wall is written down. */
   wall_thickness_mm?: number | null;

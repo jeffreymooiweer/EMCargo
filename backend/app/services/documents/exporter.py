@@ -473,6 +473,19 @@ def validate_document(
     lang = _lang(language)
     errors: list[str | dict[str, Any]] = []
     warnings: list[str] = []
+    from app.services.container_loading import assess
+    assessed, allocation_errors = assess(lines)
+    errors.extend(error_detail(code) for code in allocation_errors)
+    carriers = [line for line in assessed if line.get("include", True) and line.get("equipment_role") == "container"]
+    # These existing forms describe one cargo transport unit. Never silently
+    # label all goods with the first container in a multi-container shipment.
+    if carriers and document.get("key") in {"vgm", "imo_dgd", "bl_si", "iftdgn"}:
+        parent = carriers[0]
+        stored_number = (parent.get("equipment") or {}).get("container_number", "").strip().upper()
+        entered_number = str(values.get("container_number") or "").strip().upper()
+        if (len(carriers) != 1 or (stored_number and entered_number and stored_number != entered_number)
+                or any(line.get("include", True) and line is not parent and line.get("container_line_id") != parent["line_id"] for line in assessed)):
+            errors.append(error_detail("equipment.document_container"))
     customs_verdicts: dict[str, customs_route.Verdict] | None = None
     if document.get("key") in {"cmr", "avc_waybill"}:
         included = [line for line in lines if line.get("include", True)]

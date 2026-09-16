@@ -678,7 +678,8 @@
                 "fr": "Numéro de conteneur"
               },
               "status": "OPTIONAL",
-              "type": "text"
+              "type": "text",
+              "auto_from": "selected_container_number"
             },
             {
               "key": "seal_numbers",
@@ -1288,7 +1289,8 @@
                 "fr": "Identification du conteneur / immatriculation du véhicule (case 15)"
               },
               "status": "OPERATIONAL",
-              "type": "text"
+              "type": "text",
+              "auto_from": "selected_container_number"
             },
             {
               "key": "seal_numbers",
@@ -1712,7 +1714,8 @@
                 "fr": "Numéro de conteneur"
               },
               "status": "USER_REQUIRED",
-              "type": "text"
+              "type": "text",
+              "auto_from": "selected_container_number"
             },
             {
               "key": "container_size_type",
@@ -1814,7 +1817,7 @@
               "status": "CONDITIONAL",
               "condition": "vgm_method=method2",
               "type": "number",
-              "auto_from": "total_weight_kg"
+              "auto_from": "container_cargo_weight_kg"
             },
             {
               "key": "packaging_mass_kg",
@@ -1862,7 +1865,8 @@
               },
               "status": "CONDITIONAL",
               "condition": "vgm_method=method2",
-              "type": "number"
+              "type": "number",
+              "auto_from": "container_tare_kg"
             },
             {
               "key": "certified_method_reference",
@@ -2416,7 +2420,8 @@
                 "fr": "Numéro de conteneur"
               },
               "status": "OPERATIONAL",
-              "type": "text"
+              "type": "text",
+              "auto_from": "selected_container_number"
             },
             {
               "key": "container_size_type",
@@ -2773,7 +2778,8 @@
                 "fr": "Numéro de conteneur"
               },
               "status": "OPTIONAL",
-              "type": "text"
+              "type": "text",
+              "auto_from": "selected_container_number"
             },
             {
               "key": "seal_numbers",

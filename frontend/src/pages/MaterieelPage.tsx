@@ -1,328 +1,136 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../toast/ToastProvider";
-import NumberInput from "../components/NumberInput";
-import { ImportIcon, DownloadIcon, DocumentIcon, PenIcon as PencilIcon, CopyIcon, TrashIcon, PlusIcon, ChevronDownIcon } from "../components/icons";
-import { api, EquipmentItem } from "../api/client";
+import { api, EquipmentItem, EquipmentFile, EquipmentEvent } from "../api/client";
+import { ImportIcon, DownloadIcon, PlusIcon } from "../components/icons";
 import EquipmentImportDialog from "../components/EquipmentImportDialog";
+import EquipmentDialog from "../components/EquipmentDialog";
+import EquipmentForm from "../components/EquipmentForm";
+import { invalidateEquipmentLibrary } from "../components/EquipmentCombobox";
 
-const inputClass =
-  "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm";
-const panelClass = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800";
-
-function CardAction({
-  label,
-  onClick,
-  icon,
-  danger,
-}: {
-  label: string;
-  onClick: () => void;
-  icon: React.ReactNode;
-  danger?: boolean;
-}) {
-  const tone = danger
-    ? "text-slate-500 hover:bg-red-50 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-    : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${tone}`}
-    >
-      {icon}
-    </button>
-  );
-}
-
-function CardRow({ label, children }: { label: string; children: React.ReactNode }) {
-  const rowRef = useRef<HTMLDivElement>(null);
-  const labelProbeRef = useRef<HTMLSpanElement>(null);
-  const valueProbeRef = useRef<HTMLSpanElement>(null);
-  const [stacked, setStacked] = useState(false);
-
-  useLayoutEffect(() => {
-    const row = rowRef.current;
-    const labelProbe = labelProbeRef.current;
-    const valueProbe = valueProbeRef.current;
-    if (!row || !labelProbe || !valueProbe) return;
-    const measure = () => {
-      const gap = 16;
-      const available = row.clientWidth - labelProbe.offsetWidth - gap;
-      setStacked(valueProbe.offsetWidth > available);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(row);
-    return () => observer.disconnect();
-  }, [label, children]);
-
-  return (
-    <div className="border-t border-slate-100 px-4 py-2.5 text-sm first:border-t-0 dark:border-slate-800">
-      <div ref={rowRef} className="relative">
-        {/* Invisible probes measure the natural width on one line. */}
-        <span ref={labelProbeRef} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 whitespace-nowrap">
-          {label}
-        </span>
-        <span ref={valueProbeRef} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 whitespace-nowrap font-medium">
-          {children}
-        </span>
-        {stacked ? (
-          <div className="flex flex-col gap-1">
-            <span className="text-slate-500 dark:text-slate-400">{label}</span>
-            <span className="break-words text-right font-medium text-slate-900 dark:text-slate-100">{children}</span>
-          </div>
-        ) : (
-          <div className="flex items-start justify-between gap-4">
-            <span className="shrink-0 text-slate-500 dark:text-slate-400">{label}</span>
-            <span className="text-right font-medium text-slate-900 dark:text-slate-100">{children}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const emptyForm = (): EquipmentItem => ({
-  specifications: "",
-  length_cm: null,
-  width_cm: null,
-  height_cm: null,
-  wall_thickness_mm: null,
-  weight_kg: 0,
-  aliases: [],
-  language_labels: {},
-  active: true,
-});
+const inputClass = "min-h-[44px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950";
+const empty = (): EquipmentItem => ({ specifications: "", kind: "machine", weight_kg: 0, aliases: [], active: true, availability: "available", condition: "unknown", configurations: [] });
+const dimensions = (item: EquipmentItem) => [item.length_cm, item.width_cm, item.height_cm].map(value => value ?? "—").join(" × ") + " cm";
 
 export default function MaterieelPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const toast = useToast();
   const [items, setItems] = useState<EquipmentItem[]>([]);
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState<EquipmentItem>(emptyForm());
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [filter, setFilter] = useState("all");
+  const [archived, setArchived] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState<EquipmentItem | null>(null);
+  const [selected, setSelected] = useState<(EquipmentItem & { files: EquipmentFile[] }) | null>(null);
+  const [events, setEvents] = useState<EquipmentEvent[]>([]);
+  const [nextBefore, setNextBefore] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const toast = useToast();
   const [importOpen, setImportOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [destination, setDestination] = useState("");
+  const [reference, setReference] = useState("");
+  const [notes, setNotes] = useState("");
+  const [availability, setAvailability] = useState("available");
+  const number = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 2 });
 
-  const load = () => api.listEquipment().then(setItems).catch((e) => toast.error(String(e)));
-  useEffect(() => { load(); }, []);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((item) => {
-      const hay = [
-        item.specifications,
-        ...(item.aliases || []),
-        ...Object.values(item.language_labels || {}),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }, [items, search]);
-
-  const resetForm = () => {
-    setFormOpen(false);
-    setForm(emptyForm());
-    setEditingId(null);
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    const payload = {
-      ...form,
-      aliases: (form.aliases as string[] | undefined) || [],
-      language_labels: form.language_labels || {},
-      weight_kg: Number(form.weight_kg),
-      length_cm: form.length_cm ? Number(form.length_cm) : null,
-      width_cm: form.width_cm ? Number(form.width_cm) : null,
-      height_cm: form.height_cm ? Number(form.height_cm) : null,
-      wall_thickness_mm: form.wall_thickness_mm ? Number(form.wall_thickness_mm) : null,
-    };
+  const load = async () => { invalidateEquipmentLibrary(); try { setItems(await api.listEquipment()); } catch (e) { toast.error(String(e)); } finally { setLoading(false); } };
+  useEffect(() => { void load(); }, []);
+  const filtered = useMemo(() => items.filter(item => {
+    if (!archived && item.active === false) return false;
+    const kind = item.kind ?? "other";
+    if (filter === "vehicles" ? !["vehicle", "machine"].includes(kind) : filter !== "all" && kind !== filter) return false;
+    return [item.specifications, item.asset_code, item.container_number, item.registration, item.serial_number,
+      item.brand, item.model_name, item.current_location, ...(item.aliases ?? [])].filter(Boolean).join(" ").toLowerCase().includes(search.trim().toLowerCase());
+  }), [items, search, filter, archived]);
+  const open = async (id: number) => {
     try {
-      if (editingId) {
-        await api.updateEquipment(editingId, payload);
-      } else {
-        await api.createEquipment(payload);
-      }
-      resetForm();
-      load();
-    } catch (err) {
-      setError(String(err));
-    }
+      const [record, history] = await Promise.all([api.getEquipment(id), api.equipmentEvents(id)]);
+      setSelected(record); setEvents(history.events); setNextBefore(history.next_before); setMoveOpen(false); setError("");
+    } catch (e) { toast.error(String(e)); }
   };
-
-  const startEdit = (item: EquipmentItem) => {
-    setFormOpen(true);
-    setEditingId(item.id!);
-    setForm({ ...item, aliases: item.aliases || [] });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  const save = async (record: EquipmentItem) => {
+    setBusy(true); setError("");
+    try {
+      const saved = record.id ? await api.updateEquipment(record.id, record) : await api.createEquipment(record);
+      setForm(null); await load(); await open(saved.id!); toast.success(t("assets.saved"));
+    } catch (e) { setError(String(e)); } finally { setBusy(false); }
   };
-
   const duplicate = (item: EquipmentItem) => {
-    setFormOpen(true);
-    setEditingId(null);
-    setForm({ ...emptyForm(), ...item, id: undefined, aliases: item.aliases || [] });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const copy = structuredClone(item);
+    delete copy.id; delete copy.version;
+    setSelected(null); setForm({ ...copy, asset_code: "", container_number: "", registration: "", serial_number: "", current_location: "", planned_reference: "", planned_date: null, availability: "unknown", photo_url: null, file_count: 0, active: true }); setError("");
   };
-
-  const remove = (item: EquipmentItem) => {
-    // Deferred delete with undo: the card disappears now, the DELETE fires
-    // when the six-second window closes. Undo means no call was ever made.
-    const id = item.id!;
-    if (editingId === id) resetForm();
-    setItems((current) => current.filter((candidate) => candidate.id !== id));
-    toast.undoable(t("toast.deletedItem", { name: item.specifications }), {
-      execute: () => {
-        api.deleteEquipment(id).then(load).catch((e) => {
-          toast.error(String(e));
-          void load();
-        });
-      },
-      restore: () => setItems((current) =>
-        current.some((candidate) => candidate.id === id) ? current : [...current, item]),
-    });
+  const archive = async () => {
+    if (!selected?.id) return;
+    setBusy(true); setError("");
+    try { await api.updateEquipment(selected.id, { version: selected.version, active: selected.active === false }); await load(); await open(selected.id); }
+    catch (e) { setError(String(e)); } finally { setBusy(false); }
   };
-
-  return (
-    <div className="collection-page page-enter space-y-6">
-      <header>
-        <h2 className="text-2xl font-semibold">{t("nav.materieel")}</h2>
-        <p className="min-w-0 flex-1 text-sm text-slate-600 dark:text-slate-400">{t("materieel.intro")}</p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <button className="action-secondary" onClick={() => api.downloadEquipmentTemplate().catch((e) => toast.error(String(e)))}><DocumentIcon />{t("import.downloadTemplate")}</button>
-          <button className="action-secondary" onClick={() => api.exportEquipmentLibrary().catch((e) => toast.error(String(e)))}><DownloadIcon />{t("materieel.exportLibrary")}</button>
-          <button className="action-secondary" onClick={() => setImportOpen(true)}><ImportIcon />{t("materieel.import")}</button>
-        </div>
-      </header>
-
-      <details className="surface collection-form" open={formOpen} onToggle={(event) => setFormOpen(event.currentTarget.open)}>
-        <summary><PlusIcon /><span>{editingId ? t("materieel.edit") : t("materieel.add")}</span><ChevronDownIcon /></summary>
-        <form onSubmit={submit} className="collection-form-body grid md:grid-cols-2 gap-4">
-        <label className="equipment-field md:col-span-2">{t("materieel.specifications")}<input className={`${inputClass} md:col-span-2`} required placeholder={t("materieel.specifications")} value={form.specifications} onChange={(e) => setForm({ ...form, specifications: e.target.value })} /></label>
-        <label className="equipment-field">{t("materieel.length")}<NumberInput className={inputClass} step="0.1" placeholder={t("materieel.length")} value={form.length_cm ?? ""} onChange={(e) => setForm({ ...form, length_cm: e.target.value ? Number(e.target.value) : null })} /></label>
-        <label className="equipment-field">{t("materieel.width")}<NumberInput className={inputClass} step="0.1" placeholder={t("materieel.width")} value={form.width_cm ?? ""} onChange={(e) => setForm({ ...form, width_cm: e.target.value ? Number(e.target.value) : null })} /></label>
-        <label className="equipment-field">{t("materieel.height")}<NumberInput className={inputClass} step="0.1" placeholder={t("materieel.height")} value={form.height_cm ?? ""} onChange={(e) => setForm({ ...form, height_cm: e.target.value ? Number(e.target.value) : null })} /></label>
-        <label className="equipment-field">{t("materieel.wallThickness")}<NumberInput className={inputClass} step="0.1" placeholder={t("materieel.wallThickness")} value={form.wall_thickness_mm ?? ""} onChange={(e) => setForm({ ...form, wall_thickness_mm: e.target.value ? Number(e.target.value) : null })} /></label>
-        <label className="equipment-field">{t("materieel.weight")}<NumberInput className={inputClass} step="0.1" required placeholder={t("materieel.weight")} value={form.weight_kg || ""} onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })} /></label>
-        <label className="equipment-field md:col-span-2">{t("materieel.aliases")}
-        <input
-          className={`${inputClass} md:col-span-2`}
-          placeholder={t("materieel.aliases")}
-          value={(form.aliases || []).join(", ")}
-          onChange={(e) => setForm({ ...form, aliases: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
-        />
-        </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-          <input type="checkbox" checked={form.active !== false} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
-          {t("materieel.active")}
-        </label>
-        <div className="flex gap-2 md:col-span-2">
-          <button type="submit" className="bg-brand-600 text-white rounded-lg px-4 py-2 text-sm">
-            {editingId ? t("materieel.save") : t("materieel.create")}
-          </button>
-          {editingId && (
-            <button type="button" onClick={resetForm} className="border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm">
-              {t("materieel.cancel")}
-            </button>
-          )}
-        </div>
-        </form>
-      </details>
-
-      <div className={`${panelClass} p-4`}>
-        <input
-          className={`${inputClass} w-full max-w-md`}
-          placeholder={t("materieel.search")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-          {t("materieel.count", { count: filtered.length, total: items.length })}
-        </p>
+  const transfer = async (event: React.FormEvent) => {
+    event.preventDefault(); if (!selected?.id) return;
+    setBusy(true); setError("");
+    try {
+      await api.moveEquipment(selected.id, { version: selected.version ?? 1, to_location: destination, availability, reference, notes });
+      await load(); await open(selected.id); setDestination(""); setReference(""); setNotes(""); toast.success(t("assets.transferSaved"));
+    } catch (e) { setError(String(e)); } finally { setBusy(false); }
+  };
+  const upload = async (file?: File) => {
+    if (!file || !selected?.id) return; setBusy(true); setError("");
+    try { await api.uploadEquipmentFile(selected.id, file); await load(); await open(selected.id); }
+    catch (e) { setError(String(e)); } finally { setBusy(false); }
+  };
+  return <div className="collection-page page-enter space-y-6">
+    <header><h2 className="text-2xl font-semibold">{t("nav.materieel")}</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("assets.intro")}</p>
+      <div className="mt-5 flex flex-wrap gap-2"><button className="action-primary" onClick={() => { setForm(empty()); setError(""); }}><PlusIcon />{t("materieel.add")}</button>
+        <button className="action-secondary" onClick={() => setImportOpen(true)}><ImportIcon />{t("materieel.import")}</button>
+        <button className="action-secondary" onClick={() => api.exportEquipmentLibrary().catch(e => toast.error(String(e)))}><DownloadIcon />{t("materieel.exportLibrary")}</button>
+        <button className="action-secondary" onClick={() => api.downloadEquipmentTemplate().catch(e => toast.error(String(e)))}>{t("import.downloadTemplate")}</button>
       </div>
-
-      {/* Cards on narrow screens. */}
-      <div className="space-y-3 md:hidden">
-        {filtered.map((item) => (
-          <div key={item.id} className={`${panelClass} shadow-sm`}>
-            <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-              <span className="min-w-0 truncate font-semibold text-slate-900 dark:text-slate-100">
-                {item.specifications}
-              </span>
-              {item.active === false && (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                  {t("materieel.inactive")}
-                </span>
-              )}
-              <div className="ml-auto flex items-center gap-0.5">
-                <CardAction label={t("materieel.edit")} onClick={() => startEdit(item)} icon={<PencilIcon />} />
-                <CardAction label={t("materieel.duplicate")} onClick={() => duplicate(item)} icon={<CopyIcon />} />
-                <CardAction label={t("materieel.delete")} onClick={() => remove(item)} icon={<TrashIcon />} danger />
-              </div>
-            </div>
-            <div>
-              <CardRow label={t("materieel.dimensions")}>
-                {[item.length_cm, item.width_cm, item.height_cm].filter((v) => v != null).join(" × ") || "—"}
-              </CardRow>
-              {item.wall_thickness_mm != null && (
-                <CardRow label={t("materieel.wallThickness")}>{item.wall_thickness_mm} mm</CardRow>
-              )}
-              <CardRow label={t("materieel.weight")}>{item.weight_kg} kg</CardRow>
-              {item.aliases && item.aliases.length > 0 && (
-                <CardRow label={t("materieel.aliases")}>{item.aliases.join(", ")}</CardRow>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Desktop: tabel */}
-      <div className={`${panelClass} hidden overflow-x-auto max-h-[32rem] overflow-y-auto md:block`}>
-        <table className="w-full text-sm text-slate-800 dark:text-slate-200">
-          <thead className="bg-slate-50 dark:bg-slate-800/80 sticky top-0">
-            <tr>
-              <th className="px-3 py-2 text-left">{t("materieel.specifications")}</th>
-              <th className="px-3 py-2 text-left">L×B×H</th>
-              <th className="px-3 py-2 text-left">{t("materieel.wallThickness")}</th>
-              <th className="px-3 py-2 text-left">{t("materieel.weight")}</th>
-              <th className="px-3 py-2 text-left"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((item) => (
-              <tr key={item.id} className="border-t border-slate-100 dark:border-slate-800">
-                <td className="px-3 py-2">{item.specifications}</td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  {[item.length_cm, item.width_cm, item.height_cm].filter((v) => v != null).join(" × ") || "—"}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  {item.wall_thickness_mm != null ? `${item.wall_thickness_mm} mm` : "—"}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap">{item.weight_kg} kg</td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  <div className="flex items-center gap-0.5">
-                    <CardAction label={t("materieel.edit")} onClick={() => startEdit(item)} icon={<PencilIcon />} />
-                    <CardAction label={t("materieel.duplicate")} onClick={() => duplicate(item)} icon={<CopyIcon />} />
-                    <CardAction label={t("materieel.delete")} onClick={() => remove(item)} icon={<TrashIcon />} danger />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
-
-      <EquipmentImportDialog open={importOpen} onClose={() => setImportOpen(false)} onComplete={load} />
+    </header>
+    <div className="equipment-toolbar"><div className="equipment-filters" role="group" aria-label={t("assets.filter")}>
+      {["all", "vehicles", "container", "other"].map(value => <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}>{t(`assets.filters.${value}`)}</button>)}
+    </div><input className={inputClass} type="search" aria-label={t("assets.search")} placeholder={t("assets.search")} value={search} onChange={event => setSearch(event.target.value)} />
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={archived} onChange={event => setArchived(event.target.checked)} />{t("assets.showArchived")}</label>
     </div>
-  );
+    <p className="text-sm text-slate-500">{t("materieel.count", { count: filtered.length, total: items.length })}</p>
+    {loading ? <p role="status">{t("assets.loading")}</p> : !filtered.length ? <div className="surface p-8"><p>{t(items.length ? "assets.noResults" : "assets.empty")}</p></div> : <div className="equipment-cards">
+      {filtered.map(item => <button type="button" className="equipment-card" key={item.id} onClick={() => void open(item.id!)}>
+        {item.photo_url ? <img src={item.photo_url} alt="" loading="lazy" /> : <span className="equipment-placeholder" aria-hidden>{(item.asset_code || item.specifications).slice(0, 2).toUpperCase()}</span>}
+        <div className="min-w-0"><span className="equipment-kind">{t(`assets.kindValues.${item.kind ?? "other"}`)}{item.active === false && ` · ${t("assets.archived")}`}</span>
+          <h3>{item.specifications}</h3><p className="text-sm text-slate-500 dark:text-slate-400">{[item.asset_code, item.container_number || item.registration, item.brand, item.model_name].filter(Boolean).join(" · ") || "—"}</p>
+        </div>
+        <div className="equipment-card-facts"><span>{dimensions(item)}</span><strong>{number.format(item.weight_kg)} kg</strong><span>{item.current_location || t("assets.locationUnknown")}</span><span>{t(`assets.availabilityValues.${item.availability || "unknown"}`)}</span></div>
+      </button>)}
+    </div>}
+    {form && <EquipmentDialog title={form.id ? t("materieel.edit") : t("materieel.add")} onClose={() => { if (!busy) setForm(null); }}>
+      {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}<EquipmentForm initial={form} onSave={save} onClose={() => setForm(null)} busy={busy} />
+    </EquipmentDialog>}
+    {selected && !form && <EquipmentDialog title={selected.specifications} onClose={() => { if (!busy) setSelected(null); }}>
+      {error && <p role="alert" className="mb-4 text-red-600">{error} <button className="underline" onClick={() => void open(selected.id!)}>{t("assets.reload")}</button></p>}
+      <div className="space-y-6">
+        {selected.photo_url && <img className="max-h-64 w-full rounded-xl object-contain" src={selected.photo_url} alt={selected.specifications} />}
+        <div className="flex flex-wrap gap-2"><button className="action-primary" disabled={busy} onClick={() => { setForm(selected); setError(""); }}>{t("materieel.edit")}</button><button className="action-secondary" disabled={busy} onClick={() => duplicate(selected)}>{t("materieel.duplicate")}</button><button className="action-secondary" disabled={busy} onClick={() => void archive()}>{t(selected.active === false ? "assets.restore" : "assets.archive")}</button></div>
+        <dl className="equipment-facts">{[["kind", t(`assets.kindValues.${selected.kind ?? "other"}`)], ["asset_code", selected.asset_code], ["container_number", selected.container_number], ["registration", selected.registration], ["serial_number", selected.serial_number], ["brand", selected.brand], ["model_name", selected.model_name], ["dimensions", dimensions(selected)], [selected.kind === "container" ? "tare_kg" : "weight_kg", `${number.format(selected.weight_kg)} kg`], ["max_payload_kg", selected.max_payload_kg], ["max_gross_kg", selected.max_gross_kg], ["container_type", selected.container_type], ["inspection_due", selected.inspection_due], ["current_location", selected.current_location || t("assets.locationUnknown")], ["availability", t(`assets.availabilityValues.${selected.availability || "unknown"}`)], ["condition", t(`assets.conditionValues.${selected.condition || "unknown"}`)], ["planned_reference", selected.planned_reference], ["planned_date", selected.planned_date]].filter(([, value]) => value != null && value !== "").map(([key, value]) => <div key={String(key)}><dt>{t(`assets.${key}`)}</dt><dd>{value}</dd></div>)}</dl>
+        {(selected.transport_instructions || selected.accessories || selected.notes) && <section className="space-y-2">{(["transport_instructions", "accessories", "notes"] as const).map(key => selected[key] && <div key={key}><h4 className="font-semibold">{t(`assets.${key}`)}</h4><p className="whitespace-pre-wrap text-sm">{selected[key]}</p></div>)}</section>}
+        <section><h4 className="font-semibold">{t("assets.transfer")}</h4><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t("assets.moveHint")}</p>
+          {!moveOpen ? <button className="action-secondary mt-3" disabled={busy || selected.active === false} onClick={() => setMoveOpen(true)}>{t("assets.transfer")}</button> : <form onSubmit={transfer} className="mt-3 grid gap-3 md:grid-cols-2"><fieldset className="contents" disabled={busy}>
+            <label className="equipment-field">{t("assets.destination")}<input className={inputClass} required maxLength={200} value={destination} onChange={event => setDestination(event.target.value)} /></label>
+            <label className="equipment-field">{t("assets.availability")}<select className={inputClass} value={availability} onChange={event => setAvailability(event.target.value)}>{["available", "planned", "in_transit", "maintenance", "unknown"].map(value => <option value={value} key={value}>{t(`assets.availabilityValues.${value}`)}</option>)}</select></label>
+            <label className="equipment-field">{t("assets.reference")}<input className={inputClass} maxLength={120} value={reference} onChange={event => setReference(event.target.value)} /></label>
+            <label className="equipment-field">{t("assets.notes")}<textarea className={inputClass} maxLength={2000} value={notes} onChange={event => setNotes(event.target.value)} /></label>
+            <div className="flex gap-2"><button className="action-primary" type="submit">{t("assets.transfer")}</button><button className="action-secondary" type="button" onClick={() => setMoveOpen(false)}>{t("materieel.cancel")}</button></div>
+          </fieldset></form>}
+        </section>
+        <section><h4 className="font-semibold">{t("assets.files")}</h4><p className="my-2 text-xs text-slate-500 dark:text-slate-400">{t("assets.fileHint")}</p>
+          <label className="equipment-field"><span className="sr-only">{t("assets.upload")}</span><input type="file" disabled={busy} accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={event => { void upload(event.target.files?.[0]); event.target.value = ""; }} /></label>
+          <ul className="mt-3 space-y-2">{selected.files.map(file => <li key={file.id} className="flex items-center justify-between gap-2 text-sm"><a className="min-w-0 break-all text-brand-600 underline dark:text-brand-300" href={`/api/equipment/${selected.id}/files/${file.id}`} target="_blank" rel="noreferrer">{file.name}</a><button type="button" className="action-secondary" disabled={busy} onClick={async () => { setBusy(true); try { await api.deleteEquipmentFile(selected.id!, file.id); await load(); await open(selected.id!); } catch (e) { setError(String(e)); } finally { setBusy(false); } }}>{t("assets.removeFile")}</button></li>)}</ul>
+        </section>
+        <section><h4 className="mb-3 font-semibold">{t("assets.history")}</h4><ol className="equipment-history">{events.map(event => <li key={event.id}><strong>{t(`assets.events.${event.action}`)}</strong><span>{event.from_location ? `${event.from_location} → ` : ""}{event.to_location || "—"}</span><span>{[event.reference, event.notes].filter(Boolean).join(" · ")}</span><small>{new Date(event.created_at.endsWith("Z") ? event.created_at : event.created_at + "Z").toLocaleString(i18n.language)} · {event.actor_name || "—"}</small></li>)}</ol>
+          {nextBefore && <button className="action-secondary mt-3" disabled={busy} onClick={async () => { setBusy(true); try { const next = await api.equipmentEvents(selected.id!, nextBefore); setEvents(previous => [...previous, ...next.events]); setNextBefore(next.next_before); } catch (e) { setError(String(e)); } finally { setBusy(false); } }}>{t("assets.moreHistory")}</button>}
+        </section>
+      </div>
+    </EquipmentDialog>}
+    <EquipmentImportDialog open={importOpen} onClose={() => setImportOpen(false)} onComplete={() => void load()} />
+  </div>;
 }

@@ -178,3 +178,8 @@ class Equipment(Base):
     source: Mapped[str | None] = mapped_column(String(64), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    kind: Mapped[str] = mapped_column(String(16), default="other", server_default="other")
+    asset_code: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
+    container_number: Mapped[str | None] = mapped_column(String(32), nullable=True, unique=True)
+    details_json: Mapped[str] = mapped_column(Text, default="{}", server_default="{}")
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")

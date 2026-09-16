@@ -467,17 +467,22 @@ everything. Admins and Super Users make departments and assign people on the **U
 
 ## The equipment library
 
-Under **Equipment overview** you can keep a library of your own items so they can be
-picked from the catalogue while entering packages.
+Open **Library → Equipment** to maintain vehicles, machines, containers and other
+transport items. The library stores their transport dimensions and weight, asset
+numbers, photographs, files and confirmed location history. In a shipment, use
+**Choose equipment** to copy the selected item's data; later library edits do not
+change that saved selection. Containers can travel empty or carry allocated goods,
+with their tare counted once.
 
 It starts **empty on purpose** — no operational data ships with the app. An
-admin or Super User fills it by downloading the template, filling it in and importing it.
+admin or Super User adds items directly or imports a completed spreadsheet template.
 
 **Export library** hands the whole list back as a spreadsheet in the very same columns
-the import reads, so the file round-trips: it is your backup, the hand-over to a
-colleague who maintains the list in Excel, and the seed for a second installation, all
-in one. Nothing is exported unless you click — there is no schedule and no copy kept
-anywhere.
+the import reads, so metadata round-trips for a colleague who maintains the list in
+Excel or a second installation. Photos, files and movement history are included in
+the database backup, not the spreadsheet. Nothing is exported unless you click.
+See [Equipment library](equipment-library.md) for configurations, confirmed transfers,
+imports and container document scope.
 
 ## Roles and specialist review
 
