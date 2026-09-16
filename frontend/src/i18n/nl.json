@@ -2410,5 +2410,23 @@
       "current": "Goedgekeurd tot vastgelegde datum",
       "unknown": "Status niet vastgesteld"
     }
+  },
+  "equipmentSimple": {
+    "modelsLoading": "Modellen laden…",
+    "customModel": "Anders / zelf invullen",
+    "modelsUnavailable": "Modellen niet beschikbaar. U kunt de maten zelf invullen.",
+    "adjust": "Aanpassen",
+    "dimensionsWeight": "Afmetingen en gewicht",
+    "moreDetails": "Meer gegevens",
+    "locationHint": "Wijzig de locatie via ‘Locatie wijzigen’ bij het materieel.",
+    "attention": "{{count}} aandacht",
+    "reportDetails": "Rapportgegevens",
+    "more": "Meer",
+    "filters": "Filters",
+    "clearFilters": "Filters wissen",
+    "addContainer": "Container toevoegen",
+    "changeLocation": "Locatie wijzigen",
+    "current": "Goedgekeurd",
+    "tare": "Leeggewicht"
   }
 }

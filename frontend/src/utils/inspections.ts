@@ -20,10 +20,13 @@ export function inspectionStatus(item: EquipmentInspection, today = localDay()) 
 export function needsInspectionAttention(item: EquipmentInspection, today = localDay()) {
   return ["failed", "conditional", "overdue", "due_soon"].includes(inspectionStatus(item, today));
 }
-export function templatePatch(template: ContainerTemplate, item: EquipmentItem, language: string): Partial<EquipmentItem> {
+export function templatePatch(template: ContainerTemplate, item: EquipmentItem, language: string, previousTemplate?: ContainerTemplate): Partial<EquipmentItem> {
+  const previousNames = previousTemplate ? [previousTemplate.name, ...Object.values(previousTemplate.language_labels)] : [];
+  const ownName = item.specifications && !previousNames.includes(item.specifications);
   return {
     kind: "container", container_template_id: template.id, container_type: template.name,
-    specifications: item.specifications || template.language_labels[language.split("-")[0]] || template.name,
+    specifications: ownName ? item.specifications : template.language_labels[language.split("-")[0]] || template.name,
+    model_name: template.name,
     source: "container_catalog", container_use: template.container_use,
     length_cm: template.length_cm, width_cm: template.width_cm, height_cm: template.height_cm,
     inner_length_cm: template.inner_length_cm ?? null, inner_width_cm: template.inner_width_cm ?? null,

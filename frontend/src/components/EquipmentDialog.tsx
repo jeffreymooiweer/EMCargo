@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-export default function EquipmentDialog({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+export default function EquipmentDialog({ title, children, footer, onClose }: { title: string; children: React.ReactNode; footer?: React.ReactNode; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const { t } = useTranslation();
   useEffect(() => {
@@ -14,7 +14,8 @@ export default function EquipmentDialog({ title, children, onClose }: { title: s
     };
   }, []);
   return <dialog ref={dialog} className="equipment-dialog" aria-label={title} onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === dialog.current) onClose(); }}>
-    <header><h3>{title}</h3><button type="button" className="action-secondary" onClick={onClose}>{t("assets.close")}</button></header>
-    {children}
+    <header><h3>{title}</h3><button type="button" className="equipment-close" aria-label={t("assets.close")} onClick={onClose}><span aria-hidden>×</span></button></header>
+    <div className="equipment-dialog-body">{children}</div>
+    {footer && <footer className="equipment-dialog-footer">{footer}</footer>}
   </dialog>;
 }

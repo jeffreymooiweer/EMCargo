@@ -2410,5 +2410,23 @@
       "current": "Bestanden bis zum erfassten Termin",
       "unknown": "Status nicht festgestellt"
     }
+  },
+  "equipmentSimple": {
+    "modelsLoading": "Modelle werden geladen…",
+    "customModel": "Andere / selbst eingeben",
+    "modelsUnavailable": "Modelle nicht verfügbar. Sie können die Maße selbst eingeben.",
+    "adjust": "Anpassen",
+    "dimensionsWeight": "Abmessungen und Gewicht",
+    "moreDetails": "Weitere Angaben",
+    "locationHint": "Ändern Sie den Standort über „Standort ändern“ im Datensatz.",
+    "attention": "{{count}} beachten",
+    "reportDetails": "Berichtsangaben",
+    "more": "Mehr",
+    "filters": "Filter",
+    "clearFilters": "Filter zurücksetzen",
+    "addContainer": "Container hinzufügen",
+    "changeLocation": "Standort ändern",
+    "current": "Bestanden",
+    "tare": "Leergewicht"
   }
 }
