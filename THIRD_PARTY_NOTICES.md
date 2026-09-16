@@ -90,3 +90,12 @@ project's [publication policy](docs/licensing/rights-register.md#application-pub
 Existing releases and historical Git versions need separate assessment.
 Removing or replacing a file today does not erase its earlier distribution.
 No affiliation, certification or endorsement by a cited publisher is implied.
+
+## Container model examples
+
+The container catalog transcribes selected technical facts from SCF, iCON
+Container, Containers Direct and Trident Containers. Each model links to its
+supplier specification and records the review date. Dimensions describe the
+cited model; physical units, fittings and approved loads can differ. Supplier
+illustrations and marketing texts are not included. See
+[the catalog source and measurement notes](docs/container-catalog.md).

@@ -487,6 +487,7 @@ export const api = {
     request<User>(`/users/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteUser: (id: number) => request<{ ok: boolean }>(`/users/${id}`, { method: "DELETE" }),
   listEquipment: () => request<EquipmentItem[]>("/equipment"),
+  containerTemplates: () => request<ContainerTemplate[]>("/equipment/container-templates"),
   getEquipment: (id: number) => request<EquipmentItem & { files: EquipmentFile[] }>(`/equipment/${id}`),
   equipmentEvents: (id: number, before?: number) => request<{ events: EquipmentEvent[]; next_before: number | null }>(`/equipment/${id}/events${before ? `?before=${before}` : ""}`),
   moveEquipment: (id: number, payload: { version: number; to_location: string; availability: string; reference: string; notes: string }) =>
@@ -1773,6 +1774,20 @@ export interface GeoAddress {
 }
 
 export type EquipmentKind = "vehicle" | "machine" | "container" | "other";
+export interface EquipmentInspection {
+  id: string; kind: "general" | "csc" | "nen3140" | "fgas" | "apk" | "lifting" | "water" | "fire" | "other";
+  name?: string; scope?: string; performed_on?: string | null; due_on?: string | null;
+  result: "unknown" | "passed" | "failed" | "conditional" | "not_applicable";
+  inspector?: string; reference?: string; notes?: string; archived?: boolean;
+}
+export interface ContainerTemplate {
+  id: string; name: string; language_labels: Record<string, string>; family: string; size_ft: number;
+  supplier: string; source_url: string; checked_on: string; basis: "supplier_example" | "cut_down_nominal" | "base_shell" | "mass_conflict";
+  length_cm: number; width_cm: number; height_cm: number;
+  inner_length_cm?: number | null; inner_width_cm?: number | null; inner_height_cm?: number | null;
+  weight_kg?: number | null; max_payload_kg?: number | null; max_gross_kg?: number | null;
+  container_use: string;
+}
 export interface TransportConfiguration {
   name: string; length_cm?: number | null; width_cm?: number | null; height_cm?: number | null;
   weight_kg: number; instructions?: string;
@@ -1795,6 +1810,7 @@ export interface EquipmentItem {
   kind?: EquipmentKind; version?: number; asset_code?: string; container_number?: string;
   brand?: string; model_name?: string; registration?: string; serial_number?: string; propulsion?: string;
   transport_instructions?: string; accessories?: string; container_type?: string;
+  container_template_id?: string; container_use?: string; facilities?: string[]; inspections?: EquipmentInspection[];
   inner_length_cm?: number | null; inner_width_cm?: number | null; inner_height_cm?: number | null;
   max_payload_kg?: number | null; max_gross_kg?: number | null; inspection_due?: string | null;
   current_location?: string; availability?: string; condition?: string;

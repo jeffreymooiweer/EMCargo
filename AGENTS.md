@@ -72,3 +72,17 @@ cd frontend && npm run dev
 - **Tests:** `cd backend && DATABASE_URL=sqlite:////workspace/data/emcargo_test.db DATA_DIR=/workspace/data /workspace/.venv/bin/python -m pytest`
 - **Frontend tests:** `cd frontend && npm test` (Vitest + Testing Library).
 - **Typecheck/build (no ESLint configured):** `cd frontend && npm run build` (`tsc -b && vite build`).
+
+## Release handoff
+
+Owner-created, non-draft `agent/release-vX.Y.Z` pull requests opt into automatic
+release completion. The final CI job waits for backend, frontend, inventory and
+both image checks, verifies the tested head and unchanged main, merges through
+GitHub's normal rules, then explicitly dispatches CI and publication for that
+merge SHA. Other branches and outside contributions never auto-merge.
+
+After local verification and submitting the release PR, report its link and the
+actual queued/running state. Do not spend a chat turn polling Actions for minutes.
+GitHub owns the remaining wait; do not claim publication before it is verified.
+If the finalizer fails after merging, rerun its job to resume dispatch. A moved
+base or head requires updating the branch and testing again, not bypassing checks.

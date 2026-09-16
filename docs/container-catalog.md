@@ -1,0 +1,88 @@
+# Container catalog and equipment inspections
+
+Library → Equipment → **Container from catalog** starts an owned asset from a
+supplier example. The catalog contains 42 templates; it never populates physical
+inventory. Selecting a model only previews it. Applying it replaces dimensions,
+tare and payload limits in the unsaved form, retaining the asset's identity,
+location, files and inspections. Save the asset before selecting it in a shipment.
+
+## Sources and measurement policy
+
+`backend/seed/container_templates.json` records a stable model ID, supplier,
+product URL, retrieval date, dimensions in centimetres and weights in kilograms.
+The metric supplier tables were reviewed on 2026-09-16. These are supplier-specific
+examples, not universal ISO dimensions or certificates for an individual unit.
+
+| Source | Included examples | Primary source |
+| --- | --- | --- |
+| SCF | Dry and high cube, pallet wide, cool room, workshop, site office, break room, sanitary and accommodation units | [Container dimensions guide](https://scf.com.au/news-articles/shipping-container-sizes-dimensions/); exact product links are stored per template |
+| iCON Container | Single and double side doors, doors at both ends and combinations, open/hard tops, 40ft high cube flatrack | [Container finder](https://www.icon-container.de/en/container-finder); exact product links are stored per template |
+| Containers Direct | 5ft cut-down storage unit | [Dimension tables](https://www.shippingcontainersuk.com/container-dimensions/) |
+| Trident Containers | 20ft collapsible flatrack with end walls erected | [20ft flatrack specifications](https://trident-containers.com/20ft-flat-rack-container/) |
+
+Door terminology is deliberately distinct: **double door** means both short ends;
+**side door** adds one long side; **double side door** adds both long sides. The
+catalog also includes combinations with all four sides opening. Filters group by
+the main design, while the model name retains the full combination.
+
+- 5ft is a cut-down storage example with nominal dimensions. The source allows up
+  to 152 mm length variation. Tare remains unknown until the owner supplies it.
+- The SCF workshop page specifies its base shell, not the final equipped mass.
+  Only outer dimensions are prefilled; internal dimensions and all masses stay
+  unknown. Installed shelving, electrical systems and air conditioners can change
+  the final measurements and tare.
+- iCON's 20ft high cube double-door/double-side-door and 40ft high cube side-door
+  metric mass tables do not reconcile tare + payload with gross weight. Their
+  payload and gross limits are omitted, with a visible explanation. No guessed
+  correction is applied.
+- iCON's 20ft flatrack table repeats cargo height as external height. That model
+  was excluded; Trident's explicit external/cargo dimensions are used instead.
+- Both flatrack templates describe **erected** end walls. An owner can add a
+  separate transport configuration with measured collapsed dimensions.
+- Storage, cool-room and site examples do not imply approval for sea transport.
+  Verify the actual unit's dimensions, mass and data plate before shipping it.
+  Shipment selections retain their existing frozen transport-data behavior.
+
+This is a manually curated factual selection. No supplier photographs, drawings,
+brochures or marketing descriptions are bundled. Source attribution does not
+claim a supplier endorsement or establish redistribution rights for source
+publications. The content inventory records this distinction; the project's
+application publication policy remains advisory.
+
+## Several inspections per asset
+
+All equipment kinds accept up to 100 independently maintained inspection records,
+including archived history. Each has its own ID, type/custom name, component,
+performed date, next date, result, inspector, report reference and notes. A
+container may have separate electrical, cooling, water and CSC records; a vehicle
+may have roadworthiness and lifting-equipment records. These type labels do not
+assert that a law or standard applies to an asset or set an automatic interval.
+
+Mark actual container facilities separately: electricity, water, air conditioning,
+heating and sanitary equipment. Attach inspection PDFs through the asset's existing
+Files section and record the corresponding report numbers on each inspection.
+
+**Record next inspection** archives that one previous record and creates a new
+entry with the same type/name/component. It copies no dates, result, inspector or
+report number. Other inspections retain their dates. Archived results remain
+visible through **Show previous inspections**. Copying an asset clears all its
+inspections so another physical unit never inherits approval.
+
+Badges distinguish failed/conditional checks, overdue dates, dates within 30 days,
+planned/unknown records and recorded approval. An approval without a next date
+never receives a current-until badge. The equipment list filters attention needed
+and assets with no active inspections. These are date/result indicators, not
+legal certification or shipment blockers.
+
+## Compatibility and backup
+
+No destructive database migration is required. Typed inspection lists, template
+references and installed facilities live in the existing equipment metadata.
+A pre-2.14 `inspection_due` reads as one generic unknown inspection with a stable
+`legacy-inspection` ID, without changing stored data on read. It is never relabelled
+as CSC. The old scalar is returned as the earliest active due date for compatibility.
+Old PATCH clients change only the generic legacy record and retain modern checks.
+
+The spreadsheet retains its first eight legacy columns and appends the new
+metadata fields. Inspection history and facilities round-trip as JSON cells;
+files and equipment event history still require the installation/database backup.

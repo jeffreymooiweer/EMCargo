@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.14.0] - 2026-09-16
+
+### Added
+
+- Add a searchable catalog of 42 sourced container models: small storage units,
+  standard and high cube, door combinations, open/hard tops, flatracks, pallet wide,
+  refrigerated and equipped site containers. Show the supplier link and distinguish
+  unknown, nominal and conflicting specifications. Applying a model fills a form;
+  it never creates physical inventory or assumes certification.
+- Record container use and installed electricity, water, cooling, heating and
+  sanitary facilities. Maintain multiple independent inspections for every vehicle,
+  machine and container, with report references, results, dates and archived history.
+- Show inspection attention badges and filters. Preserve legacy dates and extend
+  the equipment spreadsheet round trip; duplicated assets inherit no inspections.
+
+### Changed
+
+- Automatically finish owner-created release PRs after all test and image checks.
+  Merge only the tested head, then dispatch main CI and publication for its exact
+  commit. GitHub completes the release without prolonged interactive polling.
+
+
 ## [2.13.0] - 2026-09-16
 
 ### Added

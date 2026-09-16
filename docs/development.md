@@ -231,8 +231,17 @@ python scripts/bump_version.py 1.37.0
    the what's-new card serves its entries to users after an update, and a test fails the
    pull request if the newest heading and the `VERSION` files disagree — a release note
    cannot be forgotten.
-2. Merge to `main`.
-3. Run the **Tag release** workflow from GitHub Actions with the version number,
+2. Open a non-draft `agent/release-v<version>` PR as the repository owner. After
+   backend, frontend, inventory and both Docker checks pass, CI merges the tested
+   head through GitHub's normal merge rules and dispatches main CI and publication
+   with the exact merge SHA. A changed head or main requires a fresh test run.
+   Regular branches and outside contributors do not auto-merge.
+   Report the PR/Actions link as queued or running and let GitHub finish; a chat
+   session does not need to wait for the image builds. A queued release is not yet
+   published. If dispatch fails after merging, rerun the finalizer job.
+   Manual merges remain supported.
+3. The finalizer starts **Tag release** automatically. For a manual release, run
+   the workflow from GitHub Actions with the version number,
    or merge from an `agent/release-v<version>` branch to start it automatically.
    It verifies the version files, builds the native bundle and names the tested
    image before publishing the GitHub Release. It does not commit anything.
@@ -246,7 +255,14 @@ Publishing on current `main` uses the workflow's `GITHUB_TOKEN`. An optional
 `RELEASE_TOKEN` with workflow scope is needed only to tag an older commit whose
 workflow tree differs from current `main`.
 
-**A release does not rebuild the image.** The image is built once, by the push to `main`, and pushed as
+The finalizer explicitly dispatches workflows because events caused by
+`GITHUB_TOKEN` do not start push/closed workflows. Main CI accepts an optional full
+commit SHA, verifies it belongs to main, and checks out and tags exactly that
+revision. No personal token or repository administration change is needed.
+See [GitHub's workflow trigger documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+
+**A release does not rebuild the image.** The image is built by main CI (push or
+explicit dispatch), and pushed as
 `latest` and as the short commit SHA. `tag-release.yml` then puts the version number on
 that same manifest with `docker buildx imagetools create` — server-side, both
 architectures, in seconds.

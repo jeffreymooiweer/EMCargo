@@ -84,9 +84,19 @@ def save(db: Session, payload: dict, user: User | None, existing: Equipment | No
     expected = payload.get("version", existing.version if existing else 1)
     if existing and expected is not None and expected != existing.version:
         raise api_error(409, "equipment.changed")
+    if "inspection_due" in payload and "inspections" not in payload:
+        # Legacy clients maintain only their original generic inspection; they
+        # must never overwrite electrical, cooling or vehicle inspections.
+        inspections = [entry for entry in previous.get("inspections", []) if entry["id"] != "legacy-inspection"]
+        if payload["inspection_due"]:
+            inspections.append({"id": "legacy-inspection", "kind": "general", "due_on": payload["inspection_due"]})
+        payload = {**payload, "inspections": inspections}
     try:
         data = EquipmentBase.model_validate({**previous, **payload}).model_dump(mode="json")
     except ValidationError as exc:
+        code = exc.errors()[0]["type"]
+        if code.startswith("equipment."):
+            raise api_error(422, code) from exc
         raise api_error(422, "equipment.invalid", reason="; ".join(error["msg"] for error in exc.errors())) from exc
     if existing and data["current_location"] != previous["current_location"] and not allow_location:
         raise api_error(409, "equipment.move_required")
@@ -119,6 +129,8 @@ def save(db: Session, payload: dict, user: User | None, existing: Equipment | No
         add_event(db, item, user, "restored" if data["active"] else "archived", previous_location=previous["current_location"])
     elif not allow_location and any(previous[key] != data[key] for key in ("availability", "planned_reference", "planned_date", "condition")):
         add_event(db, item, user, "status", previous_location=previous["current_location"], reference=data["planned_reference"])
+    if existing is not None and previous["inspections"] != data["inspections"]:
+        add_event(db, item, user, "inspections")
     return item
 
 

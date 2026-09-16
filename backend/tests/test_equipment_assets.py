@@ -234,3 +234,123 @@ def test_document_validation_checks_capacity_and_single_container_scope(db):
     errors, _ = validate_document(sea, {"container_number": "WRONG"}, result["lines"], [], "en")
     assert "equipment.document_container" in [error["code"] for error in errors]
     assert validate_document(sea, {"container_number": "DEMO000001"}, result["lines"], [], "en")[0] == []
+
+
+def test_legacy_inspection_date_is_read_as_unknown_general_check_without_writing(db, client):
+    """A single pre-upgrade date does not prove CSC or electrical approval.
+
+    Reading an old asset must preserve the stored JSON and version while exposing
+    one generic inspection, so rolling back does not lose the original date.
+    """
+    import json
+    record = machine(db)
+    record.details_json = json.dumps({"inspection_due": "2027-01-01"})
+    db.commit()
+    original = record.details_json
+    data = client.get(f"/api/equipment/{record.id}").json()
+    assert data["inspections"][0] == {
+        "id": "legacy-inspection", "kind": "general", "name": "", "scope": "",
+        "performed_on": None, "due_on": "2027-01-01", "result": "unknown",
+        "inspector": "", "reference": "", "notes": "", "archived": False,
+    }
+    db.refresh(record)
+    assert record.details_json == original and record.version == 1
+
+
+@pytest.mark.parametrize("kind", ["vehicle", "machine", "container", "other"])
+def test_independent_inspections_round_trip_and_legacy_patch_keeps_them(client, db, kind):
+    """Electrical and vehicle checks may have different dates on the same asset.
+
+    Old API clients are allowed to change the legacy date, but must not discard
+    any separately maintained result. Export/import retains all typed records.
+    """
+    checks = [
+        {"id": "electrical", "kind": "nen3140", "scope": "DEMO distribution board", "performed_on": "2026-01-01", "due_on": "2027-01-01", "result": "passed", "reference": "DEMO-NEN"},
+        {"id": "cooling", "kind": "fgas", "scope": "DEMO air conditioner", "performed_on": "2026-06-01", "due_on": "2026-12-01", "result": "conditional", "notes": "DEMO action"},
+    ]
+    response = client.post("/api/equipment", json={"specifications": "DEMO inspected asset", "kind": kind, "weight_kg": 3000, "asset_code": "DEMO-CHECK", "facilities": ["electricity", "air_conditioning"], "inspections": checks})
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["inspection_due"] == "2026-12-01"
+    record = db.get(library.Equipment, data["id"])
+    original = data["inspections"]
+    result = client.patch(f"/api/equipment/{record.id}", json={"inspection_due": "2027-05-01"})
+    assert result.status_code == 200
+    assert result.json()["inspections"][:2] == original
+    result = client.patch(f"/api/equipment/{record.id}", json={"inspection_due": None})
+    assert result.json()["inspections"] == original
+    rows = [EQUIPMENT_HEADERS] + equipment_to_rows([record])
+    db.delete(record)
+    db.commit()
+    imported = import_equipment_rows(db, rows)
+    assert not imported.errors and imported.created == 1
+    restored = db.query(library.Equipment).one()
+    assert library.to_dict(restored)["inspections"] == original
+    assert library.to_dict(restored)["facilities"] == ["electricity", "air_conditioning"]
+
+
+def test_renewal_keeps_previous_report_but_excludes_it_from_next_due_date(db, client):
+    """Renewing one check must neither erase its report nor change another check.
+
+    A cleared current check must stay cleared instead of being resurrected from
+    the backwards-compatible scalar date during the next read.
+    """
+    record = machine(db, inspections=[{"id": "old", "kind": "apk", "due_on": "2026-01-01"}, {"id": "other", "kind": "lifting", "due_on": "2027-01-01"}])
+    checks = library.to_dict(record)["inspections"]
+    checks[0]["archived"] = True
+    checks.append({"id": "new", "kind": "apk", "performed_on": "2026-09-01", "due_on": "2027-09-01", "result": "passed"})
+    result = client.patch(f"/api/equipment/{record.id}", json={"inspections": checks}).json()
+    assert len(result["inspections"]) == 3 and result["inspection_due"] == "2027-01-01"
+    assert db.query(EquipmentEvent).filter_by(action="inspections").count() == 1
+    result = client.patch(f"/api/equipment/{record.id}", json={"inspections": []}).json()
+    assert result["inspections"] == [] and result["inspection_due"] is None
+    assert client.get(f"/api/equipment/{record.id}").json()["inspections"] == []
+
+
+@pytest.mark.parametrize("checks, code", [
+    ([{"kind": "other"}], "equipment.inspection_name"),
+    ([{"performed_on": "2026-09-01", "due_on": "2026-08-01"}], "equipment.inspection_dates"),
+    ([{"result": "passed"}], "equipment.inspection_date_required"),
+    ([{"id": "same"}, {"id": "same"}], "equipment.inspection_ids"),
+])
+def test_invalid_inspections_are_rejected_atomically_with_translatable_errors(client, db, checks, code):
+    """Invalid records must not partially overwrite an asset or create events.
+
+    PATCH uses merged validation, so it needs the same machine-readable errors
+    as creation for all interface languages to explain the rejected input.
+    """
+    record = machine(db)
+    response = client.patch(f"/api/equipment/{record.id}", json={"inspections": checks})
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == code
+    db.refresh(record)
+    assert record.version == 1 and library.to_dict(record)["inspections"] == []
+
+
+def test_container_catalog_has_sourced_templates_and_does_not_seed_owned_assets(client, db):
+    """Catalog examples are not inventory, and conflicting weights stay unknown.
+
+    Supplier-specific widths and high-cube heights must survive millimetre to
+    centimetre conversion. Every known mass triple must remain self-consistent.
+    """
+    from app.services.container_templates import container_templates
+    container_templates.cache_clear()
+    result = client.get("/api/equipment/container-templates")
+    assert result.status_code == 200
+    models = result.json()
+    assert len(models) >= 35 and db.query(library.Equipment).count() == 0
+    assert len({row["id"] for row in models}) == len(models)
+    assert {5, 10, 20, 40} <= {row["size_ft"] for row in models}
+    assert {"side_door", "double_door", "double_side_door", "flatrack", "high_cube", "site"} <= {row["family"] for row in models}
+    for row in models:
+        assert row["source_url"].startswith("https://") and set(row["language_labels"]) == {"nl", "en", "de", "fr"}
+        assert row["length_cm"] > 100 and row["height_cm"] > 200
+        assert "inspections" not in row and "facilities" not in row
+        if all(row[k] is not None for k in ("weight_kg", "max_payload_kg", "max_gross_kg")):
+            assert row["weight_kg"] + row["max_payload_kg"] == row["max_gross_kg"]
+        if row["basis"] == "mass_conflict":
+            assert row["max_gross_kg"] is None and row["max_payload_kg"] is None
+    rack = next(row for row in models if row["id"] == "trident-20ft-flatrack")
+    assert (rack["length_cm"], rack["width_cm"], rack["height_cm"]) == (605.8, 243.8, 259.1)
+    shell = next(row for row in models if row["basis"] == "base_shell")
+    assert shell["weight_kg"] is None and shell["inner_length_cm"] is None

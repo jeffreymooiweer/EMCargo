@@ -3553,7 +3553,7 @@
       "paths": [
         "frontend/package.json"
       ],
-      "version": "2.12.3; version-only update, dependency declarations unchanged",
+      "version": "2.14.0",
       "source_url": null,
       "copyright_holder": "Original rights holders; see source notices",
       "license_expression": "LicenseRef-EMCargo",
@@ -3561,7 +3561,7 @@
       "redistribution_basis": "Project-authored build/dependency declaration; dependencies keep their own licenses.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package.json": "f15672564e880db8673f6d2dfb082d400805f878bb373c1b38744090c2a4b23b"
+        "frontend/package.json": "fd67320277640f86a1b15d6f33508e667f1ce71e807fc5dc768367fc167745c7"
       },
       "distribution_channels": [
         "source"
@@ -3575,7 +3575,7 @@
       "paths": [
         "frontend/package-lock.json"
       ],
-      "version": "2.12.3; version-only update, dependency declarations unchanged",
+      "version": "2.14.0",
       "source_url": null,
       "copyright_holder": "Jeffrey Mooiweer",
       "license_expression": "LicenseRef-EMCargo",
@@ -3583,7 +3583,7 @@
       "redistribution_basis": "The declaration is project-authored; the resolved packages retain their own licenses and require a generated SBOM.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package-lock.json": "613a2b7c40aa62d2ff5d1f377431ea30e2aff50da7caebdc9ea7ef6ebafe52e4"
+        "frontend/package-lock.json": "d12734b110b567a150ce764bcb570cbebca806afe9a853b5d34f18a419351ac8"
       },
       "distribution_channels": [
         "image",
@@ -5141,6 +5141,30 @@
       ],
       "reviewed_at": "2026-09-15",
       "reviewer": "Codex font license and binary-metadata review"
+    },
+    {
+      "id": "backend-seed-container-templates-json",
+      "kind": "derived-factual-data",
+      "paths": [
+        "backend/seed/container_templates.json"
+      ],
+      "version": "2026-09-16",
+      "source_url": "https://scf.com.au/news-articles/shipping-container-sizes-dimensions/",
+      "copyright_holder": "Supplier publications: SCF, iCON Container, Containers Direct and Trident Containers; EMCargo-authored selection and labels",
+      "license_expression": null,
+      "rights_status": "unresolved",
+      "redistribution_basis": "Manually curated technical facts with a per-model source URL; no source illustrations or marketing text. Attribution does not establish a redistribution license for the supplier publications. Application reports are advisory.",
+      "evidence_reference": "docs/container-catalog.md",
+      "sha256": {
+        "backend/seed/container_templates.json": "26039e14d0f12f8b5f830144c51d1fa1a621961571ef74b6a5c20c966bca97a5"
+      },
+      "distribution_channels": [
+        "image",
+        "native",
+        "source"
+      ],
+      "reviewed_at": "2026-09-16",
+      "reviewer": "Codex technical source review"
     }
   ]
 }

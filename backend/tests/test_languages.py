@@ -44,6 +44,7 @@ TRANSLATED_FILES = [
     # their waybill.
     "seed/materials.json",
     "seed/reference_items.json",
+    "seed/container_templates.json",
 ]
 
 # Some blocks carry their languages as a suffix: note_nl/note_en.

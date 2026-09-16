@@ -824,7 +824,11 @@
       "container_weight_missing": "Geben Sie die Tara und das Gewicht jeder Warenzeile im Container ein.",
       "payload_exceeded": "Das Warengewicht überschreitet die Nutzlast des Containers.",
       "gross_exceeded": "Das Gesamtgewicht überschreitet das zulässige Containergewicht.",
-      "document_container": "Dieses Dokument beschreibt einen Container. Nehmen Sie einen Container auf und ordnen Sie ihm alle Waren zu; verwenden Sie für weitere Container eine separate Sendung."
+      "document_container": "Dieses Dokument beschreibt einen Container. Nehmen Sie einen Container auf und ordnen Sie ihm alle Waren zu; verwenden Sie für weitere Container eine separate Sendung.",
+      "inspection_name": "Geben Sie dieser Prüfung einen Namen.",
+      "inspection_dates": "Der nächste Prüftermin darf nicht vor dem Prüfdatum liegen.",
+      "inspection_date_required": "Tragen Sie für dieses Ergebnis das Prüfdatum ein.",
+      "inspection_ids": "Jede Prüfung benötigt eine eindeutige Kennung."
     },
     "dg": {
       "un_number_not_found": "UN-Nummer nicht in der ADR-Datenbank gefunden",
@@ -2276,7 +2280,8 @@
       "moved": "Übergabe bestätigt",
       "status": "Status geändert",
       "archived": "Archiviert",
-      "restored": "Wiederhergestellt"
+      "restored": "Wiederhergestellt",
+      "inspections": "Prüfungen aktualisiert"
     },
     "close": "Schließen",
     "reload": "Neu laden",
@@ -2294,6 +2299,116 @@
     "loadSummary": "Tara {{tare}} kg + Waren {{cargo}} kg = gesamt {{gross}} kg",
     "loadHint": "Ordnen Sie Warenzeilen diesem Container zu. Tara wird einmal gezählt. Die berechnete Summe ist keine gewogene VGM.",
     "choose": "Material auswählen",
-    "chooseHint": "Die Transportdaten werden in diese Sendung übernommen."
+    "chooseHint": "Die Transportdaten werden in diese Sendung übernommen.",
+    "container_use": "Nutzung",
+    "container_useValues": {
+      "freight": "Fracht",
+      "storage": "Lagerung",
+      "workshop": "Werkstatt",
+      "office": "Büro / Pausenraum",
+      "sanitary": "Sanitär",
+      "accommodation": "Unterkunft",
+      "other": "Sonstiges"
+    },
+    "facilities": "Vorhandene Ausstattung",
+    "facilityValues": {
+      "electricity": "Elektrik",
+      "water": "Wasser",
+      "air_conditioning": "Klimaanlage",
+      "heating": "Heizung",
+      "sanitary": "Sanitärausstattung"
+    }
+  },
+  "containerCatalog": {
+    "title": "Containerkatalog",
+    "add": "Container aus Katalog",
+    "hint": "Wählen Sie ein Lieferantenmodell als Ausgangspunkt für Ihren eigenen Container.",
+    "search": "Nach Typ oder Größe suchen",
+    "family": "Ausführung",
+    "model": "Katalogmodell",
+    "select": "Modell wählen…",
+    "count": "{{count}} Modelle gefunden",
+    "weightUnknown": "Eigengewicht noch eintragen",
+    "source": "Spezifikationen von {{supplier}}",
+    "checked": "Abgerufen am {{date}}",
+    "apply": "Modelldaten übernehmen",
+    "applyHint": "Ersetzt Maße und Gewichte in diesem Formular. Ausstattung und Prüfungen tragen Sie selbst ein.",
+    "families": {
+      "dry": "Standard",
+      "high_cube": "High Cube",
+      "side_door": "Seitentür",
+      "double_door": "Türen an beiden Stirnseiten",
+      "double_side_door": "Türen an beiden Längsseiten",
+      "open_top": "Open Top",
+      "hard_top": "Abnehmbares Stahldach",
+      "flatrack": "Flatrack",
+      "reefer": "Kühlcontainer",
+      "pallet_wide": "Pallet Wide",
+      "curtain_side": "Schiebeplane",
+      "tank": "Tankcontainer",
+      "site": "Arbeits- und Aufenthaltscontainer",
+      "storage": "Lagercontainer"
+    },
+    "basis": {
+      "supplier_example": "Diese Maße beschreiben dieses Lieferantenmodell. Prüfen Sie Ausführung, Ausstattung und Typenschild Ihres eigenen Containers.",
+      "cut_down_nominal": "Gekürztes Modell mit Nennmaßen. Der Lieferant nennt bis zu 152 mm Längenabweichung; messen Sie Ihren Container und tragen Sie das Eigengewicht ein.",
+      "base_shell": "Nur die Außenmaße des Grundcontainers sind angegeben. Tragen Sie Eigengewicht und Innenmaße nach dem Ausbau ein.",
+      "mass_conflict": "Die Gewichtsgrenzen der Quelle widersprechen sich und bleiben leer. Übernehmen Sie diese vom Typenschild oder vom Lieferanten."
+    }
+  },
+  "inspections": {
+    "title": "Prüfungen und Kontrollen",
+    "hint": "Erfassen Sie für jede Komponente oder Norm eine eigene Prüfung. Übernehmen Sie Ergebnis und nächsten Termin aus dem Prüfbericht.",
+    "empty": "Noch keine aktiven Prüfungen erfasst.",
+    "kind": "Prüfungsart",
+    "name": "Eigene Bezeichnung / Norm",
+    "scope": "Komponente / Anlage",
+    "performed_on": "Durchgeführt am",
+    "due_on": "Nächste Prüfung bis",
+    "result": "Ergebnis",
+    "inspector": "Prüfer / Unternehmen",
+    "reference": "Bericht- / Zertifikatsnummer",
+    "dueSummary": "Nächster Termin: {{date}}",
+    "noDueDate": "Kein nächster Termin erfasst",
+    "renew": "Neue Prüfung erfassen",
+    "remove": "Prüfung entfernen",
+    "showHistory": "Frühere Prüfungen anzeigen",
+    "add": "Prüfung hinzufügen",
+    "filter": "Prüfungen",
+    "filters": {
+      "all": "Alle Prüfungen",
+      "attention": "Handlungsbedarf",
+      "missing": "Keine Prüfung erfasst"
+    },
+    "attentionCount": "{{count}} Prüfung(en) erfordern Aufmerksamkeit",
+    "kinds": {
+      "general": "Allgemeine Prüfung",
+      "csc": "CSC / Container",
+      "nen3140": "NEN 3140 / Elektrik",
+      "fgas": "Klimaanlage / F-Gase (STEK)",
+      "apk": "Fahrzeugprüfung (APK)",
+      "lifting": "Hebezeuge",
+      "water": "Wasser / Hygiene",
+      "fire": "Brandschutz",
+      "other": "Andere Prüfung"
+    },
+    "results": {
+      "unknown": "Noch nicht erfasst",
+      "passed": "Bestanden",
+      "failed": "Nicht bestanden",
+      "conditional": "Mit Auflagen",
+      "not_applicable": "Nicht zutreffend"
+    },
+    "status": {
+      "archived": "Frühere Prüfung",
+      "not_applicable": "Nicht zutreffend",
+      "failed": "Nicht bestanden",
+      "conditional": "Mit Auflagen",
+      "planned": "Geplant / Prüfung ausstehend",
+      "overdue": "Termin überschritten",
+      "due_soon": "Innerhalb von 30 Tagen",
+      "current": "Bestanden bis zum erfassten Termin",
+      "unknown": "Status nicht festgestellt"
+    }
   }
 }

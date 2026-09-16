@@ -8,7 +8,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
+    inputs:
+      commit:
+        description: "Exact commit on main to test and publish; empty uses the dispatch commit"
+        required: false
 
 # Whoever pushes three times in a row does not need the result of the first two.
 # On main and on a tag everything runs to the end: a publication hangs off those.
@@ -21,12 +26,36 @@ permissions:
   packages: write
 
 jobs:
+  revision:
+    name: Resolve tested revision
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.revision.outputs.commit }}
+    steps:
+      - uses: actions/github-script@v7
+        id: revision
+        with:
+          script: |
+            const commit = context.payload.inputs?.commit || context.sha;
+            if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('Expected a full commit SHA');
+            if (context.eventName === 'workflow_dispatch') {
+              if (context.ref !== 'refs/heads/main') throw new Error('Dispatch must target main');
+              const { data } = await github.rest.repos.compareCommitsWithBasehead({
+                ...context.repo, basehead: `${commit}...main`,
+              });
+              if (!['ahead', 'identical'].includes(data.status)) throw new Error('Commit is not on main');
+            }
+            core.setOutput('commit', commit);
+
   backend:
+    needs: [revision]
     name: Backend tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
 
       - uses: actions/setup-python@v5
         with:
@@ -66,11 +95,14 @@ jobs:
           python -m pytest -q
 
   frontend:
+    needs: [revision]
     name: Frontend build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
 
       - uses: actions/setup-node@v4
         with:
@@ -80,6 +112,9 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Release automation tests
+        run: node --test scripts/finalize_release.test.cjs
 
       - run: npm ci
         working-directory: frontend
@@ -104,10 +139,13 @@ jobs:
           path: compliance/frontend.cdx.json
 
   rights:
+    needs: [revision]
     name: Rights inventory
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
       - name: Validate registered content and evidence
         run: python scripts/check_third_party_manifest.py
       - name: Record exact source files
@@ -125,7 +163,7 @@ jobs:
   docker:
     name: Docker build (${{ matrix.arch }})
     runs-on: ubuntu-latest
-    needs: [backend, frontend, rights]
+    needs: [revision, backend, frontend, rights]
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -133,6 +171,8 @@ jobs:
         arch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
       - uses: docker/setup-qemu-action@v3
         if: matrix.arch == 'arm64'
       - uses: docker/setup-buildx-action@v3
@@ -175,12 +215,12 @@ jobs:
       - name: Publish the scanned architecture image
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
-          docker tag emcargo-review:${{ matrix.arch }} ghcr.io/jeffreymooiweer/emcargo:${{ github.sha }}-${{ matrix.arch }}
-          docker push ghcr.io/jeffreymooiweer/emcargo:${{ github.sha }}-${{ matrix.arch }}
+          docker tag emcargo-review:${{ matrix.arch }} ghcr.io/jeffreymooiweer/emcargo:${{ needs.revision.outputs.commit }}-${{ matrix.arch }}
+          docker push ghcr.io/jeffreymooiweer/emcargo:${{ needs.revision.outputs.commit }}-${{ matrix.arch }}
 
   publish-image:
     name: Publish tested image manifest
-    needs: [docker]
+    needs: [revision, docker]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -192,6 +232,32 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Combine the two tested images
         env:
-          COMMIT: ${{ github.sha }}
+          COMMIT: ${{ needs.revision.outputs.commit }}
           IMAGE: ghcr.io/jeffreymooiweer/emcargo
         run: docker buildx imagetools create -t "$IMAGE:latest" -t "$IMAGE:${COMMIT:0:7}" "$IMAGE:$COMMIT-amd64" "$IMAGE:$COMMIT-arm64"
+
+  finalize-release:
+    name: Queue release after successful checks
+    needs: [backend, frontend, rights, docker]
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == github.repository_owner &&
+      startsWith(github.event.pull_request.head.ref, 'agent/release-v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const finalize = require('./scripts/finalize_release.cjs');
+            await finalize({ github, context, core });
