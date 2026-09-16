@@ -177,9 +177,13 @@ def test_application_publication_keeps_technical_checks_and_advisory_reports():
     """The owner's release request replaced the blanket licensing hold with
     advisory reports. Publication must still depend on tests and image scans,
     and changing that policy must not erase unresolved evidence records.
+
+    Automatic releases also resolve the exact merge revision before building.
+    That added prerequisite must coexist with every original technical gate;
+    the old three-job expectation incorrectly rejected the release workflow.
     """
     jobs = load("ci.yml")["jobs"]
-    assert set(jobs["docker"]["needs"]) == {"backend", "frontend", "rights"}
+    assert set(jobs["docker"]["needs"]) == {"revision", "backend", "frontend", "rights"}
     assert "docker" in jobs["publish-image"]["needs"]
     assert "image_ready" not in steps_only("ci.yml")
     rights = jobs["rights"]["steps"]
