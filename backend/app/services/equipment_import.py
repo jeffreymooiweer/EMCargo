@@ -33,7 +33,7 @@ EXTRA_HEADERS = ["kind", "asset_code", "brand", "model_name", "registration", "s
                  "container_number", "container_type", "inner_length_cm", "inner_width_cm", "inner_height_cm",
                  "max_payload_kg", "max_gross_kg", "inspection_due", "current_location", "availability", "condition",
                  "planned_reference", "planned_date", "transport_instructions", "accessories", "source", "notes",
-                 "configurations", "language_labels"]
+                 "configurations", "language_labels", "container_template_id", "container_use", "facilities", "inspections"]
 EQUIPMENT_HEADERS += EXTRA_HEADERS
 
 EQUIPMENT_EXAMPLE = [
@@ -218,11 +218,11 @@ def import_equipment_rows(db: Session, rows: list[list[str]], user: User | None 
                 if index is None or index >= len(row):
                     continue
                 value = row[index].strip()
-                if key in {"configurations", "language_labels"}:
-                    record[key] = json.loads(value) if value else ([] if key == "configurations" else {})
+                if key in {"configurations", "language_labels", "facilities", "inspections"}:
+                    record[key] = json.loads(value) if value else ({} if key == "language_labels" else [])
                 elif key.endswith(("_kg", "_cm")) or key in {"inspection_due", "planned_date"}:
                     record[key] = value.replace(",", ".") if value else None
-                elif key in {"kind", "availability", "condition"}:
+                elif key in {"kind", "availability", "condition", "container_use"}:
                     if value:
                         record[key] = value
                 else:

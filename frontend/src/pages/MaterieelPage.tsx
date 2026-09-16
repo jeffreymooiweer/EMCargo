@@ -6,6 +6,8 @@ import { ImportIcon, DownloadIcon, PlusIcon } from "../components/icons";
 import EquipmentImportDialog from "../components/EquipmentImportDialog";
 import EquipmentDialog from "../components/EquipmentDialog";
 import EquipmentForm from "../components/EquipmentForm";
+import EquipmentInspections from "../components/EquipmentInspections";
+import { needsInspectionAttention } from "../utils/inspections";
 import { invalidateEquipmentLibrary } from "../components/EquipmentCombobox";
 
 const inputClass = "min-h-[44px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950";
@@ -19,6 +21,7 @@ export default function MaterieelPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [archived, setArchived] = useState(false);
+  const [inspectionFilter, setInspectionFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<EquipmentItem | null>(null);
   const [selected, setSelected] = useState<(EquipmentItem & { files: EquipmentFile[] }) | null>(null);
@@ -39,10 +42,12 @@ export default function MaterieelPage() {
   const filtered = useMemo(() => items.filter(item => {
     if (!archived && item.active === false) return false;
     const kind = item.kind ?? "other";
+    if (inspectionFilter === "attention" && !(item.inspections ?? []).some(entry => needsInspectionAttention(entry))) return false;
+    if (inspectionFilter === "missing" && (item.inspections ?? []).some(entry => !entry.archived)) return false;
     if (filter === "vehicles" ? !["vehicle", "machine"].includes(kind) : filter !== "all" && kind !== filter) return false;
     return [item.specifications, item.asset_code, item.container_number, item.registration, item.serial_number,
       item.brand, item.model_name, item.current_location, ...(item.aliases ?? [])].filter(Boolean).join(" ").toLowerCase().includes(search.trim().toLowerCase());
-  }), [items, search, filter, archived]);
+  }), [items, search, filter, archived, inspectionFilter]);
   const open = async (id: number) => {
     try {
       const [record, history] = await Promise.all([api.getEquipment(id), api.equipmentEvents(id)]);
@@ -59,7 +64,7 @@ export default function MaterieelPage() {
   const duplicate = (item: EquipmentItem) => {
     const copy = structuredClone(item);
     delete copy.id; delete copy.version;
-    setSelected(null); setForm({ ...copy, asset_code: "", container_number: "", registration: "", serial_number: "", current_location: "", planned_reference: "", planned_date: null, availability: "unknown", photo_url: null, file_count: 0, active: true }); setError("");
+    setSelected(null); setForm({ ...copy, asset_code: "", container_number: "", registration: "", serial_number: "", current_location: "", planned_reference: "", planned_date: null, availability: "unknown", photo_url: null, file_count: 0, active: true, inspections: [], inspection_due: null }); setError("");
   };
   const archive = async () => {
     if (!selected?.id) return;
@@ -83,6 +88,7 @@ export default function MaterieelPage() {
   return <div className="collection-page page-enter space-y-6">
     <header><h2 className="text-2xl font-semibold">{t("nav.materieel")}</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("assets.intro")}</p>
       <div className="mt-5 flex flex-wrap gap-2"><button className="action-primary" onClick={() => { setForm(empty()); setError(""); }}><PlusIcon />{t("materieel.add")}</button>
+        <button className="action-secondary" onClick={() => { setForm({ ...empty(), kind: "container" }); setError(""); }}>{t("containerCatalog.add")}</button>
         <button className="action-secondary" onClick={() => setImportOpen(true)}><ImportIcon />{t("materieel.import")}</button>
         <button className="action-secondary" onClick={() => api.exportEquipmentLibrary().catch(e => toast.error(String(e)))}><DownloadIcon />{t("materieel.exportLibrary")}</button>
         <button className="action-secondary" onClick={() => api.downloadEquipmentTemplate().catch(e => toast.error(String(e)))}>{t("import.downloadTemplate")}</button>
@@ -91,6 +97,7 @@ export default function MaterieelPage() {
     <div className="equipment-toolbar"><div className="equipment-filters" role="group" aria-label={t("assets.filter")}>
       {["all", "vehicles", "container", "other"].map(value => <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}>{t(`assets.filters.${value}`)}</button>)}
     </div><input className={inputClass} type="search" aria-label={t("assets.search")} placeholder={t("assets.search")} value={search} onChange={event => setSearch(event.target.value)} />
+      <label className="equipment-field">{t("inspections.filter")}<select className={inputClass} value={inspectionFilter} onChange={event => setInspectionFilter(event.target.value)}>{["all", "attention", "missing"].map(value => <option key={value} value={value}>{t(`inspections.filters.${value}`)}</option>)}</select></label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={archived} onChange={event => setArchived(event.target.checked)} />{t("assets.showArchived")}</label>
     </div>
     <p className="text-sm text-slate-500">{t("materieel.count", { count: filtered.length, total: items.length })}</p>
@@ -101,6 +108,7 @@ export default function MaterieelPage() {
           <h3>{item.specifications}</h3><p className="text-sm text-slate-500 dark:text-slate-400">{[item.asset_code, item.container_number || item.registration, item.brand, item.model_name].filter(Boolean).join(" · ") || "—"}</p>
         </div>
         <div className="equipment-card-facts"><span>{dimensions(item)}</span><strong>{number.format(item.weight_kg)} kg</strong><span>{item.current_location || t("assets.locationUnknown")}</span><span>{t(`assets.availabilityValues.${item.availability || "unknown"}`)}</span></div>
+        {(item.inspections ?? []).some(entry => needsInspectionAttention(entry)) && <span className="text-sm font-medium text-amber-700 dark:text-amber-300">{t("inspections.attentionCount", { count: item.inspections!.filter(entry => needsInspectionAttention(entry)).length })}</span>}
       </button>)}
     </div>}
     {form && <EquipmentDialog title={form.id ? t("materieel.edit") : t("materieel.add")} onClose={() => { if (!busy) setForm(null); }}>
@@ -111,7 +119,9 @@ export default function MaterieelPage() {
       <div className="space-y-6">
         {selected.photo_url && <img className="max-h-64 w-full rounded-xl object-contain" src={selected.photo_url} alt={selected.specifications} />}
         <div className="flex flex-wrap gap-2"><button className="action-primary" disabled={busy} onClick={() => { setForm(selected); setError(""); }}>{t("materieel.edit")}</button><button className="action-secondary" disabled={busy} onClick={() => duplicate(selected)}>{t("materieel.duplicate")}</button><button className="action-secondary" disabled={busy} onClick={() => void archive()}>{t(selected.active === false ? "assets.restore" : "assets.archive")}</button></div>
-        <dl className="equipment-facts">{[["kind", t(`assets.kindValues.${selected.kind ?? "other"}`)], ["asset_code", selected.asset_code], ["container_number", selected.container_number], ["registration", selected.registration], ["serial_number", selected.serial_number], ["brand", selected.brand], ["model_name", selected.model_name], ["dimensions", dimensions(selected)], [selected.kind === "container" ? "tare_kg" : "weight_kg", `${number.format(selected.weight_kg)} kg`], ["max_payload_kg", selected.max_payload_kg], ["max_gross_kg", selected.max_gross_kg], ["container_type", selected.container_type], ["inspection_due", selected.inspection_due], ["current_location", selected.current_location || t("assets.locationUnknown")], ["availability", t(`assets.availabilityValues.${selected.availability || "unknown"}`)], ["condition", t(`assets.conditionValues.${selected.condition || "unknown"}`)], ["planned_reference", selected.planned_reference], ["planned_date", selected.planned_date]].filter(([, value]) => value != null && value !== "").map(([key, value]) => <div key={String(key)}><dt>{t(`assets.${key}`)}</dt><dd>{value}</dd></div>)}</dl>
+        <dl className="equipment-facts">{[["kind", t(`assets.kindValues.${selected.kind ?? "other"}`)], ["asset_code", selected.asset_code], ["container_number", selected.container_number], ["registration", selected.registration], ["serial_number", selected.serial_number], ["brand", selected.brand], ["model_name", selected.model_name], ["dimensions", dimensions(selected)], [selected.kind === "container" ? "tare_kg" : "weight_kg", `${number.format(selected.weight_kg)} kg`], ["max_payload_kg", selected.max_payload_kg], ["max_gross_kg", selected.max_gross_kg], ["container_type", selected.container_type], ["current_location", selected.current_location || t("assets.locationUnknown")], ["availability", t(`assets.availabilityValues.${selected.availability || "unknown"}`)], ["condition", t(`assets.conditionValues.${selected.condition || "unknown"}`)], ["planned_reference", selected.planned_reference], ["planned_date", selected.planned_date]].filter(([, value]) => value != null && value !== "").map(([key, value]) => <div key={String(key)}><dt>{t(`assets.${key}`)}</dt><dd>{value}</dd></div>)}</dl>
+        {selected.kind === "container" && <p className="text-sm">{t(`assets.container_useValues.${selected.container_use || "freight"}`)}{(selected.facilities ?? []).map(value => ` · ${t(`assets.facilityValues.${value}`)}`)}</p>}
+        <EquipmentInspections items={selected.inspections} />
         {(selected.transport_instructions || selected.accessories || selected.notes) && <section className="space-y-2">{(["transport_instructions", "accessories", "notes"] as const).map(key => selected[key] && <div key={key}><h4 className="font-semibold">{t(`assets.${key}`)}</h4><p className="whitespace-pre-wrap text-sm">{selected[key]}</p></div>)}</section>}
         <section><h4 className="font-semibold">{t("assets.transfer")}</h4><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t("assets.moveHint")}</p>
           {!moveOpen ? <button className="action-secondary mt-3" disabled={busy || selected.active === false} onClick={() => setMoveOpen(true)}>{t("assets.transfer")}</button> : <form onSubmit={transfer} className="mt-3 grid gap-3 md:grid-cols-2"><fieldset className="contents" disabled={busy}>

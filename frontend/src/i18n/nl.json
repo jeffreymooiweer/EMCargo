@@ -824,7 +824,11 @@
       "container_weight_missing": "Vul het eigen gewicht en het gewicht van alle goederen in de container in.",
       "payload_exceeded": "Het gewicht van de goederen overschrijdt het laadvermogen van de container.",
       "gross_exceeded": "Het totaalgewicht overschrijdt het maximale gewicht van de container.",
-      "document_container": "Dit document beschrijft één container. Neem één container op en wijs alle goederen eraan toe; maak voor andere containers een aparte zending."
+      "document_container": "Dit document beschrijft één container. Neem één container op en wijs alle goederen eraan toe; maak voor andere containers een aparte zending.",
+      "inspection_name": "Geef deze keuring een naam.",
+      "inspection_dates": "De volgende keuring kan niet vóór de uitvoeringsdatum liggen.",
+      "inspection_date_required": "Vul bij deze uitslag ook de uitvoeringsdatum in.",
+      "inspection_ids": "Elke keuring moet een eigen identificatie hebben."
     },
     "dg": {
       "un_number_not_found": "UN-nummer niet gevonden in de ADR-database",
@@ -2276,7 +2280,8 @@
       "moved": "Overdracht bevestigd",
       "status": "Status gewijzigd",
       "archived": "Gearchiveerd",
-      "restored": "Hersteld"
+      "restored": "Hersteld",
+      "inspections": "Keuringen bijgewerkt"
     },
     "close": "Sluiten",
     "reload": "Opnieuw laden",
@@ -2294,6 +2299,116 @@
     "loadSummary": "Tara {{tare}} kg + goederen {{cargo}} kg = totaal {{gross}} kg",
     "loadHint": "Kies bij de goederenregels deze container. Het eigen gewicht telt één keer mee. Het berekende totaal is geen gewogen VGM.",
     "choose": "Uit materieel kiezen",
-    "chooseHint": "De transportgegevens worden in deze zending overgenomen."
+    "chooseHint": "De transportgegevens worden in deze zending overgenomen.",
+    "container_use": "Gebruik",
+    "container_useValues": {
+      "freight": "Vracht",
+      "storage": "Opslag",
+      "workshop": "Werkplaats",
+      "office": "Kantoor / schaft",
+      "sanitary": "Sanitair",
+      "accommodation": "Verblijf",
+      "other": "Overig"
+    },
+    "facilities": "Aanwezige voorzieningen",
+    "facilityValues": {
+      "electricity": "Elektra",
+      "water": "Water",
+      "air_conditioning": "Airco",
+      "heating": "Verwarming",
+      "sanitary": "Sanitair"
+    }
+  },
+  "containerCatalog": {
+    "title": "Containercatalogus",
+    "add": "Container uit catalogus",
+    "hint": "Kies een leveranciersmodel als uitgangspunt voor uw eigen container.",
+    "search": "Zoek op type of maat",
+    "family": "Uitvoering",
+    "model": "Catalogusmodel",
+    "select": "Kies een model…",
+    "count": "{{count}} modellen gevonden",
+    "weightUnknown": "Eigen gewicht nog invullen",
+    "source": "Specificaties van {{supplier}}",
+    "checked": "Geraadpleegd {{date}}",
+    "apply": "Modelgegevens overnemen",
+    "applyHint": "Vervangt de afmetingen en gewichten in dit formulier. Voorzieningen en keuringen vult u zelf in.",
+    "families": {
+      "dry": "Standaard",
+      "high_cube": "High cube",
+      "side_door": "Zijdeur",
+      "double_door": "Deuren aan beide kopse kanten",
+      "double_side_door": "Deuren aan beide lange zijden",
+      "open_top": "Open top",
+      "hard_top": "Afneembaar stalen dak",
+      "flatrack": "Flatrack",
+      "reefer": "Koelcontainer",
+      "pallet_wide": "Pallet wide",
+      "curtain_side": "Schuifzeil",
+      "tank": "Tankcontainer",
+      "site": "Werk- en verblijfscontainer",
+      "storage": "Opslagcontainer"
+    },
+    "basis": {
+      "supplier_example": "Dit zijn de maten van dit leveranciersmodel. Controleer de uitvoering, inrichting en het typeplaatje van uw eigen container.",
+      "cut_down_nominal": "Ingekort model met nominale maten. De leverancier noemt een lengtetolerantie tot 152 mm; meet uw eigen container en vul het gewicht in.",
+      "base_shell": "Alleen de buitenmaten van de basiscontainer zijn bekend. Vul het eigen gewicht en de binnenmaten na inrichting in.",
+      "mass_conflict": "De gewichtslimieten in de bron spreken elkaar tegen en zijn daarom niet ingevuld. Neem deze over van het typeplaatje of de leverancier."
+    }
+  },
+  "inspections": {
+    "title": "Keuringen en controles",
+    "hint": "Voeg per onderdeel of norm een eigen controle toe. Neem de uitslag en volgende datum over uit het keuringsrapport.",
+    "empty": "Nog geen actieve keuringen vastgelegd.",
+    "kind": "Soort keuring",
+    "name": "Eigen naam / norm",
+    "scope": "Onderdeel / installatie",
+    "performed_on": "Uitgevoerd op",
+    "due_on": "Volgende keuring uiterlijk",
+    "result": "Uitslag",
+    "inspector": "Keurder / bedrijf",
+    "reference": "Rapport- / certificaatnummer",
+    "dueSummary": "Volgende datum: {{date}}",
+    "noDueDate": "Geen volgende datum vastgelegd",
+    "renew": "Nieuwe keuring vastleggen",
+    "remove": "Keuring verwijderen",
+    "showHistory": "Eerdere keuringen tonen",
+    "add": "Keuring toevoegen",
+    "filter": "Keuringen",
+    "filters": {
+      "all": "Alle keuringen",
+      "attention": "Aandacht nodig",
+      "missing": "Geen keuring vastgelegd"
+    },
+    "attentionCount": "{{count}} keuring(en) vragen aandacht",
+    "kinds": {
+      "general": "Algemene controle",
+      "csc": "CSC / container",
+      "nen3140": "NEN 3140 / elektra",
+      "fgas": "Airco / F-gassen (STEK)",
+      "apk": "APK / voertuigkeuring",
+      "lifting": "Hijsmiddelen / hefwerktuig",
+      "water": "Water / hygiëne",
+      "fire": "Brandveiligheid",
+      "other": "Andere keuring"
+    },
+    "results": {
+      "unknown": "Nog niet vastgelegd",
+      "passed": "Goedgekeurd",
+      "failed": "Afgekeurd",
+      "conditional": "Onder voorwaarden",
+      "not_applicable": "Niet van toepassing"
+    },
+    "status": {
+      "archived": "Eerdere keuring",
+      "not_applicable": "Niet van toepassing",
+      "failed": "Afgekeurd",
+      "conditional": "Onder voorwaarden",
+      "planned": "Gepland / nog te keuren",
+      "overdue": "Datum verstreken",
+      "due_soon": "Binnen 30 dagen",
+      "current": "Goedgekeurd tot vastgelegde datum",
+      "unknown": "Status niet vastgesteld"
+    }
   }
 }

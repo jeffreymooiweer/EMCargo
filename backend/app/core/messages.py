@@ -50,6 +50,10 @@ class ApiError(HTTPException):
 #: Kept here rather than at the raise sites so that the set of codes is
 #: countable — a translation guard cannot check what it cannot enumerate.
 MESSAGES: dict[str, str] = {
+    "equipment.inspection_name": "Give this inspection a name.",
+    "equipment.inspection_dates": "The next inspection cannot precede the performed date.",
+    "equipment.inspection_date_required": "Enter the performed date for this result.",
+    "equipment.inspection_ids": "Every inspection must have a unique identifier.",
     "equipment.document_container": "This document describes one container. Include one container and assign every goods line to it; use a separate shipment for other containers.",
     "equipment.gross_exceeded": "The gross weight exceeds the container gross weight limit.",
     "equipment.payload_exceeded": "The goods weight exceeds the container payload limit.",

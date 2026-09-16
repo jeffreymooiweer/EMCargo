@@ -53,6 +53,12 @@ def _equipment_out(item: Equipment, db: Session) -> EquipmentOut:
     return EquipmentOut(**library.to_dict(item, library.list_files(db, item.id)))
 
 
+@equipment_router.get("/container-templates")
+def list_container_templates(user: User = Depends(get_current_user)):
+    from app.services.container_templates import container_templates
+    return container_templates()
+
+
 @equipment_router.get("", response_model=list[EquipmentOut])
 def list_equipment(q: str = Query(default="", max_length=120),
                    active_only: bool = False, user: User = Depends(get_current_user),

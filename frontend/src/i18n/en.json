@@ -824,7 +824,11 @@
       "container_weight_missing": "Enter the tare and the weight of every goods line in the container.",
       "payload_exceeded": "The goods weight exceeds the container payload limit.",
       "gross_exceeded": "The gross weight exceeds the container gross weight limit.",
-      "document_container": "This document describes one container. Include one container and assign every goods line to it; use a separate shipment for other containers."
+      "document_container": "This document describes one container. Include one container and assign every goods line to it; use a separate shipment for other containers.",
+      "inspection_name": "Give this inspection a name.",
+      "inspection_dates": "The next inspection cannot precede the performed date.",
+      "inspection_date_required": "Enter the performed date for this result.",
+      "inspection_ids": "Every inspection must have a unique identifier."
     },
     "dg": {
       "un_number_not_found": "UN number not found in the ADR database",
@@ -2276,7 +2280,8 @@
       "moved": "Transfer confirmed",
       "status": "Status changed",
       "archived": "Archived",
-      "restored": "Restored"
+      "restored": "Restored",
+      "inspections": "Inspections updated"
     },
     "close": "Close",
     "reload": "Reload",
@@ -2294,6 +2299,116 @@
     "loadSummary": "Tare {{tare}} kg + goods {{cargo}} kg = total {{gross}} kg",
     "loadHint": "Assign goods lines to this container. Tare is counted once. The calculated total is not a weighed VGM.",
     "choose": "Choose equipment",
-    "chooseHint": "Transport data is copied into this shipment."
+    "chooseHint": "Transport data is copied into this shipment.",
+    "container_use": "Use",
+    "container_useValues": {
+      "freight": "Freight",
+      "storage": "Storage",
+      "workshop": "Workshop",
+      "office": "Office / break room",
+      "sanitary": "Sanitary",
+      "accommodation": "Accommodation",
+      "other": "Other"
+    },
+    "facilities": "Installed facilities",
+    "facilityValues": {
+      "electricity": "Electricity",
+      "water": "Water",
+      "air_conditioning": "Air conditioning",
+      "heating": "Heating",
+      "sanitary": "Sanitary fittings"
+    }
+  },
+  "containerCatalog": {
+    "title": "Container catalog",
+    "add": "Container from catalog",
+    "hint": "Choose a supplier model as a starting point for your own container.",
+    "search": "Search by type or size",
+    "family": "Design",
+    "model": "Catalog model",
+    "select": "Choose a model…",
+    "count": "{{count}} models found",
+    "weightUnknown": "Enter actual tare weight",
+    "source": "Specifications from {{supplier}}",
+    "checked": "Checked {{date}}",
+    "apply": "Apply model specifications",
+    "applyHint": "Replaces the dimensions and weights in this form. Enter fittings and inspections separately.",
+    "families": {
+      "dry": "Standard dry",
+      "high_cube": "High cube",
+      "side_door": "Side door",
+      "double_door": "Doors at both ends",
+      "double_side_door": "Doors on both long sides",
+      "open_top": "Open top",
+      "hard_top": "Removable steel roof",
+      "flatrack": "Flatrack",
+      "reefer": "Refrigerated",
+      "pallet_wide": "Pallet wide",
+      "curtain_side": "Curtain side",
+      "tank": "Tank container",
+      "site": "Work and accommodation",
+      "storage": "Storage"
+    },
+    "basis": {
+      "supplier_example": "These dimensions describe this supplier model. Check the design, fittings and data plate of your own container.",
+      "cut_down_nominal": "Cut-down model with nominal dimensions. The supplier allows length variation up to 152 mm; measure your own container and enter its tare.",
+      "base_shell": "Only the shell dimensions are specified. Enter the tare and internal dimensions after fitting out.",
+      "mass_conflict": "The source gives conflicting weight limits, so these are left blank. Use the data plate or confirm them with the supplier."
+    }
+  },
+  "inspections": {
+    "title": "Inspections and checks",
+    "hint": "Add a separate check per component or standard. Copy the result and next date from the inspection report.",
+    "empty": "No active inspections recorded.",
+    "kind": "Inspection type",
+    "name": "Custom name / standard",
+    "scope": "Component / installation",
+    "performed_on": "Performed on",
+    "due_on": "Next inspection due",
+    "result": "Result",
+    "inspector": "Inspector / company",
+    "reference": "Report / certificate number",
+    "dueSummary": "Next date: {{date}}",
+    "noDueDate": "No next date recorded",
+    "renew": "Record next inspection",
+    "remove": "Remove inspection",
+    "showHistory": "Show previous inspections",
+    "add": "Add inspection",
+    "filter": "Inspections",
+    "filters": {
+      "all": "All inspections",
+      "attention": "Needs attention",
+      "missing": "No inspection recorded"
+    },
+    "attentionCount": "{{count}} inspection(s) need attention",
+    "kinds": {
+      "general": "General check",
+      "csc": "CSC / container",
+      "nen3140": "NEN 3140 / electrical",
+      "fgas": "Air conditioning / F-gases (STEK)",
+      "apk": "Vehicle roadworthiness (APK)",
+      "lifting": "Lifting equipment",
+      "water": "Water / hygiene",
+      "fire": "Fire safety",
+      "other": "Other inspection"
+    },
+    "results": {
+      "unknown": "Not recorded",
+      "passed": "Passed",
+      "failed": "Failed",
+      "conditional": "Conditional",
+      "not_applicable": "Not applicable"
+    },
+    "status": {
+      "archived": "Previous inspection",
+      "not_applicable": "Not applicable",
+      "failed": "Failed",
+      "conditional": "Conditional",
+      "planned": "Planned / awaiting inspection",
+      "overdue": "Date overdue",
+      "due_soon": "Within 30 days",
+      "current": "Passed until recorded date",
+      "unknown": "Status not established"
+    }
   }
 }

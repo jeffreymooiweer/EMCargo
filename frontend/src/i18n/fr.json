@@ -824,7 +824,11 @@
       "container_weight_missing": "Saisissez la tare et le poids de chaque ligne de marchandises du conteneur.",
       "payload_exceeded": "Le poids des marchandises dépasse la charge utile du conteneur.",
       "gross_exceeded": "Le poids brut dépasse le poids maximal du conteneur.",
-      "document_container": "Ce document décrit un seul conteneur. Incluez un conteneur et affectez-lui toutes les marchandises ; créez une expédition distincte pour les autres conteneurs."
+      "document_container": "Ce document décrit un seul conteneur. Incluez un conteneur et affectez-lui toutes les marchandises ; créez une expédition distincte pour les autres conteneurs.",
+      "inspection_name": "Nommez ce contrôle.",
+      "inspection_dates": "Le prochain contrôle ne peut pas précéder la date de réalisation.",
+      "inspection_date_required": "Renseignez la date de réalisation pour ce résultat.",
+      "inspection_ids": "Chaque contrôle doit avoir un identifiant unique."
     },
     "dg": {
       "un_number_not_found": "Numéro ONU introuvable dans la base ADR",
@@ -2276,7 +2280,8 @@
       "moved": "Transfert confirmé",
       "status": "Statut modifié",
       "archived": "Archivé",
-      "restored": "Restauré"
+      "restored": "Restauré",
+      "inspections": "Contrôles mis à jour"
     },
     "close": "Fermer",
     "reload": "Recharger",
@@ -2294,6 +2299,116 @@
     "loadSummary": "Tare {{tare}} kg + marchandises {{cargo}} kg = total {{gross}} kg",
     "loadHint": "Affectez les lignes de marchandises à ce conteneur. La tare est comptée une fois. Le total calculé n’est pas une VGM pesée.",
     "choose": "Choisir du matériel",
-    "chooseHint": "Les données de transport sont copiées dans cette expédition."
+    "chooseHint": "Les données de transport sont copiées dans cette expédition.",
+    "container_use": "Usage",
+    "container_useValues": {
+      "freight": "Fret",
+      "storage": "Stockage",
+      "workshop": "Atelier",
+      "office": "Bureau / salle de repos",
+      "sanitary": "Sanitaires",
+      "accommodation": "Hébergement",
+      "other": "Autre"
+    },
+    "facilities": "Équipements installés",
+    "facilityValues": {
+      "electricity": "Électricité",
+      "water": "Eau",
+      "air_conditioning": "Climatisation",
+      "heating": "Chauffage",
+      "sanitary": "Sanitaires"
+    }
+  },
+  "containerCatalog": {
+    "title": "Catalogue de conteneurs",
+    "add": "Conteneur du catalogue",
+    "hint": "Choisissez un modèle fournisseur comme point de départ pour votre propre conteneur.",
+    "search": "Rechercher par type ou taille",
+    "family": "Type",
+    "model": "Modèle du catalogue",
+    "select": "Choisissez un modèle…",
+    "count": "{{count}} modèles trouvés",
+    "weightUnknown": "Poids à vide à renseigner",
+    "source": "Spécifications de {{supplier}}",
+    "checked": "Consulté le {{date}}",
+    "apply": "Appliquer les spécifications",
+    "applyHint": "Remplace les dimensions et poids du formulaire. Renseignez séparément les équipements et contrôles.",
+    "families": {
+      "dry": "Standard",
+      "high_cube": "High cube",
+      "side_door": "Ouverture latérale",
+      "double_door": "Portes aux deux extrémités",
+      "double_side_door": "Portes sur les deux côtés longs",
+      "open_top": "Open top",
+      "hard_top": "Toit acier amovible",
+      "flatrack": "Flatrack",
+      "reefer": "Frigorifique",
+      "pallet_wide": "Pallet wide",
+      "curtain_side": "Rideau coulissant",
+      "tank": "Conteneur-citerne",
+      "site": "Travail et hébergement",
+      "storage": "Stockage"
+    },
+    "basis": {
+      "supplier_example": "Ces dimensions décrivent ce modèle fournisseur. Vérifiez la version, les équipements et la plaque de votre propre conteneur.",
+      "cut_down_nominal": "Modèle raccourci aux dimensions nominales. Le fournisseur indique une variation de longueur de 152 mm ; mesurez votre conteneur et renseignez sa tare.",
+      "base_shell": "Seules les dimensions extérieures de la structure sont connues. Renseignez la tare et les dimensions intérieures après aménagement.",
+      "mass_conflict": "Les limites de poids de la source sont contradictoires et restent vides. Consultez la plaque ou le fournisseur."
+    }
+  },
+  "inspections": {
+    "title": "Inspections et contrôles",
+    "hint": "Ajoutez un contrôle par équipement ou norme. Reprenez le résultat et la prochaine date du rapport.",
+    "empty": "Aucun contrôle actif enregistré.",
+    "kind": "Type de contrôle",
+    "name": "Nom personnalisé / norme",
+    "scope": "Équipement / installation",
+    "performed_on": "Réalisé le",
+    "due_on": "Prochain contrôle avant le",
+    "result": "Résultat",
+    "inspector": "Inspecteur / entreprise",
+    "reference": "Numéro de rapport / certificat",
+    "dueSummary": "Prochaine date : {{date}}",
+    "noDueDate": "Aucune prochaine date enregistrée",
+    "renew": "Enregistrer le contrôle suivant",
+    "remove": "Supprimer le contrôle",
+    "showHistory": "Afficher les contrôles précédents",
+    "add": "Ajouter un contrôle",
+    "filter": "Contrôles",
+    "filters": {
+      "all": "Tous les contrôles",
+      "attention": "À vérifier",
+      "missing": "Aucun contrôle enregistré"
+    },
+    "attentionCount": "{{count}} contrôle(s) à vérifier",
+    "kinds": {
+      "general": "Contrôle général",
+      "csc": "CSC / conteneur",
+      "nen3140": "NEN 3140 / électricité",
+      "fgas": "Climatisation / gaz fluorés (STEK)",
+      "apk": "Contrôle technique (APK)",
+      "lifting": "Équipements de levage",
+      "water": "Eau / hygiène",
+      "fire": "Sécurité incendie",
+      "other": "Autre contrôle"
+    },
+    "results": {
+      "unknown": "Non enregistré",
+      "passed": "Conforme",
+      "failed": "Non conforme",
+      "conditional": "Sous conditions",
+      "not_applicable": "Sans objet"
+    },
+    "status": {
+      "archived": "Contrôle précédent",
+      "not_applicable": "Sans objet",
+      "failed": "Non conforme",
+      "conditional": "Sous conditions",
+      "planned": "Prévu / à contrôler",
+      "overdue": "Date dépassée",
+      "due_soon": "Dans les 30 jours",
+      "current": "Conforme jusqu’à la date enregistrée",
+      "unknown": "État non établi"
+    }
   }
 }
