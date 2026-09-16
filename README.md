@@ -246,6 +246,7 @@ The [license history](docs/licensing/license-history.md) records the earlier
 MIT revisions. Current restrictions do not retrospectively cancel valid rights
 in earlier copies. Fork branding follows [TRADEMARKS.md](TRADEMARKS.md).
 
-Publication of new images, native releases and card sets is held while the
-[rights register](docs/licensing/rights-register.md) or package reviews contain
-unresolved distribution questions. Development and local testing remain possible.
+Application images and native releases are published after technical validation.
+The [rights register](docs/licensing/rights-register.md) and package reports
+record outstanding questions as advisory information. Separate card-set and
+regulatory-volume publication retains its existing review requirements.

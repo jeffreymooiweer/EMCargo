@@ -82,8 +82,10 @@ Pillow's embedded libraries and OS components also retain their original terms.
 The authoritative file list, exact hashes, channels and evidence references are
 in `compliance/third-party-manifest.json`. The explanations and pending requests
 are in [the rights register](docs/licensing/rights-register.md). An `unresolved`
-entry is not permission to publish. The publication gate refuses affected new
+entry is not permission to publish. The strict review tool flags affected new
 images, native bundles and card sets until a lawful route is recorded.
+Application releases retain these findings as advisory reports under the
+project's [publication policy](docs/licensing/rights-register.md#application-publication-policy--2026-09-16).
 
 Existing releases and historical Git versions need separate assessment.
 Removing or replacing a file today does not erase its earlier distribution.

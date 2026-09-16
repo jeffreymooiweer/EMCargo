@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.12.3] - 2026-09-15
+## [2.12.3] - 2026-09-16
 
 ### Changed
 
@@ -11,9 +11,13 @@
   allow long addresses, goods tables and annual-report answers to flow across pages.
 - Use the same style for newly generated UN cards, retaining all four shipping-name
   translations and full provisions/provenance. Existing installed PDFs require
-  regeneration and import; all publication-rights gates remain in force.
+  regeneration and import.
 - Bundle font notices with card packages and accept the workflow's bounded source
   inventories/notices without permitting archive path traversal.
+- Resume application releases at the project owner's request. Keep license
+  inventories, notices and package reports as advisory information; publish after
+  technical validation succeeds. Publish the GitHub Release with its native bundle
+  only after the tested Docker image is available under both version tags.
 
 ## [2.12.2] - 2026-09-15
 

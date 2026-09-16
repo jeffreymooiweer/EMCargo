@@ -232,18 +232,21 @@ python scripts/bump_version.py 1.37.0
    pull request if the newest heading and the `VERSION` files disagree — a release note
    cannot be forgotten.
 2. Merge to `main`.
-3. Run the **Tag release** workflow from GitHub Actions with the version number. It
-   verifies the version files, then creates the tag and the GitHub Release from the
-   changelog entry. It does not commit anything.
+3. Run the **Tag release** workflow from GitHub Actions with the version number,
+   or merge from an `agent/release-v<version>` branch to start it automatically.
+   It verifies the version files, builds the native bundle and names the tested
+   image before publishing the GitHub Release. It does not commit anything.
 4. **CI** already built and pushed `ghcr.io/jeffreymooiweer/emcargo:latest` and `:<short-sha>` on
    the merge in step 2. Step 3 adds `:<version>` and `:v<version>` to that same image;
    nothing is rebuilt. Both spellings are published because the in-app updater asked for
    the `v` form up to v1.136.0 and for the bare form from v1.137.0 on — an installation of
    either generation finds the image it looks for.
 
-Required secrets: `DOCKER_USERNAME`, `DOCKER_TOKEN`.
+Publishing on current `main` uses the workflow's `GITHUB_TOKEN`. An optional
+`RELEASE_TOKEN` with workflow scope is needed only to tag an older commit whose
+workflow tree differs from current `main`.
 
-**A release builds nothing.** The image is built once, by the push to `main`, and pushed as
+**A release does not rebuild the image.** The image is built once, by the push to `main`, and pushed as
 `latest` and as the short commit SHA. `tag-release.yml` then puts the version number on
 that same manifest with `docker buildx imagetools create` — server-side, both
 architectures, in seconds.
@@ -257,6 +260,13 @@ If the build on `main` has not finished yet, `tag-release.yml` waits for the SHA
 appear — up to twenty minutes, then it fails. Failing is the right outcome there: no tested
 image means nothing to release, and a version tag pointing at yesterday's build would be
 worse than no release at all.
+
+Application license reports are advisory under the
+[publication policy](licensing/rights-register.md#application-publication-policy--2026-09-16).
+CI still validates the content inventory and scans both image architectures. The
+native bundle includes its inventories, license notices and open-review reports.
+Tests, dependency checks and image smoke tests must pass before images publish.
+Only `main` publishes images; pull requests and other dispatched refs do not.
 
 The docker job has a 45-minute timeout so a wedged build fails visibly rather than running
 all day, and each ref writes its own buildx cache scope — sharing one `mode=max` scope let
@@ -284,12 +294,9 @@ commits on the branch spent fifteen jobs before anything was merged. They are no
 workflow, and `release.yml` — a second, unused path to creating the same GitHub Release —
 is gone with them.
 
-The Docker build asks for `linux/arm64` **only when it is going to publish**. arm64 is
-emulated through QEMU on an amd64 runner and that emulation was most of the wall clock. On
-a pull request nothing is pushed, so the build is a smoke test of the Dockerfile and
-`linux/amd64` answers that question. A pull request also writes no buildx cache: an
-amd64-only layer overwriting `main`'s scope would make the next publishing build slower,
-not faster.
+Both `linux/amd64` and `linux/arm64` are built and inspected in CI, including on
+pull requests. ARM64 uses QEMU on the amd64 runner; each architecture has its own
+cache scope. A pull request produces reports without publishing an image.
 
 Pull request runs cancel their own predecessors. Runs on `main` and on a tag never do —
 a publication hangs off those.

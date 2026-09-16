@@ -1,6 +1,7 @@
 name: CI
 
-# Tests and image inspection run independently of outstanding publication rights.
+# Application releases retain license reports without requiring rights clearance.
+# Publication still requires the tests, inventory checks and image smoke tests.
 
 on:
   push:
@@ -105,22 +106,16 @@ jobs:
   rights:
     name: Rights inventory
     runs-on: ubuntu-latest
-    outputs:
-      image_ready: ${{ steps.review.outputs.image_ready }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate registered content and evidence
         run: python scripts/check_third_party_manifest.py
       - name: Record exact source files
         run: python scripts/build_source_sbom.py --out compliance-output/source.cdx.json
-      - name: Report publication readiness
-        id: review
+      - name: Report outstanding license questions
         run: |
-          if python scripts/check_third_party_manifest.py --publish image --report compliance-output/image-rights.json; then
-            echo "image_ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "image_ready=false" >> "$GITHUB_OUTPUT"
-            echo "Image publication is held for the recorded rights decisions." >> "$GITHUB_STEP_SUMMARY"
+          if ! python scripts/check_third_party_manifest.py --publish image --report compliance-output/image-rights.json; then
+            echo "License questions are recorded in the rights-report artifact; application publication remains enabled by project policy." >> "$GITHUB_STEP_SUMMARY"
           fi
       - uses: actions/upload-artifact@v4
         with:
@@ -171,25 +166,22 @@ jobs:
           path: |
             image-${{ matrix.arch }}.cdx.json
             image-${{ matrix.arch }}-review.json
-      - name: Require reviewed packages before publishing this exact image
-        if: github.event_name != 'pull_request' && needs.rights.outputs.image_ready == 'true'
-        run: python scripts/check_sbom.py image-${{ matrix.arch }}.cdx.json --channel image --publish
       - uses: docker/login-action@v3
-        if: github.event_name != 'pull_request' && needs.rights.outputs.image_ready == 'true'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish the scanned architecture image
-        if: github.event_name != 'pull_request' && needs.rights.outputs.image_ready == 'true'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
           docker tag emcargo-review:${{ matrix.arch }} ghcr.io/jeffreymooiweer/emcargo:${{ github.sha }}-${{ matrix.arch }}
           docker push ghcr.io/jeffreymooiweer/emcargo:${{ github.sha }}-${{ matrix.arch }}
 
   publish-image:
-    name: Publish reviewed image manifest
-    needs: [docker, rights]
-    if: github.event_name != 'pull_request' && needs.rights.outputs.image_ready == 'true'
+    name: Publish tested image manifest
+    needs: [docker]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: docker/setup-buildx-action@v3
@@ -198,7 +190,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Combine the two reviewed images
+      - name: Combine the two tested images
         env:
           COMMIT: ${{ github.sha }}
           IMAGE: ghcr.io/jeffreymooiweer/emcargo
