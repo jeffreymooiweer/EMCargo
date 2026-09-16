@@ -1,9 +1,8 @@
 name: Tag release
 
 # Creates the release tag on main and publishes the GitHub Release.
-# Needed because tags pushed inside a workflow with GITHUB_TOKEN do not trigger
-# new tag workflows; this workflow therefore does the release itself and starts
-# CI (the Docker build) explicitly on the tag ref.
+# The version tags reuse the image that passed CI on main. The GitHub Release
+# becomes visible only after that image and the native bundle are available.
 
 on:
   workflow_dispatch:
@@ -34,7 +33,7 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.commit || 'main' }}
+          ref: ${{ inputs.commit || github.event.pull_request.merge_commit_sha || 'main' }}
           fetch-depth: 0
 
       # A release is normally started right after the merge, and then the head of
@@ -66,11 +65,20 @@ jobs:
       - name: Verify the version files agree
         run: python scripts/check_versions.py
 
-      - name: Require source, native and image redistribution rights
+      - name: Validate the content inventory
+        run: python scripts/check_third_party_manifest.py
+
+      - name: Record source, native and image license questions
         run: |
-          python scripts/check_third_party_manifest.py --publish source
-          python scripts/check_third_party_manifest.py --publish native
-          python scripts/check_third_party_manifest.py --publish image
+          for channel in source native image; do
+            if ! python scripts/check_third_party_manifest.py --publish "$channel" --report "release-reports/$channel-rights.json"; then
+              echo "Outstanding $channel license questions are recorded; application releases use advisory reporting." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-license-reports
+          path: release-reports/
 
       - name: Resolve and validate release version
         id: release
@@ -152,6 +160,7 @@ jobs:
           STAGE="emcargo-$VERSION"
           rm -rf "$STAGE" && mkdir -p "$STAGE"
           cp -r backend templates deploy licenses compliance THIRD_PARTY_NOTICES.md TRADEMARKS.md CHANGELOG.md VERSION LICENSE TERMS.nl.md DISCLAIMER.md DISCLAIMER.nl.md "$STAGE/"
+          cp release-reports/*.json "$STAGE/compliance/"
           rm -rf "$STAGE/backend/tests" "$STAGE/backend/static" "$STAGE/backend/requirements.txt"
           find "$STAGE" -name __pycache__ -type d -prune -exec rm -rf {} +
           cp -r frontend/dist "$STAGE/backend/static"
@@ -159,8 +168,8 @@ jobs:
           /tmp/emcargo-release-runtime/bin/pip install --require-hashes -r backend/requirements-runtime-lock.txt
           /tmp/emcargo-release-runtime/bin/python scripts/build_sbom.py --out "$STAGE/compliance/python-runtime.cdx.json" --licenses "$STAGE/licenses/python"
           cp frontend/dist/compliance/frontend.cdx.json "$STAGE/compliance/frontend.cdx.json"
-          python scripts/check_sbom.py "$STAGE/compliance/python-runtime.cdx.json" --channel native --publish
-          python scripts/check_sbom.py "$STAGE/compliance/frontend.cdx.json" --channel native --publish
+          python scripts/check_sbom.py "$STAGE/compliance/python-runtime.cdx.json" --channel native --report "$STAGE/compliance/python-runtime-review.json"
+          python scripts/check_sbom.py "$STAGE/compliance/frontend.cdx.json" --channel native --report "$STAGE/compliance/frontend-review.json"
           python scripts/build_source_sbom.py --out "$STAGE/compliance/source.cdx.json"
           python scripts/build_source_sbom.py --directory "$STAGE" --out "$STAGE/compliance/native-files.cdx.json"
           tar -czf "emcargo-$VERSION-native.tar.gz" "$STAGE"
@@ -193,25 +202,6 @@ jobs:
 
           echo "::error::Could not push $TAG. A tag on a commit whose .github/workflows differs from the default branch needs a credential with workflow scope; add it as the RELEASE_TOKEN secret. Tagging the head of main does not need one."
           exit 1
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="${{ steps.release.outputs.tag }}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists — skipping."
-          else
-            gh release create "$TAG" --title "EMCargo $TAG" --notes-file release-body.md
-          fi
-
-      - name: Attach the native bundle to the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.release.outputs.version }}
-        run: |
-          TAG="${{ steps.release.outputs.tag }}"
-          gh release upload "$TAG" "emcargo-$VERSION-native.tar.gz" "emcargo-$VERSION-native.tar.gz.sha256" --clobber
 
       # This used to say: build the image once more, now on the tag ref. That
       # cost four to six minutes to compile precisely the same commit again, plus
@@ -260,3 +250,16 @@ jobs:
 
           echo "::error::$IMAGE:$SHORT never appeared. The build on main either failed or never ran, so there is no tested image to release."
           exit 1
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          TAG="${{ steps.release.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "emcargo-$VERSION-native.tar.gz" "emcargo-$VERSION-native.tar.gz.sha256" --clobber
+          else
+            gh release create "$TAG" --verify-tag --latest --title "EMCargo $TAG" --notes-file release-body.md \
+              "emcargo-$VERSION-native.tar.gz" "emcargo-$VERSION-native.tar.gz.sha256"
+          fi

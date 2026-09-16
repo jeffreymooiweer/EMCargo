@@ -168,7 +168,46 @@ def test_a_pull_request_never_publishes_an_image():
     docker = load("ci.yml")["jobs"]["docker"]
     publish = next(s for s in docker["steps"] if "docker push " in s.get("run", ""))
     assert "github.event_name != 'pull_request'" in publish["if"]
-    assert "image_ready == 'true'" in publish["if"]
+    assert "github.ref == 'refs/heads/main'" in publish["if"]
+    manifest = load("ci.yml")["jobs"]["publish-image"]
+    assert manifest["if"] == publish["if"]
+
+
+def test_application_publication_keeps_technical_checks_and_advisory_reports():
+    """The owner's release request replaced the blanket licensing hold with
+    advisory reports. Publication must still depend on tests and image scans,
+    and changing that policy must not erase unresolved evidence records.
+    """
+    jobs = load("ci.yml")["jobs"]
+    assert set(jobs["docker"]["needs"]) == {"backend", "frontend", "rights"}
+    assert "docker" in jobs["publish-image"]["needs"]
+    assert "image_ready" not in steps_only("ci.yml")
+    rights = jobs["rights"]["steps"]
+    assert any(s.get("run") == "python scripts/check_third_party_manifest.py" for s in rights)
+    assert any("if ! python scripts/check_third_party_manifest.py --publish image --report" in s.get("run", "") for s in rights)
+    docker = "\n".join(s.get("run", "") for s in jobs["docker"]["steps"])
+    assert "--channel image --report" in docker
+    assert "--channel image --publish" not in docker
+    release = steps_only("tag-release.yml")
+    assert "--channel native --report" in release
+    assert "--channel native --publish" not in release
+    assert "--publish cards" in steps_only("generate-un-cards.yml")
+
+
+def test_the_release_is_visible_only_when_both_install_routes_exist():
+    """Publishing GitHub's latest release before the image was named made the
+    in-app updater offer a version that could not yet be pulled. Native assets
+    must also be attached as part of creation, not in a later workflow step.
+    """
+    steps = load("tag-release.yml")["jobs"]["tag-and-release"]["steps"]
+    image_index = next(i for i, s in enumerate(steps) if "imagetools create" in s.get("run", ""))
+    release_index = next(i for i, s in enumerate(steps) if "gh release create" in s.get("run", ""))
+    assert image_index < release_index
+    create = steps[release_index]["run"]
+    assert "--verify-tag --latest" in create
+    assert '"emcargo-$VERSION-native.tar.gz" "emcargo-$VERSION-native.tar.gz.sha256"' in create
+    checkout = next(s for s in steps if s.get("uses", "").startswith("actions/checkout"))
+    assert "github.event.pull_request.merge_commit_sha" in checkout["with"]["ref"]
 
 
 def test_qemu_is_only_set_up_when_arm64_is_wanted():

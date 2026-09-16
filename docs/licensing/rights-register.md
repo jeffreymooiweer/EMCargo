@@ -38,8 +38,9 @@ the proposed CLA or commercial terms.
   asset; applicable third-party rights in referenced content are not granted.
 - `documented`: a specific publisher grant or dedication has been identified
   and its conditions must be implemented for the listed channels.
-- `unresolved`: provenance or a rights question remains open. Publication for
-  any listed channel is blocked by the strict gate.
+- `unresolved`: provenance or a rights question remains open. Strict review
+  reports fail for the listed channels; application releases treat these reports
+  as advisory under the publication policy below.
 - `retired`: no active path or distribution channel remains. Historical rights
   and copies are still assessed independently.
 
@@ -81,10 +82,22 @@ The clean runtime snapshot contains 50 Python distributions and no PyMuPDF.
 The compiled browser SBOM contains six actual bundled packages. These snapshots
 do not represent a container's OS or every wheel architecture: CI produces
 separate SBOMs for the built amd64 and arm64 images. Package review records
-pin a specific package/version and detected license metadata; unresolved entries
-are intentionally rejected for publication. Before reopening a channel, inspect
-its complete report, satisfy the original notices/source obligations and record
-the real evidence. Do not clear it merely to make CI publish.
+pin a specific package/version and detected license metadata. Unresolved entries
+remain visible in the reports; they are not relabelled as approved to publish.
+
+## Application publication policy — 2026-09-16
+
+At the project owner's explicit request, application source releases, native
+bundles and container images no longer wait for every licensing question to be
+resolved. Their rights and package reports are advisory. Technical tests, version
+consistency, inventory integrity, image smoke tests and notice packaging remain
+required. The release includes the existing evidence and open questions without
+claiming new third-party permission.
+
+This changes the project's release policy, not the source licenses or recorded
+rights statuses. Separate generated-card and full regulatory-volume workflows
+retain their strict checks. Update an evidence record only when new evidence is
+available; publishing an application does not resolve the underlying question.
 
 The CLA remains a draft. Activating it, establishing the licensor's authority,
 and obtaining publisher permissions require actual legal decisions and assent.
