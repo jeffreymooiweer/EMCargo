@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.14.1] - 2026-09-16
+
+### Changed
+
+- Choose a container model directly in the equipment form. One dropdown lists all
+  models by size and immediately fills transport dimensions and tare. Keep manual
+  entry available when no model fits or the catalog cannot load.
+- Show only everyday equipment fields first, with additional details and
+  inspections in optional sections. Keep Save visible while scrolling, and return
+  to the library after saving. Move import/export and secondary actions under More.
+- Reduce each inspection to type, result and two dates. Keep report details and
+  archived history available without displaying every field at once. Preserve
+  measured dimensions, facilities, configurations and reports when editing.
+
 ## [2.14.0] - 2026-09-16
 
 ### Added

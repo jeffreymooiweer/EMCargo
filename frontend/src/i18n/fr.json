@@ -2410,5 +2410,23 @@
       "current": "Conforme jusqu’à la date enregistrée",
       "unknown": "État non établi"
     }
+  },
+  "equipmentSimple": {
+    "modelsLoading": "Chargement des modèles…",
+    "customModel": "Autre / saisie manuelle",
+    "modelsUnavailable": "Modèles indisponibles. Vous pouvez saisir les dimensions vous-même.",
+    "adjust": "Modifier",
+    "dimensionsWeight": "Dimensions et poids",
+    "moreDetails": "Autres informations",
+    "locationHint": "Utilisez « Modifier le lieu » sur la fiche du matériel pour changer son emplacement.",
+    "attention": "{{count}} à vérifier",
+    "reportDetails": "Détails du rapport",
+    "more": "Plus",
+    "filters": "Filtres",
+    "clearFilters": "Effacer les filtres",
+    "addContainer": "Ajouter un conteneur",
+    "changeLocation": "Modifier le lieu",
+    "current": "Conforme",
+    "tare": "Poids à vide"
   }
 }

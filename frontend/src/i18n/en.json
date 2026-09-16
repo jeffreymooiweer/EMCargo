@@ -2410,5 +2410,23 @@
       "current": "Passed until recorded date",
       "unknown": "Status not established"
     }
+  },
+  "equipmentSimple": {
+    "modelsLoading": "Loading models…",
+    "customModel": "Other / enter manually",
+    "modelsUnavailable": "Models are unavailable. You can enter the dimensions yourself.",
+    "adjust": "Adjust",
+    "dimensionsWeight": "Dimensions and weight",
+    "moreDetails": "More details",
+    "locationHint": "Use ‘Change location’ on the equipment record to update its location.",
+    "attention": "{{count}} need attention",
+    "reportDetails": "Report details",
+    "more": "More",
+    "filters": "Filters",
+    "clearFilters": "Clear filters",
+    "addContainer": "Add container",
+    "changeLocation": "Change location",
+    "current": "Passed",
+    "tare": "Tare weight"
   }
 }
