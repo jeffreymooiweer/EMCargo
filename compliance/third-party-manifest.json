@@ -3561,7 +3561,7 @@
       "redistribution_basis": "Project-authored build/dependency declaration; dependencies keep their own licenses.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package.json": "3b00a87983f9ca427e1ca0e6d464e3b748c24cd8db1b9d33224e6f78620ebfcc"
+        "frontend/package.json": "b32c2d83cce06f38a854f3b6a860fcabe57e9b3e4f8a6e9bdc67fac2a1702817"
       },
       "distribution_channels": [
         "source"
@@ -3583,7 +3583,7 @@
       "redistribution_basis": "The declaration is project-authored; the resolved packages retain their own licenses and require a generated SBOM.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package-lock.json": "eecc700ff512f16dfc1c1f3197d1383db092d57a32db6b15ee8cc2519bccdda1"
+        "frontend/package-lock.json": "21aa9454de852f765aa11975a46ba2361a0106ca16eb175bbe202c6a897abc56"
       },
       "distribution_channels": [
         "image",
