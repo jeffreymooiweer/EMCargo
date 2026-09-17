@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.15.1] - 2026-09-17
+
+### Fixed
+
+- Explain incomplete cargo weights at document export and link directly to the
+  cargo fields, without misleading substance or unavailable-service warnings.
+- Accept ordinary shipment exports in trips when empty dangerous-goods and
+  regulation arrays are omitted, while rejecting incomplete DG declarations.
+- Keep vehicle details open and preserve input focus when correcting an invalid
+  transport-unit mass.
+
+### Documentation
+
+- Record desktop visual checks at mobile, tablet and desktop widths with light
+  and dark screenshots, completed cargo workflows and explicit remaining limits.
+
 ## [2.15.0] - 2026-09-17
 
 ### Added

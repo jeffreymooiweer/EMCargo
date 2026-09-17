@@ -55,6 +55,7 @@ export default function TripsPage({ user }: { user?: User | null }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const addButton = useRef<HTMLButtonElement>(null);
   const nameInput = useRef<HTMLInputElement>(null);
+  const vehicleDetails = useRef<HTMLDetailsElement>(null);
   const locked = saving || opening;
   const adding = busyIds.size > 0 || importing;
   const mass = readMass(draft.mass);
@@ -66,6 +67,13 @@ export default function TripsPage({ user }: { user?: User | null }) {
   const pending = !!draft.consignments.length && mass !== undefined && !current && !failed && !opening;
   const latestDraft = useRef(draft); latestDraft.current = draft;
   const pendingIds = useRef(new Set<number>());
+  const needsVehicle = mass === undefined || (!!current?.result.lq_marking?.lq_gross_kg && current.result.lq_marking.required === null);
+
+  useEffect(() => {
+    // Reveal a missing fact without collapsing the field as soon as typing
+    // makes it valid. Native disclosure state preserves the user's focus.
+    if (needsVehicle && vehicleDetails.current) vehicleDetails.current.open = true;
+  }, [needsVehicle, opening, draft.consignments.length]);
 
   function adopt(detail: TripDetail) {
     const next = { name: detail.name, mass: detail.unit_max_mass_tonnes == null ? "" : String(detail.unit_max_mass_tonnes),
@@ -244,7 +252,7 @@ export default function TripsPage({ user }: { user?: User | null }) {
             {picker && historyOn && <ShipmentPicker selected={draft.consignments} busyIds={busyIds} onAdd={summary => void addShipment(summary)} onClose={closePicker} />}
             <div className="trip-composer-bottom"><button className="trip-text-button" type="button" disabled={importing} onClick={() => fileInput.current?.click()}><ImportIcon />{t(importing ? "tripWorkspace.adding" : "tripWorkspace.import")}</button>
               <input ref={fileInput} type="file" accept="application/json,.json" multiple className="sr-only" aria-label={t("tripWorkspace.import")} onChange={event => { void importFiles(event.target.files); event.target.value = ""; }} />
-              {!!draft.consignments.length && <details className="trip-vehicle" open={mass === undefined || (!!current?.result.lq_marking?.lq_gross_kg && current.result.lq_marking.required === null) || undefined}><summary>{t("tripWorkspace.vehicle")}{draft.mass && <span> · {draft.mass} t</span>}</summary><label htmlFor="trip-mass">{t("groupage.unitMass")}</label><input id="trip-mass" inputMode="decimal" placeholder={t("tripWorkspace.unknown")} value={draft.mass} aria-invalid={mass === undefined} aria-describedby={mass === undefined ? "trip-mass-error" : undefined} onChange={event => setDraft(d => ({ ...d, mass: event.target.value }))} />{mass === undefined && <p id="trip-mass-error" role="alert">{t("tripWorkspace.assessment.invalidMassHint")}</p>}</details>}
+              {!!draft.consignments.length && <details ref={vehicleDetails} className="trip-vehicle"><summary>{t("tripWorkspace.vehicle")}{draft.mass && <span> · {draft.mass} t</span>}</summary><label htmlFor="trip-mass">{t("groupage.unitMass")}</label><input id="trip-mass" inputMode="decimal" placeholder={t("tripWorkspace.unknown")} value={draft.mass} aria-invalid={mass === undefined} aria-describedby={mass === undefined ? "trip-mass-error" : undefined} onChange={event => setDraft(d => ({ ...d, mass: event.target.value }))} />{mass === undefined && <p id="trip-mass-error" role="alert">{t("tripWorkspace.assessment.invalidMassHint")}</p>}</details>}
             </div>
           </fieldset>
           {saveFailure && <div className="trip-inline-error" role="alert">{saveFailure}</div>}

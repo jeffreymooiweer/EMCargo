@@ -14,8 +14,9 @@ vi.mock("../settings/preferences", () => ({ usePreferences: () => ({ publicSetti
 const api = vi.hoisted(() => ({ trips: vi.fn(), trip: vi.fn(), shipments: vi.fn(), shipment: vi.fn(), dgTrip: vi.fn(), keepTrip: vi.fn(), updateTrip: vi.fn(), forgetTrip: vi.fn(), departments: vi.fn() }));
 vi.mock("../api/client", () => ({ api }));
 const goods = [{ products: [{ un_number: "1203", class: "3", transport_category: "2", adr_total_quantity: "100" }] }];
-const shipment = (id: number, dg = true) => ({ id, reference: `S${id}`, modality: "road", consignor_name: "Wezep", consignee_name: "Oirschot", has_dangerous_goods: dg,
-  export: { format: "emcargo.shipment", consignment: { reference: `S${id}`, consignor_name: "Wezep", consignee_name: "Oirschot" }, dangerous_goods: dg ? goods : [], regulations: dg ? ["ADR"] : [] } });
+const shipment = (id: number, dg = true) => ({ id, reference: `S${id}`, modality: "road", consignor_name: "Wezep", consignee_name: "Oirschot", has_dangerous_goods: dg, regulations: ["ADR"],
+  export: { format: "emcargo.shipment", consignment: { reference: `S${id}`, consignor_name: "Wezep", consignee_name: "Oirschot" },
+    ...(dg ? { dangerous_goods: goods, regulations: ["ADR"] } : { goods: [{ include: true, dangerous_goods: false, detected_un_numbers: [] }] }) } });
 const verdict = (total = 300) => ({ consignments: [{ name: "S7", points: total, exempt: total <= 1000, status: total > 1000 ? "above_threshold" : "exempt_possible" }], adr_points: { total_points: total, threshold: 1000, status: total > 1000 ? "above_threshold" : "exempt_possible" }, mixed_loading: [], lq_eq: { warnings: [] }, lq_marking: { message: "LQ details", lq_gross_kg: 0, required: false, reason: "within_8t_dispensation" }, exemption_lost: null });
 const saved = (id = 3) => ({ id, name: id === 3 ? "Monday" : "Tuesday", language: "nl", regulations: ["ADR"], unit_max_mass_tonnes: 18, consignment_count: 1, total_points: 300, exemption_lost: false,
   created_at: "2026-09-05T08:00:00Z", updated_at: "2026-09-05T08:00:00Z", consignments: [{ name: "S7", entries: goods, shipment_id: 7 }], result: verdict(), editions: { adr: "2025" } });
@@ -87,6 +88,22 @@ it("accepts decimal commas and refuses invalid vehicle mass without sending it",
   expect(screen.getByText("tripWorkspace.assessment.invalidMass")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "tripWorkspace.save" })).toBeDisabled();
   expect(api.dgTrip).toHaveBeenCalledTimes(1);
+});
+
+it("keeps vehicle details and focus after correcting an invalid mass", async () => {
+  renderPage("/trips?trip=3"); await screen.findByDisplayValue("Monday");
+  await userEvent.click(screen.getByText("tripWorkspace.vehicle"));
+  const input = screen.getByLabelText("groupage.unitMass");
+  await userEvent.clear(input);
+  await userEvent.type(input, "-5");
+  expect(input).toHaveAttribute("aria-invalid", "true");
+  await userEvent.clear(input);
+  await userEvent.type(input, "19");
+  expect(input).toHaveValue("19");
+  expect(input.closest("details")).toHaveAttribute("open");
+  expect(input).toHaveFocus();
+  await waitFor(() => expect(api.dgTrip).toHaveBeenLastCalledWith(expect.objectContaining({ unit_max_mass_tonnes: 19 })));
+  expect(input.closest("details")).toHaveAttribute("open");
 });
 
 it("keeps edits after a failed save and permits retry", async () => {

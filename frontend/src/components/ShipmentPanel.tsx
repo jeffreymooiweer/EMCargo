@@ -35,6 +35,8 @@ export interface PanelDocument {
   /** How many answers it is still short, and the first of them. */
   missing: number;
   firstMissing: string | null;
+  /** A cargo failure has its own explanation and a place to resolve it. */
+  blockedReason?: string;
 }
 
 interface Props {
@@ -135,6 +137,8 @@ export default function ShipmentPanel({
                   <span className="text-xs text-emerald-700 dark:text-emerald-300">
                     {t("panel.ready")}
                   </span>
+                ) : doc.state === "blocked" && doc.blockedReason ? (
+                  <MissingCount label={doc.blockedReason} field={doc.firstMissing} onMissing={onMissing} />
                 ) : doc.state === "blocked" ? (
                   // Blocked means the substance itself is not established.
                   // There is no one field to send somebody to, and offering a

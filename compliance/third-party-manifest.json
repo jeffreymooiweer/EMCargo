@@ -3553,7 +3553,7 @@
       "paths": [
         "frontend/package.json"
       ],
-      "version": "2.15.0 (version metadata only; dependencies unchanged)",
+      "version": "2.15.1",
       "source_url": null,
       "copyright_holder": "Original rights holders; see source notices",
       "license_expression": "LicenseRef-EMCargo",
@@ -3561,13 +3561,13 @@
       "redistribution_basis": "Project-authored build/dependency declaration; dependencies keep their own licenses.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package.json": "fa6822137247b3116d30fa559e7641879945e7131f39bd4c4329dc81e13e5bd0"
+        "frontend/package.json": "b32c2d83cce06f38a854f3b6a860fcabe57e9b3e4f8a6e9bdc67fac2a1702817"
       },
       "distribution_channels": [
         "source"
       ],
       "reviewed_at": "2026-09-17",
-      "reviewer": "Codex technical evidence inventory; unresolved is not legal clearance"
+      "reviewer": "Codex technical inventory; version-only patch release"
     },
     {
       "id": "frontend-package-lock-json",
@@ -3575,7 +3575,7 @@
       "paths": [
         "frontend/package-lock.json"
       ],
-      "version": "2.15.0 (version metadata only; dependencies unchanged)",
+      "version": "2.15.1",
       "source_url": null,
       "copyright_holder": "Jeffrey Mooiweer",
       "license_expression": "LicenseRef-EMCargo",
@@ -3583,7 +3583,7 @@
       "redistribution_basis": "The declaration is project-authored; the resolved packages retain their own licenses and require a generated SBOM.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package-lock.json": "12cf74be40e6ca57e7717e90a86fa38428d2c65d15b4affa361d3d2afa56981b"
+        "frontend/package-lock.json": "21aa9454de852f765aa11975a46ba2361a0106ca16eb175bbe202c6a897abc56"
       },
       "distribution_channels": [
         "image",
@@ -3591,7 +3591,7 @@
         "source"
       ],
       "reviewed_at": "2026-09-17",
-      "reviewer": "Codex technical inventory"
+      "reviewer": "Codex technical inventory; version-only patch release"
     },
     {
       "id": "frontend-public-art-air-webp",
@@ -5165,6 +5165,84 @@
       ],
       "reviewed_at": "2026-09-16",
       "reviewer": "Codex technical source review"
+    },
+    {
+      "id": "desktop-visual-review-2-15",
+      "kind": "project-review-evidence",
+      "paths": [
+        "visual-review-evidence/01-distribution-1440-dark.png",
+        "visual-review-evidence/02-nested-1440-dark.png",
+        "visual-review-evidence/03-nested-360-dark.png",
+        "visual-review-evidence/04-menu-overflow-360-before.png",
+        "visual-review-evidence/05-dialog-360-dark-focus.png",
+        "visual-review-evidence/06-nested-390-light.png",
+        "visual-review-evidence/07-nested-1440-light.png",
+        "visual-review-evidence/07-nested-2560-light.png",
+        "visual-review-evidence/07-nested-768-light.png",
+        "visual-review-evidence/08-export-wrong-reason-before.png",
+        "visual-review-evidence/09-export-reason-fixed-1440.png",
+        "visual-review-evidence/10-saved-cargo-1440-light.png",
+        "visual-review-evidence/11-articles-empty-filter-390.png",
+        "visual-review-evidence/12-packaging-model-390.png",
+        "visual-review-evidence/13-equipment-dialog-390.png",
+        "visual-review-evidence/14-equipment-import-390.png",
+        "visual-review-evidence/15-import-partial-390.png",
+        "visual-review-evidence/16-saved-cargo-390-dark.png",
+        "visual-review-evidence/17-saved-cargo-768-dark.png",
+        "visual-review-evidence/18-saved-cargo-2560-dark.png",
+        "visual-review-evidence/19-reflow-720x500-dark.png",
+        "visual-review-evidence/20-trip-validation-360-dark.png",
+        "visual-review-evidence/21-trip-saved-360-dark.png",
+        "visual-review-evidence/22-dgsa-report-360-dark.png",
+        "visual-review-evidence/23-dgsa-form-360-dark.png",
+        "visual-review-evidence/24-shipments-empty-search-360-dark.png",
+        "visual-review-evidence/25-trip-corrected-focus-360-dark.png",
+        "visual-review-evidence/26-final-saved-shipment.png",
+        "visual-review-evidence/materieel-test.csv"
+      ],
+      "version": "2.15.1",
+      "source_url": "https://github.com/jeffreymooiweer/EMCargo",
+      "copyright_holder": "Jeffrey Mooiweer",
+      "license_expression": "LicenseRef-EMCargo",
+      "rights_status": "project",
+      "redistribution_basis": "Screenshots of the project interface and a synthetic CSV fixture created during the desktop review. Reference-content rights remain recorded in their existing inventory entries.",
+      "evidence_reference": "docs/qa-2.15.0-desktop-visual-review.md",
+      "sha256": {
+        "visual-review-evidence/01-distribution-1440-dark.png": "de763c43e002654da46d6fa3a947b807d455c8cd391517492ce2a23f6460bc26",
+        "visual-review-evidence/02-nested-1440-dark.png": "c5540871824309f699746a78c05cbcf63b35806e1c780ca3a5a50884fa08f47f",
+        "visual-review-evidence/03-nested-360-dark.png": "3956b9e99d8e1478189c735f50309d36356441db01bc3f6c794c598e8083d1c3",
+        "visual-review-evidence/04-menu-overflow-360-before.png": "07c64882add9f412b4dd60ae96d884b31de3ee11f0d823db36bd01113bb89dbe",
+        "visual-review-evidence/05-dialog-360-dark-focus.png": "a2d8f873c84cad6a30c3e567070be238766238053e06c6edb20ac53a974ee8a2",
+        "visual-review-evidence/06-nested-390-light.png": "8a63fca481d13522ab87cd01104c1e6d61758688adcda0d663d88b943aef0d02",
+        "visual-review-evidence/07-nested-1440-light.png": "a57b85a824367f347c28cd04bdd2f5e30c1eaf94fcd487785e7b37cff84d8e9b",
+        "visual-review-evidence/07-nested-2560-light.png": "e785f9291073d29e9d8a13bd847f568e74668f153d050e016e7b1777265036a0",
+        "visual-review-evidence/07-nested-768-light.png": "d37c63dbf68739b83346f35fb228f9a1399068045395917dc7dd73c9bfc4e794",
+        "visual-review-evidence/08-export-wrong-reason-before.png": "ff189c94eadcaa5e38c51e76c76a1cb9d0e94e25645866bcee1c78181e61848f",
+        "visual-review-evidence/09-export-reason-fixed-1440.png": "528bd9b2d590695c35e7159381a53d4017c46de9ac7f19f4dea64b84599c9aa5",
+        "visual-review-evidence/10-saved-cargo-1440-light.png": "464cb1844bf8e5118ff8adbe079d674d960ad83db49be90b181abb4691f21942",
+        "visual-review-evidence/11-articles-empty-filter-390.png": "8e901fbc6fdc6a061d3b00c10879c36e1a372b66c2eda91a31cc8a534ba472ac",
+        "visual-review-evidence/12-packaging-model-390.png": "788e099e5c1542b4f0edb13d577ab118049163e8c5cf98d1f97f2d6344e5edf2",
+        "visual-review-evidence/13-equipment-dialog-390.png": "275e2973ea1a4008e31f302c3b06dc5168629ee2a51b2ab4634fe27eac675d8e",
+        "visual-review-evidence/14-equipment-import-390.png": "5587b2a7877a58fe850f85f9ca1c1c0519799ecb9b2d8556933baa8bebef3c9c",
+        "visual-review-evidence/15-import-partial-390.png": "85f2d3c35135970a7a2950a915100f3a69a8a875777ff960546ad222bb252d83",
+        "visual-review-evidence/16-saved-cargo-390-dark.png": "e4f7554614f1655ca6dbc6ebdd769e49c67f21fe17b5baaffc61913e1552b6ff",
+        "visual-review-evidence/17-saved-cargo-768-dark.png": "de7f66e03cc3fe092a19fa0807f143b269a033813d5092dddf8958d9b5b92d05",
+        "visual-review-evidence/18-saved-cargo-2560-dark.png": "e6c8262a91d88f5b0f8bc2220aed9f8e29b3675b597edcffc6d612c32a5b63b7",
+        "visual-review-evidence/19-reflow-720x500-dark.png": "fb039bb01eae4376709335393216e650d1c7dc4bfbebff5198b6658f0fb67c9a",
+        "visual-review-evidence/20-trip-validation-360-dark.png": "0af079df9a2ba039afefaed1c989387cc6606f427283cbbabaab169daf85e88f",
+        "visual-review-evidence/21-trip-saved-360-dark.png": "44ba5e5d083cd70a43bc8da21e278bb4a12bed64a30d5ebd243057f312fd94ef",
+        "visual-review-evidence/22-dgsa-report-360-dark.png": "53424a0dde2f9b2dc07b4e225cb8d9098e692d192be3740a585a20a6c136a4cb",
+        "visual-review-evidence/23-dgsa-form-360-dark.png": "3d63fd03b0dc68695dae65109e397813e282e418510a67efd4a79402576ecdd4",
+        "visual-review-evidence/24-shipments-empty-search-360-dark.png": "d9f7b50e08351cfbc9ee7664cd955ca0f635e08f860606451b32cf9bc1581095",
+        "visual-review-evidence/25-trip-corrected-focus-360-dark.png": "0f064783c7fd07e78d780b7e70141beda8da31a2701a9757b1e6064c68f90cb4",
+        "visual-review-evidence/26-final-saved-shipment.png": "b8813f7a8af4bbdefa9910686978df4290c8228f07c7b167f1a54671bd1d0bcb",
+        "visual-review-evidence/materieel-test.csv": "a7267db4b217b076779c50e6a1d7bae4db722e87bdf35b561679dbe2e98491dd"
+      },
+      "distribution_channels": [
+        "source"
+      ],
+      "reviewed_at": "2026-09-17",
+      "reviewer": "Codex desktop visual review"
     }
   ]
 }

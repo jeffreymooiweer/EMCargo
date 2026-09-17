@@ -19,12 +19,21 @@ export function productCount(consignment: TripConsignment): number {
 export function readConsignment(value: unknown, fallback: string, shipmentId?: number): TripConsignment {
   if (!value || typeof value !== "object") throw new Error("invalid");
   const payload = value as Record<string, unknown>;
-  if (payload.format !== "emcargo.shipment" || !Array.isArray(payload.dangerous_goods)
-      || !Array.isArray(payload.regulations) || !payload.consignment || typeof payload.consignment !== "object") throw new Error("invalid");
-  const entries = payload.dangerous_goods;
+  // The exporter omits empty DG entries and regulations. Recognise an
+  // ordinary load only when every included goods row explicitly confirms it.
+  // A missing declaration without those facts must still be rejected.
+  const goods = payload.goods;
+  const ordinary = Array.isArray(goods) && goods.length > 0
+    && goods.every(line => line && typeof line === "object" && !Array.isArray(line)
+      && (line.include === false || (line.dangerous_goods === false
+        && Array.isArray(line.detected_un_numbers) && line.detected_un_numbers.length === 0)));
+  const entries = payload.dangerous_goods === undefined && ordinary ? [] : payload.dangerous_goods;
+  const regulations = payload.regulations === undefined && ordinary ? [] : payload.regulations;
+  if (payload.format !== "emcargo.shipment" || !Array.isArray(entries)
+      || !Array.isArray(regulations) || !payload.consignment || typeof payload.consignment !== "object") throw new Error("invalid");
   if (entries.some(entry => !entry || typeof entry !== "object" || !Array.isArray(entry.products)
       || !entry.products.length || entry.products.some((product: unknown) => !product || typeof product !== "object" || Array.isArray(product)))) throw new Error("invalid");
-  const profiles = payload.regulations.map(profile => String(profile).toUpperCase()).map(profile => profile === "IATA" ? "IATA_DGR" : profile);
+  const profiles = regulations.map(profile => String(profile).toUpperCase()).map(profile => profile === "IATA" ? "IATA_DGR" : profile);
   if (profiles.some(profile => !["ADR", "RID", "ADN", "IMDG", "IATA_DGR"].includes(profile))) throw new Error("invalid");
   const values = payload.consignment as Record<string, unknown>;
   const name = values.reference || values.shipment_reference || values.consignor_name || fallback.replace(/\.json$/i, "");

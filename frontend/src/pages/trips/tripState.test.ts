@@ -26,3 +26,14 @@ it("accepts an explicitly unknown vehicle mass and local decimal punctuation", (
 it("does not discard malformed product data as ordinary freight", () => {
   expect(() => readConsignment({ format: "emcargo.shipment", regulations: ["ADR"], consignment: {}, dangerous_goods: [{ products: "lost" }] }, "x")).toThrow();
 });
+
+it("accepts the actual ordinary export while refusing missing DG declarations", () => {
+  const payload = { format: "emcargo.shipment", format_version: "2.1", consignment: {},
+    goods: [{ include: true, dangerous_goods: false, detected_un_numbers: [] }] };
+  expect(readConsignment(payload, "Ordinary", 1)).toMatchObject({ shipment_id: 1, entries: [], profiles: [] });
+  expect(readConsignment({ ...payload, regulations: ["ADR"] }, "Ordinary")).toMatchObject({ entries: [], profiles: ["ADR"] });
+  for (const goods of [[], [{}], [{ dangerous_goods: true }], [{ dangerous_goods: false, detected_un_numbers: ["1203"] }]]) {
+    expect(() => readConsignment({ ...payload, goods }, "Incomplete")).toThrow();
+  }
+  expect(() => readConsignment({ ...payload, dangerous_goods: null }, "Invalid")).toThrow();
+});

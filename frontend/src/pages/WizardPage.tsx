@@ -905,7 +905,12 @@ export default function WizardPage({ user }: { user?: User } = {}) {
   // whether or not there are dangerous goods: the VGM mass check warns on a
   // plain sea consignment.
   const docWarnings = useDocumentValidation(
-    stepKey === "export" && result ? selectedDefinitions.map(payloadFor) : [],
+    stepKey === "export" && result ? selectedDefinitions.filter(doc => {
+      const info = docStatus(doc);
+      // Known cargo failures already have a precise recovery action. Sending
+      // them to validation produces a 422, not an unavailable service.
+      return !(info.status === "blocked" && info.missing.some(field => field.key === "cargo"));
+    }).map(payloadFor) : [],
     stepKey === "export" && !!result,
     t("exportFocus.validationFailed"),
   );
@@ -1588,6 +1593,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
       state: info.status as PanelDocument["state"],
       missing: info.missing.length,
       firstMissing: info.missing[0]?.key ?? null,
+      blockedReason: info.status === "blocked" ? info.missing.find(field => field.key === "cargo")?.label : undefined,
     }));
 
   /** What this shipment is called, in the header. The reference is what a
@@ -2155,7 +2161,12 @@ export default function WizardPage({ user }: { user?: User } = {}) {
                             ))}
                           </p>
                         )}
-                        {info.status === "blocked" && (
+                        {info.status === "blocked" && info.missing.some(field => field.key === "cargo") ? (
+                          <button type="button" onClick={() => goToField("cargo")}
+                            className="mt-1 text-left text-xs text-red-600 underline underline-offset-2 dark:text-red-400">
+                            {info.missing.find(field => field.key === "cargo")!.label}
+                          </button>
+                        ) : info.status === "blocked" && (
                           <p className="mt-1 text-xs text-red-600 dark:text-red-400">{t("wizardDocs.dgBlocked")}</p>
                         )}
                       </div>
