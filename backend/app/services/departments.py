@@ -23,6 +23,7 @@ from sqlalchemy.orm import Query, Session
 
 from app.models.shipment import Shipment
 from app.models.trip import Trip
+from app.models.delivery import Delivery
 from app.models.user import Department, User
 
 
@@ -113,7 +114,7 @@ def remove(db: Session, department: Department) -> dict:
     under that id, which is how v1.187.0 to v1.189.0 treated kept trips.
     """
     counts = {}
-    for name, model in (("users", User), ("shipments", Shipment), ("trips", Trip)):
+    for name, model in (("users", User), ("shipments", Shipment), ("trips", Trip), ("deliveries", Delivery)):
         counts[name] = int(db.query(model).filter(model.department_id == department.id)
                            .update({model.department_id: None}, synchronize_session=False))
     db.delete(department)

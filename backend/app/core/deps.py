@@ -66,6 +66,15 @@ def get_current_user(
             status.HTTP_403_FORBIDDEN, "auth.two_factor_required",
             "This installation requires two-factor verification for your account. "
             "Set it up under User settings, Security, before doing anything else")
+    # Execution-only accounts must never inherit the broad access granted by
+    # older routes merely because they successfully authenticated.
+    from app.services.deliveries import execution_only
+    if execution_only(db, user):
+        prefixes = ("/api/deliveries/v1", "/api/auth", "/api/settings/me",
+                    "/api/settings/public", "/api/settings/options")
+        if not any(request.url.path == p or request.url.path.startswith(p + "/") for p in prefixes):
+            from app.core.messages import error
+            raise error(403, "delivery.permission")
     return user
 
 

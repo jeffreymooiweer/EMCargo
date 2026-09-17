@@ -60,13 +60,13 @@ describe("the approved EMCargo navigation", () => {
     config.publicSettings.history_enabled = false;
     renderAt();
     await userEvent.click(screen.getByText("nav.library"));
-    for (const name of ["nav.overview", "nav.shipments", "nav.trips", "nav.articles"]) {
+    for (const name of ["nav.overview", "nav.shipments", "nav.deliveries", "nav.articles"]) {
       expect(screen.getByRole("link", { name })).toBeVisible();
     }
     await userEvent.click(screen.getByRole("button", { name: "nav.openMenu" }));
     const menu = within(screen.getByRole("dialog"));
     await userEvent.click(menu.getByText("nav.library"));
-    for (const name of ["nav.overview", "nav.shipments", "nav.trips", "nav.articles"]) {
+    for (const name of ["nav.overview", "nav.shipments", "nav.deliveries", "nav.articles"]) {
       expect(menu.getByRole("link", { name })).toBeVisible();
     }
   });

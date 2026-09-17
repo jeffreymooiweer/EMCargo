@@ -11,12 +11,13 @@ const INK = "#1e2a4a";
 const LINE_WIDTH = 2.6;
 
 interface Props {
+  title?: string;
   value: string | null;
   onChange: (dataUrl: string | null) => void;
 }
 
 /** Draw a signature with a pointer, upload an image, or leave it for paper. */
-export default function SignaturePad({ value, onChange }: Props) {
+export default function SignaturePad({ value, onChange, title }: Props) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>(value ? "draw" : "skip");
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -166,7 +167,7 @@ export default function SignaturePad({ value, onChange }: Props) {
 
   return (
     <section className={`${panelClass} p-4 sm:p-6`}>
-      <h4 className="font-semibold text-slate-900 dark:text-slate-100">{t("signature.title")}</h4>
+      <h4 className="font-semibold text-slate-900 dark:text-slate-100">{title || t("signature.title")}</h4>
 
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" aria-pressed={mode === "draw"} className={tabClass(mode === "draw")} onClick={() => switchMode("draw")}>

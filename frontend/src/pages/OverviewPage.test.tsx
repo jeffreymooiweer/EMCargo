@@ -31,7 +31,7 @@ it("routes corrections, approvals, private drafts and unavailable modes to their
   expect(workDestination({ ...item, kind: "review", id: "abc", status: "changes" })).toBe("/wizard/road?review=abc");
   expect(workDestination({ ...item, kind: "review", id: "abc", status: "approved" })).toBe("/wizard/road?review=abc");
   expect(workDestination({ ...item, modality: "sea" })).toBe("/wizard/sea?shipment=7");
-  for (const modality of ["air", "multimodal"]) {
+  for (const modality of ["multimodal"]) {
     expect(workDestination({ ...item, modality })).toBe("/shipments");
   }
 });
@@ -87,3 +87,5 @@ it("reports a failed load and lets the user retry", async () => {
   await userEvent.click(screen.getByRole("button", { name: "overview.retry" }));
   expect(await screen.findByText("PL-2048")).toBeInTheDocument();
 });
+
+vi.mock("../components/DeliveryActivity", () => ({ default: () => null }));

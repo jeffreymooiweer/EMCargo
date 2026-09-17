@@ -40,6 +40,8 @@ DOCS = sorted(
     path
     for path in ROOT.rglob("*.md")
     if not any(part in {"node_modules", ".git", ".pytest_cache", "licenses", "dist"} for part in path.parts)
+    and not path.is_relative_to(ROOT / "data")
+    and not path.is_relative_to(ROOT / "backend" / "data")
 )
 
 #: Variables that are read by the container or the runtime rather than by

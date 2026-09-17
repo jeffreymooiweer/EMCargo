@@ -324,9 +324,9 @@ export const api = {
     request<{ ok: boolean; removed: boolean }>("/un-cards/remove", { method: "POST" }),
   saveInstanceSettings: (payload: InstanceSettings) =>
     request<InstanceSettings>("/settings/instance", { method: "PUT", body: JSON.stringify(payload) }),
-  historyCounts: () => request<{ shipments: number; trips: number }>("/settings/instance/history"),
+  historyCounts: () => request<{ shipments: number; trips: number; deliveries: number }>("/settings/instance/history"),
   discardHistory: () =>
-    request<{ ok: boolean; shipments: number; trips: number }>("/settings/instance/history/discard", {
+    request<{ ok: boolean; shipments: number; trips: number; deliveries: number }>("/settings/instance/history/discard", {
       method: "POST",
     }),
   /** Kept groupage trips. These addresses exist only beside the shipment
@@ -780,6 +780,7 @@ export interface UnCardsAvailability {
 }
 
 export interface User {
+  execution_only?: boolean;
   display_name?: string;
   id: number;
   username: string;
@@ -1876,7 +1877,7 @@ export interface WizardFileParseResult {
 /** Dutch and English are always there; a third language can be missing in a
  *  registry that comes from elsewhere. Use `localised()` to get text out of it —
  *  that falls back instead of showing nothing. */
-export type LocalizedText = { nl: string; en: string; de?: string };
+export type LocalizedText = { nl: string; en: string; de?: string; fr?: string };
 
 export type FieldStatus =
   | "AUTO_DERIVED"

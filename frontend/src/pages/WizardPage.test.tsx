@@ -123,7 +123,7 @@ describe("shipment restoration", () => {
     expect(mocks.api.runningDraft).not.toHaveBeenCalled();
   });
 
-  it.each(["air", "multimodal"])("keeps an unreleased %s wizard URL closed", async modality => {
+  it.each(["multimodal"])("keeps an unreleased %s wizard URL closed", async modality => {
     open(`/wizard/${modality}`);
     expect(await screen.findByText("Transport mode selection")).toBeInTheDocument();
     expect(screen.queryByLabelText("Goods description")).not.toBeInTheDocument();

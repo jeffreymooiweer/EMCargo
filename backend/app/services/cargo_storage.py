@@ -60,6 +60,7 @@ def remember(db: Session, record: Shipment, manifest: CargoManifest | None) -> N
     """Only called by opt-in history saving; pure assessment stores nothing."""
     if manifest is None:
         return
+    previous_unit_ids = {use.unit_id for use in db.query(CargoUse).filter_by(shipment_id=record.id).all()}
     db.query(CargoUse).filter_by(shipment_id=record.id).delete(synchronize_session=False)
     for unit in manifest.units:
         if unit.equipment_id is not None:
@@ -77,10 +78,14 @@ def remember(db: Session, record: Shipment, manifest: CargoManifest | None) -> N
             if db.query(CargoUse).filter(CargoUse.unit_id == unit.id, CargoUse.shipment_id != record.id).first():
                 raise error(409, "cargo.identity_conflict")
         if unit.reusable and not record.is_draft:
+            from app.services.deliveries import unit_in_transit
+            if unit_in_transit(db, unit.id) and unit.id not in previous_unit_ids:
+                raise error(409, "cargo.unit_in_use")
             active = db.query(CargoUse).join(Shipment, CargoUse.shipment_id == Shipment.id).filter(
                 CargoUse.unit_id == unit.id, Shipment.id != record.id,
-                Shipment.is_draft.is_(False), Shipment.work_completed_at.is_(None)).first()
-            if active is not None:
+                Shipment.is_draft.is_(False), Shipment.work_completed_at.is_(None)).all()
+            from app.services.delivery_inventory import physical_unit_completed
+            if any(not physical_unit_completed(db, use.shipment_id, unit.id) for use in active):
                 raise error(409, "cargo.unit_in_use")
         created_identity = identity is None
         if created_identity:

@@ -163,7 +163,7 @@ def _card_link_base(db: Session | None) -> str | None:
 
 def _render_export(document: dict, payload: DocumentExportRequest,
                    signature_png: bytes | None,
-                   card_link_base: str | None = None) -> "Path":
+                   card_link_base: str | None = None, *, draft: bool = True) -> "Path":
     """One document as a file, by its registered exporter.
 
     The single export and the bundle both come through here, so the archive
@@ -331,6 +331,9 @@ def _render_export(document: dict, payload: DocumentExportRequest,
             signature_png=signature_png,
             card_link_base=card_link_base,
         )
+    if draft:
+        from app.services.delivery_documents import draft_file
+        draft_file(out_path)
     return out_path
 
 
@@ -374,7 +377,7 @@ def export(
                  summary=payload.document_key, request=request)
     return FileResponse(
         path=out_path,
-        filename=f"{payload.document_key}_{ref}{out_path.suffix}",
+        filename=f"DRAFT-{payload.document_key}_{ref}{out_path.suffix}",
         media_type=_served_as(out_path),
     )
 
@@ -419,7 +422,7 @@ def build_bundle(payload: DocumentBundleRequest, db: Session) -> tuple[Path, str
             out_path = _render_export(document, item, signature_png,
                                       _card_link_base(db))
             produced.append(
-                (out_path, f"{item.document_key}_{ref}{out_path.suffix}"))
+                (out_path, f"DRAFT-{item.document_key}_{ref}{out_path.suffix}"))
 
         if not produced:
             raise HTTPException(

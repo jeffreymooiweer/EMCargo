@@ -1,3 +1,4 @@
+import DeliveryActivity from "../components/DeliveryActivity";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -14,10 +15,10 @@ function localDate() {
 }
 
 export function workDestination(item: WorkItem): string {
-  if (!isModalityAvailable(item.modality)) return item.kind === "review" ? `/dg-reviews/${item.id}` : "/shipments";
+  if (!isModalityAvailable(item.modality || "preparation")) return item.kind === "review" ? `/dg-reviews/${item.id}` : "/shipments";
   if (item.kind === "review") return item.status === "review" || item.status === "waiting"
-    ? `/dg-reviews/${item.id}` : `/wizard/${item.modality}?review=${item.id}`;
-  return item.is_draft ? `/wizard/${item.modality}` : `/wizard/${item.modality}?shipment=${item.id}`;
+    ? `/dg-reviews/${item.id}` : `/wizard/${item.modality || "preparation"}?review=${item.id}`;
+  return item.is_draft ? `/wizard/${item.modality || "preparation"}` : `/wizard/${item.modality || "preparation"}?shipment=${item.id}`;
 }
 
 export default function OverviewPage({ user }: { user?: User }) {
@@ -98,7 +99,7 @@ export default function OverviewPage({ user }: { user?: User }) {
     } finally { if (mounted.current) setSaving(false); }
   }
 
-  const actionKey = (item: WorkItem) => item.completed_at ? "open" : !isModalityAvailable(item.modality) ? "view"
+  const actionKey = (item: WorkItem) => item.completed_at ? "open" : !isModalityAvailable(item.modality || "preparation") ? "view"
     : item.is_draft ? "continue" : ({ prepare: "complete", documents: "documents", ready: "open",
         review_required: "release", review: "review", waiting: "view", changes: "correct", approved: "documents" } as const)[item.status];
   const name = (item: WorkItem) => item.reference || item.consignee || t("work.unnamed");
@@ -133,7 +134,7 @@ export default function OverviewPage({ user }: { user?: User }) {
         : <><div className="work-row work-column-labels" aria-hidden="true"><span>{t("work.shipment")}</span><span>{t("work.next")}</span><span>{t("work.owner")}</span><span>{t("work.loadingDate")}</span><span /></div>
           <ul className="work-list">{data.items.map(item => <li className="work-row" key={`${item.kind}:${item.id}`}>
             <div className="work-shipment"><Link to={workDestination(item)}>{name(item)}</Link>
-              <p>{item.consignor && item.consignee ? `${item.consignor} → ${item.consignee}` : t(`modality.${item.modality}`)}</p>
+              <p>{item.consignor && item.consignee ? `${item.consignor} → ${item.consignee}` : t(`modality.${item.modality || "preparation"}`)}</p>
               {item.is_draft && <span className="work-private">{t("work.privateDraft")}</span>}</div>
             <div className="work-next"><span className="work-status" data-status={item.completed_at ? "closed" : item.status}>{t(`work.status.${item.completed_at ? "closed" : item.status}`)}</span>
               {!item.completed_at && item.issues.length > 0 && <p>{t(`work.issue.${item.issues[0]}`, { defaultValue: t("work.issue.reopen") })}</p>}</div>
@@ -148,6 +149,7 @@ export default function OverviewPage({ user }: { user?: User }) {
           <span>{page} / {Math.ceil(total / perPage)}</span><button type="button" className="action-secondary" disabled={loading || page * perPage >= total} onClick={() => setPage(value => value + 1)}>{t("wizard.next")}</button></div>}</div>}
     </section>
     <p className="work-feedback" role="status">{saved}</p>
+    {publicSettings?.history_enabled && <DeliveryActivity compact />}
     {!publicSettings?.history_enabled && <HistoryStatus title={t("nav.shipments")} admin={user?.role === "admin" || user?.role === "super_user"} embedded />}
     {editing && <div className="work-modal-backdrop"><div ref={editor} className="surface work-editor" role="dialog" aria-modal="true" aria-labelledby="work-editor-title">
       <header><h3 id="work-editor-title">{name(editing)}</h3><button className="work-icon" aria-label={t("work.close")} disabled={saving} onClick={() => setEditing(null)}><CloseIcon /></button></header>

@@ -1,3 +1,4 @@
+import TemporaryDelivery from "../components/TemporaryDelivery";
 import { canManage } from "../permissions";
 import type { User } from "../api/client";
 import CargoWorkspace from "../components/cargo/CargoWorkspace";
@@ -6,7 +7,7 @@ import { emptyCargo, cloneCargo, bindReusableCargo } from "../utils/cargo";
 import { cargoLines, cargoGoods, migrateCargo, templateCargoDrafts, editCargo, preservesCargo } from "../wizard/cargoState";
 import { containerAutoValues } from "../utils/containerValues";
 import { equipmentPatch } from "../utils/equipment";
-import { useDgReview, DgReviewGate } from "../wizard/useDgReview";
+import { useDgReview } from "../wizard/useDgReview";
 import { ArrowRightIcon, ChevronDownIcon, DownloadIcon, DocumentIcon } from "../components/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
@@ -292,7 +293,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
   useEffect(() => {
     api
       .documentsRegistry()
-      .then(setRegistry)
+      .then(value => setRegistry({ ...value, modalities: [...value.modalities, { key: "preparation", label: { nl: "Voorbereiding", en: "Preparation", de: "Vorbereitung", fr: "Préparation" }, description: { nl: "Modaliteit later kiezen", en: "Choose transport mode later", de: "Verkehrsträger später wählen", fr: "Choisir le mode de transport plus tard" }, documents: ["packing_list", "delivery_note", "shipment_export"] }], modality_defaults: { ...value.modality_defaults, preparation: "packing_list" } }))
       .catch((e) => setRegistryError(String(e)));
   }, []);
 
@@ -897,7 +898,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
     // it from the one payload builder means validation and export cannot
     // disagree about which rules were applied.
     profiles: dgProfiles,
-    modality: modality ?? undefined,
+    modality: modality === "preparation" ? undefined : modality,
   });
 
   // Warnings per document, shown on the card before the download button — a
@@ -916,7 +917,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
   );
 
   const exportGenericDoc = async (doc: DocumentDefinition) => {
-    if (!result || reviewBlocked || docStatus(doc).status !== "ready") return;
+    if (!result || docStatus(doc).status !== "ready") return;
     setExportingDoc(doc.key);
     try {
       await api.exportDocument({
@@ -949,7 +950,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
   //: the Downloads folder is not a document that reached the driver.
   const [handedOver, setHandedOver] = useState(false);
   const downloadAll = async () => {
-    if (reviewBlocked) return;
     setDownloadingAll(true);
     try {
       await api.exportBundle({
@@ -1003,7 +1003,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
    *  has been produced yet, and the row stays small enough to write often. */
   const shipmentPayload = (draft: boolean): ShipmentIn => ({
     expected_cargo_revision: cargoPayload ? cargoBaseRevision.current : undefined,
-    modality: modality ?? "",
+    modality: modality === "preparation" ? "" : modality ?? "",
     language: docLang,
     profiles: dgProfiles,
     values: docValues,
@@ -1028,7 +1028,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
 
   const reviewRequired = (dgEntries.length > 0 || (result?.lines.some(line => line.include && line.dangerous_goods) ?? false)) && publicSettings?.dg_review_enabled !== false;
   const dgReview = useDgReview(shipmentPayload(false), reviewRequired, stepKey === "export" && preferencesLoaded && !restorePending, reviewSourceId);
-  const reviewBlocked = reviewRequired && (!preferencesLoaded || dgReview.blocked);
 
   // --- the draft: what happens to the entry while it is being made ----------
   //
@@ -1311,7 +1310,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
   // "the documents again"; the snapshot is this page's own state and comes
   // back untouched when the shipment is reopened.
   const keepInHistory = async (quietly = false) => {
-    if (!historyOn || !result || reviewBlocked || cargoSaving.current) return;
+    if (!historyOn || !result || cargoSaving.current) return;
     cargoSaving.current = true;
     window.clearTimeout(draftTimer.current);
     setKeeping(true);
@@ -1373,7 +1372,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
   const [mailing, setMailing] = useState(false);
 
   const mailAll = async () => {
-    if (reviewBlocked) return;
     setMailing(true);
     // Mailing takes as long as the mail server takes: the loading toast holds
     // the user's place until the send has actually succeeded or failed.
@@ -1823,7 +1821,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
             extraFields={dgExtraFields}
             profiles={dgProfiles}
           />
-          <DgCompliancePanel entries={dgEntries} profiles={dgProfiles} />
+          {modality !== "preparation" && <DgCompliancePanel entries={dgEntries} profiles={dgProfiles} />}
           <WizardActions>
             <button type="button" onClick={() => goBackFrom("dg")} className={buttonSecondary}>
               {t("wizard.back")}
@@ -1896,12 +1894,14 @@ export default function WizardPage({ user }: { user?: User } = {}) {
         </div>
       )}
 
+      {(modality === "preparation" || modality === "air") && <p className="surface p-4">{t(modality === "air" ? "deliveries.airPreparationHint" : "deliveries.preparationHint")}</p>}
       {stepKey === "export" && result && (
         <div className="export-workspace space-y-4">
           {/* The last look before anything is produced: what is about to go on
               paper, and one way back to each answer that is not right. */}
           <CheckYourAnswers title={t("check.title")} rows={answerRows} />
-          {reviewRequired && <DgReviewGate control={dgReview} ready={readyDocs.length > 0 && readyDocs.length === selectedDefinitions.length && unanswered === 0} />}
+          {!publicSettings?.history_enabled && <TemporaryDelivery shipment={shipmentPayload(false)} />}
+          <p className="surface p-4">{t("deliveries.draftNotice")}{historyId && <> <Link className="underline" to={`/deliveries/new?shipments=${historyId}`}>{t("deliveries.new")}</Link></>}</p>
 
             {needsDg && (
               <p className="text-sm text-amber-700 dark:text-amber-300">
@@ -1988,7 +1988,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
             </div>
           </details>
 
-          {needsDg && dgEntries.length > 0 && <DgCompliancePanel entries={dgEntries} profiles={dgProfiles} />}
+          {needsDg && dgEntries.length > 0 && modality !== "preparation" && <DgCompliancePanel entries={dgEntries} profiles={dgProfiles} />}
 
 
           <div className={`${panelClass} export-documents space-y-3 p-4 sm:p-6`}>
@@ -1999,7 +1999,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
                   <button
                     type="button"
                     onClick={() => setMailOpen((open) => !open)}
-                    disabled={mailing || reviewBlocked}
+                    disabled={mailing}
                     className={buttonSecondary}
                   >
                     {t("wizardDocs.mail", { count: readyDocs.length })}
@@ -2012,7 +2012,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
                   <button
                     type="button"
                     onClick={downloadAll}
-                    disabled={downloadingAll || reviewBlocked}
+                    disabled={downloadingAll}
                     className={buttonPrimary}
                   >
                     {downloadingAll
@@ -2091,7 +2091,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
                 <button
                   type="button"
                   onClick={mailAll}
-                  disabled={mailing || reviewBlocked || !mailTo.trim()}
+                  disabled={mailing || !mailTo.trim()}
                   className={buttonPrimary}
                 >
                   {mailing ? t("wizardDocs.mailSending") : t("wizardDocs.mailSend")}
@@ -2173,7 +2173,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
                       <button
                         type="button"
                         onClick={() => exportGenericDoc(doc)}
-                        disabled={busy || reviewBlocked || info.status === "blocked" || info.status === "not_applicable" || info.status === "draft"}
+                        disabled={busy || info.status === "blocked" || info.status === "not_applicable" || info.status === "draft"}
                         className={buttonSecondary + " inline-flex items-center justify-center gap-2"}
                       >
                         <DownloadIcon />{busy ? t("wizardDocs.exporting") : t("wizard.download")}
@@ -2225,7 +2225,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
               <button
                 type="button"
                 onClick={() => void keepInHistory()}
-                disabled={keeping || reviewBlocked}
+                disabled={keeping}
                 className={buttonSecondary}
               >
                 {/* Kept, not merely written: a draft has a row of its own, and

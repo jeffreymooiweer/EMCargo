@@ -321,12 +321,9 @@ def shipment_export(request: Request, shipment_id: int,
     """The structured export as it was kept — the record, not a re-render."""
     record = _kept(request, db, user, _record(shipment_id, db, user), "shipment.export")
     if record.has_dangerous_goods:
-        bundle = history.bundle_of(record)
-        if not bundle and dg_review.instance_settings(db).dg_review_enabled:
-            from app.core.messages import error
-            raise error(409, "review.required")
-        if bundle:
-            dg_review.enforce_bundle(db, user, DocumentBundleRequest(**bundle), required=record.has_dangerous_goods)
+        from app.services.dg.source_verification import require_verified_payload
+        export = history.detail(record).export
+        require_verified_payload({**export, "profiles": export.get("regulations", [])})
     name = f"emcargo-shipment-{record.reference or record.id}.json"
     return JSONResponse(content=history.detail(record).export,
                         headers={"Content-Disposition": attachment(name)})
@@ -350,6 +347,9 @@ def shipment_documents(request: Request, shipment_id: int,
     if not bundle or not bundle.get("documents"):
         raise HTTPException(status_code=404,
                             detail="This shipment was kept without ready documents.")
+    if record.has_dangerous_goods and not bundle.get("dangerous_goods"):
+        from app.core.messages import error
+        raise error(409, "review.changed")
     dg_review.enforce_bundle(db, user, DocumentBundleRequest(**bundle), required=record.has_dangerous_goods)
     bundle_path, ref = build_bundle(DocumentBundleRequest(**bundle), db)
     background_tasks.add_task(delete_file, bundle_path)

@@ -8,6 +8,12 @@ class UserRole(str, Enum):
     USER = "user"
     DG_SPECIALIST = "dg_specialist"
     SUPER_USER = "super_user"
+    SHIPMENT = "shipment"
+    PLANNER = "planner"
+    OPERATOR = "operator"
+    RECIPIENT = "recipient"
+    ASSESSOR = "assessor"
+    EXTERNAL = "external"
 
 
 class LoginRequest(BaseModel):
@@ -55,6 +61,7 @@ class UserOut(BaseModel):
     department_id: int | None = None
     avatar_url: str | None = None
     display_name: str = ""
+    execution_only: bool = False
 
 
 class PersonalProfile(BaseModel):

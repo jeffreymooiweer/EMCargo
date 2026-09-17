@@ -70,7 +70,7 @@ export default function Layout({ user, onLogout }: Props) {
     }
   }
   const destinations = [
-    {to: "/overzicht", label: t("nav.overview")}, {to: "/shipments", label: t("nav.shipments")}, {to: "/trips", label: t("nav.trips")}, {to: "/articles", label: t("nav.articles")},
+    {to: "/overzicht", label: t("nav.overview")}, {to: "/shipments", label: t("nav.shipments")}, {to: "/deliveries", label: t("nav.deliveries")}, {to: "/articles", label: t("nav.articles")},
     {to: "/", label: t("nav.new")}, {to: "/packaging", label: t("nav.packaging")},
     ...(manager ? [{to: "/materieel", label: t("nav.materieel")}, {to: "/users", label: t("nav.users")}] : []),
     ...(admin ? [{to: "/audit", label: t("nav.audit")}] : []),
@@ -83,7 +83,7 @@ export default function Layout({ user, onLogout }: Props) {
     : location.pathname.startsWith("/admin/settings") ? t("account.adminSettings")
     : location.pathname === "/shipments/report" ? t("dgsa.title")
     : destinations.find(item => item.to === location.pathname)?.label
-      || (location.pathname.startsWith("/shipments/") ? t("nav.shipments") : location.pathname.startsWith("/trips/") ? t("nav.trips") : t("studio.workspace"));
+      || (location.pathname.startsWith("/shipments/") ? t("nav.shipments") : location.pathname.startsWith("/deliveries/") ? t("nav.deliveries") : t("studio.workspace"));
   const name = branding.name || t("app.name");
   const brand = (compact = false) => <div className="emcargo-brand">
     <BrandLockup name={name} logo={branding.logo} compact={compact} />
@@ -100,7 +100,7 @@ export default function Layout({ user, onLogout }: Props) {
       {link("/overzicht", t("nav.overview"), HomeIcon, compact)}
       {link("/", t("nav.new"), PlusIcon, compact)}
       {link("/shipments", t("nav.shipments"), ShipmentsIcon, compact)}
-      {link("/trips", t("nav.trips"), TripsIcon, compact)}
+      {link("/deliveries", t("nav.deliveries"), TripsIcon, compact)}
       {link("/dg-reviews", t("dgReview.title"), ShieldIcon, compact)}
       {compact ? <>
         {link("/articles", t("nav.articles"), GoodsIcon, true)}

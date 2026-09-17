@@ -117,11 +117,9 @@ def _name(user, profile):
 
 def _source(db: Session, viewer: User):
     settings = instance_settings(db)
-    owner, profile, release = aliased(User), aliased(UserProfile), aliased(DgReview)
-    status = case(
-        (and_(Shipment.has_dangerous_goods.is_(True), literal(settings.dg_review_enabled),
-              or_(release.id.is_(None), release.status != "approved")), "review_required"),
-        else_=Shipment.work_status)
+    owner, profile = aliased(User), aliased(UserProfile)
+    # Office preparation never asserts an operational transport release.
+    status = Shipment.work_status
     # A submitted copy replaces the matching private draft in the work list.
     # A changed draft has a different fingerprint and remains visible.
     submitted = select(DgReview.id).where(
@@ -143,7 +141,7 @@ def _source(db: Session, viewer: User):
         Shipment.work_issues_json.label("issues"), Shipment.updated_at.label("updated_at"),
         Shipment.is_draft.label("is_draft"), literal("").label("review_status"),
     ).outerjoin(owner, owner.id == Shipment.work_owner_id).outerjoin(
-        profile, profile.user_id == owner.id).outerjoin(release, release.id == Shipment.work_review_id)
+        profile, profile.user_id == owner.id)
     shipments = shipments.where(or_(private, shared) if settings.history_enabled else false())
 
     submitter, person = aliased(User), aliased(UserProfile)

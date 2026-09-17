@@ -20,6 +20,7 @@ const DgsaReportPage = lazy(() => import("./pages/DgsaReportPage"));
 const CargoTemplateLibrary = lazy(() => import("./components/cargo/CargoTemplateLibrary"));
 const ArticlesPage = lazy(() => import("./pages/ArticlesPage"));
 const AuditPage = lazy(() => import("./pages/AuditPage"));
+const DeliveriesPage = lazy(() => import("./pages/DeliveriesPage"));
 const TripsPage = lazy(() => import("./pages/TripsPage"));
 const LegacyTripRoute = lazy(() => import("./pages/TripsPage").then(module => ({ default: module.LegacyTripRoute })));
 import { LegacySettingsRoute } from "./settings/routes";
@@ -71,6 +72,18 @@ export default function App() {
     );
   }
 
+  if (user.execution_only || ["operator", "recipient", "external"].includes(user.role)) {
+    return <BrandingProvider><PreferencesProvider><ToastProvider><Suspense fallback={<p role="status">{t("wizard.loading")}</p>}>
+      <header className="delivery-actions delivery-portal-header" style={{padding: "1rem"}}><strong>EMCargo</strong><a className="action-secondary" href="/deliveries">{t("deliveries.title")}</a><a className="action-secondary" href="/account/security">{t("account.settings")}</a><button className="action-secondary" onClick={async () => { await api.logout(); setUser(null); }}>{t("nav.logout")}</button></header>
+      <main style={{padding: "1rem"}}><Routes>
+        <Route path="/deliveries" element={<DeliveriesPage user={user} />} />
+        <Route path="/deliveries/:id" element={<DeliveriesPage user={user} />} />
+        <Route path="/account/:section" element={<SettingsPage user={user} onUserChange={setUser} onPasswordChanged={() => setUser(null)} />} />
+        <Route path="*" element={<Navigate to="/deliveries" replace />} />
+      </Routes></main>
+    </Suspense></ToastProvider></PreferencesProvider></BrandingProvider>;
+  }
+
   return (
     <BrandingProvider>
     <PreferencesProvider>
@@ -90,6 +103,8 @@ export default function App() {
           <Route path="/shipments" element={<ShipmentsPage user={user} />} />
           <Route path="/shipments/report" element={<DgsaReportPage user={user} />} />
           <Route path="/shipments/:id" element={<ShipmentsPage user={user} />} />
+          <Route path="/deliveries" element={<DeliveriesPage user={user} />} />
+          <Route path="/deliveries/:id" element={<DeliveriesPage user={user} />} />
           <Route path="/trips" element={<TripsPage user={user} />} />
           <Route path="/trips/:id" element={<LegacyTripRoute />} />
           <Route path="/packaging" element={<CargoTemplateLibrary user={user} />} />

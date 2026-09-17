@@ -79,11 +79,11 @@ def save_instance_settings(
         # administrator deletes the kept shipments first, after seeing the
         # counts, and only then may the setting go off.
         counts = history.kept_counts(db)
-        if counts["shipments"] or counts["trips"]:
+        if any(counts.values()):
             raise HTTPException(
                 status_code=409,
                 detail=f"The history still holds {counts['shipments']} kept shipment(s) "
-                       f"and {counts['trips']} kept trip(s). Delete them first under "
+                       f", {counts['trips']} kept trip(s) and {counts['deliveries']} delivery dossier(s). Delete them first under "
                        "Settings, Administration, Keep shipments.")
         # Drafts are not kept shipments and do not stand in the way, but an
         # installation that keeps nothing must not hold somebody's half-typed

@@ -132,8 +132,11 @@ def test_review_replaces_matching_draft_then_kept_shipment_replaces_review(setup
     assert task["total"] == 1 and task["items"][0]["kind"] == "shipment"
     item = task["items"][0]
     assert as_role("user").delete(f"/api/dg-reviews/{review_id}").status_code == 200
-    assert queue(as_role("user"))["items"][0]["status"] == "review_required"
-    assert as_role("user").patch(f"/api/work/shipments/{item['id']}", json={"version": item["version"], "completed": True}).status_code == 409
+    # Deleting the review may reveal its old private draft again. Identify the
+    # kept shipment explicitly; both rows can have the same update timestamp.
+    kept_task = next(row for row in queue(as_role("user"))["items"] if row["id"] == item["id"])
+    assert kept_task["status"] == "ready"
+    assert as_role("user").patch(f"/api/work/shipments/{item['id']}", json={"version": item["version"], "completed": True}).status_code == 200
 
 
 def test_changed_submission_closes_only_the_owners_superseded_task(setup):
