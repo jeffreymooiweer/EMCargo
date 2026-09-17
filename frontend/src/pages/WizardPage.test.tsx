@@ -13,7 +13,7 @@ import WizardPage from "./WizardPage";
 const mocks = vi.hoisted(() => ({
   api: {
     documentsRegistry: vi.fn(), shipments: vi.fn(), shipment: vi.fn(), runningDraft: vi.fn(),
-    saveDraft: vi.fn(), calculate: vi.fn(), updateShipment: vi.fn(), keepShipment: vi.fn(),
+    saveDraft: vi.fn(), calculate: vi.fn(), updateShipment: vi.fn(), keepShipment: vi.fn(), validateDocument: vi.fn(),
   },
   cargoApi: { assess: vi.fn(), reusableUnits: vi.fn() },
   cargoProps: null as CargoWorkspaceProps | null,
@@ -94,6 +94,7 @@ beforeEach(() => {
   mocks.api.saveDraft.mockResolvedValue({ id: 42, updated_at: "2026-09-08T10:00:00Z" });
   mocks.api.updateShipment.mockResolvedValue({ id: 42, updated_at: "2026-09-13T10:00:00Z" });
   mocks.api.keepShipment.mockResolvedValue({ id: 42, cargo_revision: 10, updated_at: "2026-09-17T10:00:00Z" });
+  mocks.api.validateDocument.mockResolvedValue({ errors: [], warnings: [] });
   mocks.cargoProps = null;
   mocks.cargoApi.reusableUnits.mockResolvedValue([]);
   mocks.cargoApi.assess.mockImplementation(async (cargo: CargoManifest) => ({ cargo, units: [], loose: [], issues: [],
@@ -407,6 +408,28 @@ function packedShipment(stepKey = "lines"): ShipmentDetail {
     },
   };
 }
+
+it("explains missing cargo weight without a DG warning or a failed-service warning", async () => {
+  const shipment = packedShipment("export");
+  shipment.snapshot = { ...shipment.snapshot, selectedDocs: ["cmr"] };
+  mocks.api.runningDraft.mockResolvedValue(shipment);
+  mocks.api.documentsRegistry.mockResolvedValue({ ...registry, documents: [{
+    key: "cmr", label: { nl: "CMR" }, short_label: { nl: "CMR" }, category: "transport",
+    issue_status: {}, exporter: "generic", dg_profile: "adr", sections: [],
+  }] });
+  mocks.cargoApi.assess.mockImplementation(async (cargo: CargoManifest) => ({ cargo, units: [], loose: [], issues: [],
+    totals: { goods_kg: 50, packaging_kg: null, cargo_gross_kg: null, transport_tare_kg: 0,
+      transport_gross_kg: null, occupied_volume_m3: null, complete: false } }));
+  open();
+  const reasons = await screen.findAllByRole("button", { name: "errors.cargo.documents_incomplete" });
+  expect(screen.queryByText("wizardDocs.dgBlocked")).not.toBeInTheDocument();
+  expect(screen.queryByText("panel.blocked")).not.toBeInTheDocument();
+  expect(screen.queryByText("exportFocus.validationFailed")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "wizard.download" })).toBeDisabled();
+  expect(mocks.api.validateDocument).not.toHaveBeenCalled();
+  fireEvent.click(reasons[reasons.length - 1]);
+  expect(await screen.findByLabelText("Cargo manifest")).toBeInTheDocument();
+});
 
 /** Cargo uses stable draft IDs; calculation row positions and a locally stored
  * revision must not replace the authoritative saved revision during autosave. */

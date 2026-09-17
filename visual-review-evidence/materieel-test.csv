@@ -1,0 +1,3 @@
+specifications,weight_kg,kind,asset_code
+Importtest geldige machine,250,machine,VIS-IMPORT-01
+Importtest ontbrekend gewicht,,machine,VIS-IMPORT-02

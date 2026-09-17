@@ -92,4 +92,13 @@ describe("what the shipment adds up to", () => {
     // The counts are still there; it is the list that is absent.
     expect(within(container).getByText("wizard.lines")).toBeInTheDocument();
   });
+
+  it("names the cargo blocker and takes the user back to the cargo", async () => {
+    const onMissing = vi.fn();
+    panel({ documents: [{ key: "cmr", label: "CMR", state: "blocked", missing: 1,
+      firstMissing: "cargo", blockedReason: "Cargo weights are missing" }], onMissing });
+    expect(screen.queryByText("panel.blocked")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Cargo weights are missing" }));
+    expect(onMissing).toHaveBeenCalledWith("cargo");
+  });
 });
