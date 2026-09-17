@@ -32,18 +32,18 @@ export default function PasswordPanel({ onPasswordChanged }: { onPasswordChanged
   }
 
   return <form className="account-panel account-password" onSubmit={submit} aria-busy={busy}>
-    <div className="account-section-heading"><h3>{t("account.changePassword")}</h3><p>{t("account.passwordIntro")}</p></div>
+    <div className="account-section-heading"><h3>{t("account.changePassword")}</h3></div>
     <fieldset disabled={busy} className="account-fields">
       <label className="account-field-wide">{t("account.currentPassword")}<input required type={visible ? "text" : "password"} autoComplete="current-password"
         value={current} onChange={e => setCurrent(e.target.value)} /></label>
-      <label>{t("account.newPassword")}<input required minLength={8} type={visible ? "text" : "password"} autoComplete="new-password"
-        aria-describedby="password-requirement" value={password} onChange={e => setPassword(e.target.value)} /></label>
+      <label>{t("account.newPasswordMinimum")}<input required minLength={8} type={visible ? "text" : "password"} autoComplete="new-password"
+        value={password} onChange={e => setPassword(e.target.value)} /></label>
       <label>{t("account.repeatPassword")}<input ref={confirmation} required minLength={8} type={visible ? "text" : "password"} autoComplete="new-password"
         value={repeat} onChange={e => setRepeat(e.target.value)} /></label>
     </fieldset>
-    <div className="account-password-options"><p id="password-requirement">{t("users.passwordHint")}</p>
+    <div className="account-password-options">
       <label><input type="checkbox" checked={visible} onChange={e => setVisible(e.target.checked)} />{t("account.showPassword")}</label></div>
     {error && <p className="account-error" role="alert">{error}</p>}
-    <div className="account-save"><button type="submit" className="action-primary" disabled={busy || !current || !password || !repeat}><CheckIcon />{t(busy ? "settings.saving" : "account.changePassword")}</button></div>
+    <div className="account-save"><span>{t("account.passwordSessionEnd")}</span><button type="submit" className="action-primary" disabled={busy || !current || !password || !repeat}><CheckIcon />{t(busy ? "settings.saving" : "account.changePassword")}</button></div>
   </form>;
 }

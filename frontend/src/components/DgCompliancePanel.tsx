@@ -149,7 +149,7 @@ export default function DgCompliancePanel({ entries, profiles }: Props) {
         <div>
           <h3 className="font-semibold text-slate-900 dark:text-slate-100">{t("compliance.title")}</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {t("compliance.intro", { profiles: profiles.join(", ") })}
+            {profiles.join(" · ")}
           </p>
         </div>
         <button

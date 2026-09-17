@@ -44,8 +44,8 @@ to the installation, and are described in the [user guide](user-guide.md#setting
 ## Sign-in is required
 
 EMCargo has one full application. Every user signs in; administrators manage
-accounts, settings and access. The public QR links to UN cards remain the
-explicit exception, enabled separately under Settings / UN cards.
+accounts, settings and access. QR links and direct UN-card downloads also require
+sign-in. Their feature switch remains separate under Settings / UN cards.
 
 `EMCARGO_MODE` has been retired. Remove it from existing deployment files;
 leaving `EMCARGO_MODE=open` in an old environment cannot restore guest access.
@@ -372,10 +372,9 @@ one 30-second step either side of now, which is what an unsynced phone looks lik
 every transport document EMCargo renders. Scanning it opens a page listing the UN
 numbers on that document and, per number, the UN card this installation holds for it.
 
-That page is the only one in EMCargo that does not ask for a sign-in. That is the
-point: the driver at the roadside, the warehouse taking the pallet in and the responder
-who arrived because something went wrong have no account here, and a code that asks them
-to log in is a code that does nothing.
+The page and direct card downloads require a valid session. Scanning without
+one opens sign-in first, then returns to the full scan URL with its UN numbers
+and regime. Enabling card links does not grant anonymous access.
 
 It is off until you turn it on, and it needs two things, not one:
 
@@ -386,13 +385,12 @@ Without the address no code is printed at all. The address cannot be taken from 
 request the way a mail link's can — nobody is making a request when the driver scans the
 sheet three days later — and a code on paper that leads nowhere is worse than no code,
 because whoever is holding the paper cannot tell that from a code that failed to scan.
-The screen says so beside the switch rather than letting you find out on a printout.
+The address is configured alongside the feature switch.
 
 **What the code carries** is the UN numbers and the regime, and nothing else: no
 consignor, no consignee, no quantity, no reference, no shipment identifier. The document
 it is printed on already carries those same UN numbers in plain text and larger. See
-[Privacy](privacy.md#what-a-stranger-can-reach) for the whole of what a stranger can
-reach.
+[Privacy](privacy.md#account-access) for the session requirements.
 
 **What the page answers** is the number and whether a card exists — a missing card is
 reported missing rather than quietly left out of the list, and a card is never
@@ -419,6 +417,9 @@ scanned in a year answers what it answered on the day it was printed.
 | `CORS_ALLOWED_ORIGINS` | Allowed origins for a separate website using the API. Empty keeps the bundled same-origin interface working. Named origins permit credentials; any list containing `*` permits only anonymous cross-origin reads | empty |
 | `TRUSTED_PROXY_HEADERS` | Honour `X-Forwarded-*` headers; enable only when controlled reverse proxies are the only route to the backend | `false` |
 | `TRUSTED_PROXY_COUNT` | How many reverse proxies stand in front. Decides which `X-Forwarded-For` entry a rate limit counts against | `1` |
+| `CARGO_MAX_UNITS` | Maximum physical units per cargo graph (schema cap 10,000) | `2000` |
+| `CARGO_MAX_ALLOCATIONS` | Maximum goods allocations per cargo graph (schema cap 50,000) | `50000` |
+| `CARGO_MAX_DEPTH` | Maximum nested cargo depth | `20` |
 | `LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` | `INFO` |
 
 Upload limits are not configurable. An imported file is capped at 10 MB, 20,000 rows and

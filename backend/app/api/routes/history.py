@@ -300,6 +300,20 @@ def get_shipment(shipment_id: int, user: User = Depends(get_current_user),
     return history.detail(_record(shipment_id, db, user))
 
 
+@router.get("/{shipment_id}/cargo/v1")
+def shipment_cargo(shipment_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.core.messages import error
+    from app.services.cargo import assess
+    record = _record(shipment_id, db, user)
+    saved = history.detail(record).export
+    if saved.get("cargo") is None:
+        raise error(404, "cargo.goods_missing")
+    result = assess(saved["cargo"], saved.get("goods", []))
+    result["cargo"]["revision"] = record.cargo_revision
+    result["shipment_id"] = record.id
+    return result
+
+
 @router.get("/{shipment_id}/export.json")
 def shipment_export(request: Request, shipment_id: int,
                     user: User = Depends(get_current_user),

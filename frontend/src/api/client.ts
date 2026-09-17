@@ -1,3 +1,4 @@
+import type { CargoManifest } from "./cargo";
 import i18n from "i18next";
 
 const API_BASE = "/api";
@@ -127,7 +128,7 @@ export function describeDetail(detail: unknown): string {
   return translateMessage({ code: "request_failed", message: "Request failed" });
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
     headers: {
@@ -144,6 +145,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
   return res as unknown as T;
 }
+
+const request = apiRequest;
 
 export interface DocumentTemplate {
   id: string; name: string; kind: "form" | "model"; filename: string;
@@ -927,6 +930,7 @@ export interface DgsaFormResponse {
 /** A kept shipment as the shipments page lists it: the index columns copied
  *  out of the structured export at save time. */
 export interface ShipmentSummary {
+  cargo_revision?: number;
   id: number;
   reference: string;
   modality: string;
@@ -996,6 +1000,8 @@ export interface WorkPage {
  *  structured export from the parts itself, so the kept record is produced
  *  by the same code as the downloadable one. */
 export interface ShipmentIn {
+  cargo?: CargoManifest;
+  expected_cargo_revision?: number | null;
   dg_review_id?: string;
   modality: string;
   language: string;
@@ -1384,6 +1390,7 @@ export interface DensityPage {
 }
 
 export interface LineItem {
+  cargo_goods_id?: number;
   equipment?: EquipmentSnapshot | null;
   equipment_role?: "cargo" | "container";
   container_line_id?: number | null;
@@ -1971,6 +1978,7 @@ export interface DgPackaging {
 }
 
 export interface DocumentExportPayload extends Record<string, unknown> {
+  cargo?: CargoManifest;
   document_key: string;
   values: Record<string, string>;
   lines: LineItem[];
@@ -1991,6 +1999,7 @@ export interface DocumentExportPayload extends Record<string, unknown> {
 }
 
 export interface DocumentBundlePayload extends Record<string, unknown> {
+  cargo?: CargoManifest;
   documents: DocumentExportPayload[];
   dangerous_goods?: DgEntry[];
   profiles?: string[];

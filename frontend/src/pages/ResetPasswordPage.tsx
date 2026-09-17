@@ -32,6 +32,7 @@ export default function ResetPasswordPage() {
   // waive it, so the same second step as at sign-in follows.
   const [challenge, setChallenge] = useState("");
   const [method, setMethod] = useState<"totp" | "email">("totp");
+  const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function ResetPasswordPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     if (password !== repeat) {
       setError(t("reset.mismatch"));
       return;
@@ -57,6 +59,7 @@ export default function ResetPasswordPage() {
       if (answer.two_factor_required) {
         setChallenge(answer.challenge);
         setMethod(answer.method);
+        setCodeSent(answer.code_sent);
         return;
       }
       // Signed in already; the app reads the session on the way in.
@@ -70,6 +73,7 @@ export default function ResetPasswordPage() {
 
   const submitCode = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy || !code.trim()) return;
     setBusy(true);
     setError("");
     try {
@@ -103,13 +107,13 @@ export default function ResetPasswordPage() {
   );
 
   if (linkState === "checking") {
-    return frame(<p className="text-sm text-slate-500 dark:text-slate-400">{t("reset.checking")}</p>);
+    return frame(<p role="status" className="text-sm text-slate-500 dark:text-slate-400">{t("reset.checking")}</p>);
   }
 
   if (linkState === "spent") {
     return frame(
       <>
-        <p className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
           {token ? t("reset.spent") : t("reset.noToken")}
         </p>
         <Link
@@ -125,12 +129,12 @@ export default function ResetPasswordPage() {
   if (challenge) {
     return frame(
       <form onSubmit={submitCode} className="space-y-4">
-        <p className="text-sm text-slate-600 dark:text-slate-300">
-          {method === "email" ? t("login.twoFactorMailSent") : t("login.twoFactorApp")}
-        </p>
+        {method === "email" && <p role={codeSent ? "status" : "alert"} className="text-sm text-slate-600 dark:text-slate-300">
+          {t(codeSent ? "login.twoFactorMailSent" : "login.twoFactorMailFailed")}
+        </p>}
         <div>
           <label className="block text-sm font-medium mb-1 text-slate-800 dark:text-slate-200" htmlFor="reset-code">
-            {t("login.twoFactorCode")}
+            {t(method === "email" ? "login.twoFactorEmailCode" : "login.twoFactorAppCode")}
           </label>
           <input
             id="reset-code"
@@ -140,11 +144,8 @@ export default function ResetPasswordPage() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {t("login.twoFactorRecoveryHint")}
-          </p>
         </div>
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         <button
           type="submit"
           disabled={busy || !code.trim()}
@@ -158,7 +159,6 @@ export default function ResetPasswordPage() {
 
   return frame(
     <form onSubmit={submit} className="space-y-4">
-      <p className="text-sm text-slate-600 dark:text-slate-300">{t("reset.intro")}</p>
       <div>
         <label className="block text-sm font-medium mb-1 text-slate-800 dark:text-slate-200" htmlFor="new-password">
           {t("reset.password")}
@@ -169,11 +169,11 @@ export default function ResetPasswordPage() {
           autoComplete="new-password"
           className={fieldClass}
           minLength={8}
+          placeholder={t("reset.passwordHint")}
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("reset.passwordHint")}</p>
       </div>
       <div>
         <label className="block text-sm font-medium mb-1 text-slate-800 dark:text-slate-200" htmlFor="repeat-password">
@@ -189,7 +189,7 @@ export default function ResetPasswordPage() {
           onChange={(e) => setRepeat(e.target.value)}
         />
       </div>
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       <button
         type="submit"
         disabled={busy}

@@ -85,3 +85,17 @@ describe("compact equipment form", () => {
     expect(container.querySelector("form")).toBeInTheDocument();
   });
 });
+
+/** Search names must be editable without teaching comma-separated syntax, and
+ * saving while the final name is still in the entry field must not discard it. */
+it("adds and removes search names while preserving a pending name on save", async () => {
+  const { save, user } = setup({ specifications: "DEMO crane", kind: "machine", weight_kg: 5000, aliases: ["Old crane"] });
+  await user.click(screen.getByText("equipmentSimple.moreDetails"));
+  const input = screen.getByLabelText("materieel.aliases");
+  await user.type(input, "Mobile crane{Enter}");
+  expect(screen.getByRole("button", { name: "materieel.delete: Mobile crane" })).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "materieel.delete: Old crane" }));
+  await user.type(input, "Site crane");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  expect(save).toHaveBeenCalledWith(expect.objectContaining({ aliases: ["Mobile crane", "Site crane"] }));
+});

@@ -39,7 +39,7 @@ const api = vi.hoisted(() => ({
   exportArticles: vi.fn(),
   importArticlesFile: vi.fn(),
 }));
-vi.mock("../api/client", () => ({ api }));
+vi.mock("../api/client", () => ({ api, translateMessage: (message: { message: string }) => message.message }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -82,7 +82,7 @@ describe("de artikelenbibliotheek", () => {
   it("zegt waar de historie uitstaat dat er niets is om artikelen naast te bewaren", () => {
     settings.history_enabled = false;
     renderPage();
-    expect(screen.getByText("history.off")).toBeInTheDocument();
+    expect(screen.getByText("historyAccess.disabled")).toBeInTheDocument();
     expect(api.articles).not.toHaveBeenCalled();
   });
 
@@ -119,4 +119,36 @@ describe("de artikelenbibliotheek", () => {
     await waitFor(() => expect(api.importArticlesFile).toHaveBeenCalledTimes(1));
     expect(await screen.findByText("articles.imported:2/1/0")).toBeInTheDocument();
   });
+});
+
+/** Failed and filtered-empty libraries need different recovery paths; imports
+ * must retain row failures so users can correct only the rejected records. */
+it("retries a failed goods list instead of showing an empty library", async () => {
+  api.articles.mockRejectedValueOnce(new Error("Connection unavailable"));
+  renderPage();
+  expect(await screen.findByRole("alert")).toHaveTextContent("Connection unavailable");
+  expect(screen.queryByText("articles.empty")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "overview.retry" }));
+  expect(await screen.findByText("PAINT-25")).toBeVisible();
+});
+
+it("clears an unmatched search without resetting an unfinished article", async () => {
+  renderPage();
+  await screen.findByText("PAINT-25");
+  await userEvent.click(screen.getByText("articles.add"));
+  await userEvent.type(screen.getByLabelText("articles.fields.code"), "KEEP-ME");
+  await userEvent.type(screen.getByLabelText("articles.search"), "unmatched");
+  expect(await screen.findByText("articles.noResults")).toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: "history.clearFilters" }));
+  expect(screen.getByDisplayValue("KEEP-ME")).toBeVisible();
+  expect(screen.getByText("PAINT-25")).toBeVisible();
+});
+
+it("keeps rejected spreadsheet rows visible after refreshing the goods list", async () => {
+  api.importArticlesFile.mockResolvedValue({ created: 1, updated: 0, skipped: 1, errors: [{ code: "articles.row_refused", message: "Row 3: invalid code" }] });
+  renderPage();
+  await screen.findByText("PAINT-25");
+  await userEvent.upload(screen.getByLabelText("articles.import"), new File(["code,name\nA,B"], "articles.csv", { type: "text/csv" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Row 3: invalid code");
+  expect(screen.getByText("articles.imported:1/0/1")).toBeVisible();
 });

@@ -361,7 +361,6 @@ export default function DgsaReportForm({ year, department, language, form, onSav
         return (
           <section key={section.key} className={`${panelClass} p-4 sm:p-6 space-y-3`}>
             <h3 className="font-semibold text-slate-900 dark:text-slate-100">{section.title}</h3>
-            {section.intro && <p className="text-xs text-slate-500 dark:text-slate-400">{section.intro}</p>}
             {questions.map(renderQuestion)}
             {section.key === "prepared" && (
               <p className="text-xs text-slate-500 dark:text-slate-400">

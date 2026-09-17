@@ -1,8 +1,8 @@
-"""Retiring guest mode must close application access without closing QR cards.
+"""Retiring guest mode closes every application route, including QR cards.
 
 Exercise real cookies and real route dependencies, including deployments that
-still carry EMCARGO_MODE=open. The public UN-card routes are a deliberate
-exception: a driver scanning a document does not need an EMCargo account.
+still carry EMCARGO_MODE=open. Scanning a transport document never grants
+anonymous access to an installation's card store.
 """
 from __future__ import annotations
 
@@ -94,25 +94,30 @@ def test_login_unlocks_the_full_application_and_logout_closes_it(installation):
     assert client.get("/api/users").status_code == 401
 
 
-def test_qr_lookup_and_pdf_remain_public(installation):
-    """QR cards are the explicit exception. Test the actual PDF download without
-    a cookie so tightening application access cannot strand a scanner at login.
+def test_qr_lookup_and_pdf_require_login_even_when_links_are_enabled(installation):
+    """Enabling links previously exposed both lookup and PDFs without a session.
+    Real cookies must unlock both and logout must close even a copied PDF URL.
     """
     client, db, _, data_dir = installation
-    assert client.get("/api/cards/lookup?un=1203").status_code == 404
+    assert client.get("/api/cards/lookup?un=1203").status_code == 401
     settings_store.save_instance_settings(db, InstanceSettings(card_links_enabled=True))
     directory = data_dir / "un-cards" / "ADR"
     directory.mkdir(parents=True)
-    pdf = b"%PDF-1.4\n% public test card\n"
+    pdf = b"%PDF-1.4\n% authenticated test card\n"
     (directory / "UN1203_ADR.pdf").write_bytes(pdf)
     assert not client.cookies
+    assert client.get("/api/cards/lookup?un=1203&modality=ADR").status_code == 401
+    assert client.get("/api/cards/1203/ADR.pdf").status_code == 401
+    login(client)
     lookup = client.get("/api/cards/lookup?un=1203&modality=ADR")
     assert lookup.status_code == 200
     assert lookup.json()["cards"] == [{"un_number": "1203", "available": True}]
     download = client.get("/api/cards/1203/ADR.pdf")
     assert download.status_code == 200
     assert download.content == pdf
-    assert client.get("/api/settings/me").status_code == 401
+    assert client.post("/api/auth/logout").status_code == 200
+    assert client.get("/api/cards/lookup?un=1203&modality=ADR").status_code == 401
+    assert client.get("/api/cards/1203/ADR.pdf").status_code == 401
 
 
 def test_saved_settings_and_existing_accounts_survive_upgrade(installation):

@@ -132,8 +132,8 @@ export function dimensionOverridesFromDrafts(
   const filled = drafts.filter((draft) => draft.description.trim());
   const ids = new Map(filled.map((draft, index) => [draft.id, index + 1]));
   filled.forEach((draft, index) => {
-      const entry: Record<string, unknown> = { line_id: index + 1 };
-      let any = false;
+      const entry: Record<string, unknown> = { line_id: index + 1, ...(draft.id != null ? { cargo_goods_id: draft.id } : {}) };
+      let any = draft.id != null;
       if (draft.equipment) {
         entry.equipment = draft.equipment;
         entry.equipment_role = draft.equipment_role ?? "cargo";

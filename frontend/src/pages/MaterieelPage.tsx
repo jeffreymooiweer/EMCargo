@@ -23,6 +23,7 @@ export default function MaterieelPage() {
   const [archived, setArchived] = useState(false);
   const [inspectionFilter, setInspectionFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [listFailure, setListFailure] = useState("");
   const [form, setForm] = useState<EquipmentItem | null>(null);
   const [selected, setSelected] = useState<(EquipmentItem & { files: EquipmentFile[] }) | null>(null);
   const [events, setEvents] = useState<EquipmentEvent[]>([]);
@@ -38,7 +39,12 @@ export default function MaterieelPage() {
   const number = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 2 });
   const activeFilters = inspectionFilter !== "all" || archived;
 
-  const load = async () => { invalidateEquipmentLibrary(); try { setItems(await api.listEquipment()); } catch (e) { toast.error(String(e)); } finally { setLoading(false); } };
+  const load = async () => {
+    invalidateEquipmentLibrary(); setLoading(true); setListFailure("");
+    try { setItems(await api.listEquipment()); }
+    catch (cause) { setListFailure(String(cause)); }
+    finally { setLoading(false); }
+  };
   useEffect(() => { void load(); }, []);
   const filtered = useMemo(() => items.filter(item => {
     if (!archived && item.active === false) return false;
@@ -89,7 +95,7 @@ export default function MaterieelPage() {
   const facts = (values: [string, React.ReactNode][]) => <dl className="equipment-facts">{values.filter(([, value]) => value != null && value !== "").map(([key, value]) => <div key={key}><dt>{t(`assets.${key}`)}</dt><dd>{value}</dd></div>)}</dl>;
 
   return <div className="collection-page page-enter space-y-6">
-    <header><h2 className="text-2xl font-semibold">{t("nav.materieel")}</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("assets.intro")}</p>
+    <header><h2 className="text-2xl font-semibold">{t("nav.materieel")}</h2>
       <div className="mt-5 flex flex-wrap gap-2"><button className="action-primary" onClick={() => { setForm({ ...empty(), kind: filter === "container" ? "container" : filter === "other" ? "other" : "machine" }); setError(""); }}><PlusIcon />{t(filter === "container" ? "equipmentSimple.addContainer" : "materieel.add")}</button>
         <EquipmentMenu>
           <button onClick={() => setImportOpen(true)}><ImportIcon />{t("materieel.import")}</button>
@@ -111,7 +117,7 @@ export default function MaterieelPage() {
       </details>
     </div>
     <p className="text-sm text-slate-500">{t("materieel.count", { count: filtered.length, total: items.length })}</p>
-    {loading ? <p role="status">{t("assets.loading")}</p> : !filtered.length ? <div className="surface p-8"><p>{t(items.length ? "assets.noResults" : "assets.empty")}</p></div> : <div className="equipment-cards">
+    {loading ? <p role="status">{t("assets.loading")}</p> : listFailure ? <div className="surface p-6 space-y-3" role="alert"><p>{listFailure}</p><button className="action-secondary" onClick={() => void load()}>{t("assets.reload")}</button></div> : !filtered.length ? <div className="surface p-8 space-y-3"><p>{t(items.length ? "assets.noResults" : "assets.empty")}</p>{(search || filter !== "all" || activeFilters) && <button className="action-secondary" onClick={() => { setSearch(""); setFilter("all"); setArchived(false); setInspectionFilter("all"); }}>{t("equipmentSimple.clearFilters")}</button>}</div> : <div className="equipment-cards">
       {filtered.map(item => <button type="button" className="equipment-card" key={item.id} onClick={() => void open(item.id!)}>
         {item.photo_url ? <img src={item.photo_url} alt="" loading="lazy" /> : <span className="equipment-placeholder" aria-hidden>{(item.asset_code || item.specifications).slice(0, 2).toUpperCase()}</span>}
         <div className="min-w-0"><span className="equipment-kind">{t(`assets.kindValues.${item.kind ?? "other"}`)}{item.active === false && ` · ${t("assets.archived")}`}</span>
@@ -121,13 +127,13 @@ export default function MaterieelPage() {
         {(item.inspections ?? []).some(entry => needsInspectionAttention(entry)) && <span className="col-span-2 text-xs font-medium text-amber-700 dark:text-amber-300">{t("inspections.attentionCount", { count: item.inspections!.filter(entry => needsInspectionAttention(entry)).length })}</span>}
       </button>)}
     </div>}
-    {form && <EquipmentDialog title={form.id ? t("materieel.edit") : t(form.kind === "container" ? "equipmentSimple.addContainer" : "materieel.add")} onClose={() => { if (!busy) setForm(null); }} footer={<>
+    {form && <EquipmentDialog busy={busy} title={form.id ? t("materieel.edit") : t(form.kind === "container" ? "equipmentSimple.addContainer" : "materieel.add")} onClose={() => { if (!busy) setForm(null); }} footer={<>
       <button type="button" className="action-secondary" disabled={busy} onClick={() => setForm(null)}>{t("materieel.cancel")}</button>
       <button type="submit" form="equipment-editor" className="action-primary" disabled={busy}>{t("materieel.save")}</button>
     </>}>
       {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}<EquipmentForm formId="equipment-editor" initial={form} onSave={save} busy={busy} />
     </EquipmentDialog>}
-    {selected && !form && <EquipmentDialog title={selected.specifications} onClose={() => { if (!busy) setSelected(null); }}>
+    {selected && !form && <EquipmentDialog busy={busy} title={selected.specifications} onClose={() => { if (!busy) setSelected(null); }}>
       {error && <p role="alert" className="mb-4 text-red-600">{error} <button className="underline" onClick={() => void open(selected.id!)}>{t("assets.reload")}</button></p>}
       <div className="space-y-5">
         {selected.photo_url && <img className="max-h-56 w-full rounded-xl object-contain" src={selected.photo_url} alt={selected.specifications} />}
@@ -154,7 +160,6 @@ export default function MaterieelPage() {
           </div></details>
           <details className="equipment-section"><summary>{t("inspections.filter")}<InspectionSummary items={selected.inspections} /></summary><div className="equipment-section-body"><EquipmentInspections items={selected.inspections} /></div></details>
           <details className="equipment-section"><summary>{t("assets.files")}{!!selected.files.length && <span className="equipment-count">{selected.files.length}</span>}</summary><div className="equipment-section-body">
-            <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">{t("assets.fileHint")}</p>
             <label className="equipment-field"><span className="sr-only">{t("assets.upload")}</span><input className="max-w-full text-sm" type="file" disabled={busy} accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={event => { void upload(event.target.files?.[0]); event.target.value = ""; }} /></label>
             <ul className="mt-3 space-y-2">{selected.files.map(file => <li key={file.id} className="flex items-center justify-between gap-2 text-sm"><a className="min-w-0 break-all text-brand-600 underline dark:text-brand-300" href={`/api/equipment/${selected.id}/files/${file.id}`} target="_blank" rel="noreferrer">{file.name}</a><button type="button" className="equipment-text-button" disabled={busy} onClick={async () => { setBusy(true); try { await api.deleteEquipmentFile(selected.id!, file.id); await load(); await open(selected.id!); } catch (e) { setError(String(e)); } finally { setBusy(false); } }}>{t("assets.removeFile")}</button></li>)}</ul>
           </div></details>

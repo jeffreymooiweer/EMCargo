@@ -23,6 +23,7 @@ from app.models.audit import AuditEvent
 from app.models.dgsa_report import DgsaReport
 from app.models.dg_review import DgReview
 from app.models.shipment import Shipment
+from app.models.cargo import PackagingTemplate, CargoIdentity, CargoUse
 from app.models.trip import Trip
 from app.models.user import Equipment, Job, Profile, ReferenceItem, User
 from app.services import audit, history
@@ -43,7 +44,7 @@ TEMPORARY_EXPORT_SUFFIXES = {".pdf", ".zip", ".xlsx", ".tmp"}
 #: somebody actually forgets their password.
 SETTINGS_TABLES = (InstanceSetting, UserPreference, PasswordResetToken,
                    TwoFactorEnrolment, TwoFactorRecoveryCode, TwoFactorCode,
-                   AuditEvent, DgReview, EquipmentEvent, EquipmentFile)
+                   AuditEvent, DgReview, EquipmentEvent, EquipmentFile, PackagingTemplate, CargoIdentity, CargoUse)
 #: Same reason: the history's table is created by ``create_all`` on a fresh
 #: database only because its model was imported here.
 HISTORY_TABLES = (Shipment, Address, DgsaReport, Article, Trip)

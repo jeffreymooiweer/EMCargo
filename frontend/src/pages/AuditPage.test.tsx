@@ -2,7 +2,7 @@
  * The audit page: what it lists, how the action codes read, and that a
  * filter asks the server rather than hiding rows.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -104,5 +104,30 @@ describe("de auditpagina", () => {
     api.audit.mockResolvedValue({ items: [], total: 0, page: 1, per_page: 50 });
     renderPage();
     expect(await screen.findByText("audit.empty")).toBeInTheDocument();
+  });
+
+  it("recovers from a failed request without presenting the error as an empty audit log", async () => {
+    api.audit.mockRejectedValueOnce(new Error("Audit unavailable"));
+    renderPage();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Audit unavailable");
+    expect(screen.queryByText("audit.empty")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "historyAccess.retry" }));
+    expect((await screen.findAllByText(/CP-2026-100/)).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("keeps the latest filter result when an older request finishes later", async () => {
+    let resolveOlder: (value: unknown) => void = () => {};
+    api.audit.mockImplementationOnce(() => new Promise(resolve => { resolveOlder = resolve; }));
+    api.audit.mockResolvedValueOnce({ items: [{ ...lines[0], summary: "Latest selection" }], total: 1 });
+    renderPage();
+    await screen.findByRole("option", { name: "bob" });
+    await userEvent.selectOptions(screen.getByLabelText("audit.actor"), "bob");
+    await screen.findAllByText(/Latest selection/);
+    await act(async () => resolveOlder({ items: lines, total: lines.length }));
+    expect(screen.queryByText(/CP-2026-100/)).toBeNull();
+    expect(screen.getAllByText(/Latest selection/).length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole("button", { name: "history.clearFilters" }));
+    expect(screen.getByLabelText("audit.actor")).toHaveValue("");
   });
 });

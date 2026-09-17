@@ -1,6 +1,6 @@
 # Roadmap
 
-Current direction, reviewed on 16 September 2026 against v2.13.0 and the product
+Current direction, reviewed on 17 September 2026 against v2.15.0 and the product
 owner's decisions. Completed work is in [CHANGELOG.md](CHANGELOG.md). Historical
 research remains in [Roadmap research](docs/roadmap-research.md),
 [The database](docs/database-plan.md) and the usability plans; older release
@@ -27,6 +27,7 @@ dependencies, acceptance criteria and delivery gates for v2.11.0.
 | Dangerous goods | Regulation-specific checks and specialist release by default; known gaps in [DG coverage](docs/dg-coverage.md) |
 | Organisation work | Optional saved shipments/private drafts, templates, departments, address book, own goods, trips and DGSA reports |
 | Trips | Combined-load assembly and assessment; no spatial load or route optimisation |
+| Cargo | Mixed nested packaging, direct unpackaged loads, unique physical IDs, reusable units, packaging library and versioned plugin contract |
 | Library | Own goods; vehicles, machines and containers with frozen shipment selections, local files and confirmed location history; sourced density references |
 | Density catalogue | 23,957 rows; measurements, manufacturer data, estimates and unverified legacy values distinguished |
 | Accounts | Mandatory sign-in, roles, personal settings, avatars, two-factor authentication and audit metadata |
@@ -57,6 +58,8 @@ not claim a certified eFTI platform or an operational eCMR network connection.
 ## Companion modules and ecosystem
 
 Specialist modules remain optional projects using the core API and shipment data.
+The [cargo v1 contract](docs/cargo-contract.md) now supplies hierarchy, quantities,
+measurements, constraints, identities and revisions. Core contains no spatial planner.
 
 | Module | Planned scope |
 |---|---|
@@ -88,5 +91,5 @@ verification of the relevant document flow.
 
 - No driver application or process requiring carriers to adopt EMCargo.
 - No prefilled organisation assortment or operational equipment in public images.
-- No public full application. The existing optional UN-card QR route remains the
-  narrowly scoped exception to mandatory sign-in.
+- No anonymous application access. Optional UN-card QR links and direct card
+  downloads require sign-in and retain the requested scan URL through login.

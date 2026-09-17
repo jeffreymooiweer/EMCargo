@@ -150,6 +150,9 @@ it("gives Super Users organisation defaults without exposing system or DG policy
   }
   expect(screen.queryByRole("button", { name: "settingsNav.security" })).toBeNull();
   expect(screen.queryByText("settingsNav.accessPolicy")).toBeNull();
+  expect(screen.getByRole("option", { name: "theme.dark" })).toHaveValue("dark");
+  expect(screen.getByRole("option", { name: "theme.light" })).toHaveValue("light");
+  expect(screen.getByRole("option", { name: "settings.auto" })).toHaveValue("system");
 });
 
 
@@ -178,4 +181,24 @@ it("shows product information and opens terms inside account settings", async ()
   expect(await screen.findByRole("heading", { name: "legal.title" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /account.about/ })).toHaveAttribute("href", "/account/about");
   expect(screen.getByRole("button", { name: "account.about" })).toHaveAttribute("aria-current", "page");
+});
+
+it("associates visible setting labels with their controls without instructional copy", async () => {
+  renderAt(userOf("user"));
+  expect(await screen.findByLabelText("settings.language")).toHaveValue("nl");
+  expect(screen.getByRole("group", { name: "settings.theme" })).toBeInTheDocument();
+  expect(screen.queryByText("settings.themeHint")).toBeNull();
+  await userEvent.selectOptions(screen.getByLabelText("settings.tabPick"), "shipment");
+  expect(screen.getByLabelText("settings.defaultModality")).toHaveValue("");
+  expect(screen.getByLabelText("settings.defaultUnit")).toBeInTheDocument();
+  expect(screen.getByRole("checkbox", { name: "settings.prefillDocuments" })).toBeChecked();
+});
+
+it("offers a retry instead of an empty administration page when loading fails", async () => {
+  vi.mocked(api.instanceSettings).mockRejectedValueOnce(new Error("Settings unavailable"));
+  renderAt(userOf("admin"), "/admin/settings/access");
+  expect(await screen.findByRole("alert")).toHaveTextContent("Settings unavailable");
+  await userEvent.click(screen.getByRole("button", { name: "historyAccess.retry" }));
+  expect(await screen.findByLabelText("settings.twoFactorPolicy")).toBeInTheDocument();
+  expect(screen.queryByRole("alert")).toBeNull();
 });

@@ -84,7 +84,7 @@ describe("het DGSA-jaarrapport", () => {
   it("zegt dat er niets te rapporteren valt waar de historie uitstaat", () => {
     settings.history_enabled = false;
     renderPage();
-    expect(screen.getByText("history.off")).toBeInTheDocument();
+    expect(screen.getByText("historyAccess.disabled")).toBeInTheDocument();
     expect(api.dgsaReport).not.toHaveBeenCalled();
   });
 

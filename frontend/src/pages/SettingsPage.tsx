@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
 import { useToast } from "../toast/ToastProvider";
@@ -22,7 +22,7 @@ import TwoFactorPanel from "../components/TwoFactorPanel";
 import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES } from "../i18n/language";
 import { useBranding } from "../branding";
 import { PaletteIcon, ShipmentsIcon, UserIcon, ShieldIcon, BuildingIcon, NetworkIcon, MailIcon, RefreshIcon, DocumentIcon, SettingsIcon, SunIcon, MoonIcon, MonitorIcon, InfoIcon } from "../components/icons";
-import { MODALITIES, AVAILABLE_MODALITIES } from "./ModalitySelectPage";
+import { MODALITIES } from "./ModalitySelectPage";
 import { usePreferences } from "../settings/preferences";
 import { settingsPath, type SettingsArea } from "../settings/routes";
 import ProfilePanel from "./account/ProfilePanel";
@@ -30,6 +30,7 @@ import PasswordPanel from "./account/PasswordPanel";
 import AboutPanel from "./account/AboutPanel";
 import LegalPage from "./LegalPage";
 import "./account/account.css";
+import "../settings/settings.css";
 
 const panelClass = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800";
 const inputClass =
@@ -125,6 +126,7 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
   };
 
   const submit = async () => {
+    if (saving) return;
     setSaving(true);
     try {
       await save(draft);
@@ -146,9 +148,6 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
       <div className="page-heading">
       <div>
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          {t(area === "admin" ? "account.adminIntro" : "account.intro")}
-        </p>
       </div>
 
       </div>
@@ -200,9 +199,8 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
         </h3>
 
         <div>
-          <label className="text-sm font-medium text-slate-800 dark:text-slate-200">{t("settings.theme")}</label>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t("settings.themeHint")}</p>
-          <div className="grid grid-cols-3 gap-2 mt-2">
+          <h4 id="settings-theme-label" className="text-sm font-medium text-slate-800 dark:text-slate-200">{t("settings.theme")}</h4>
+          <div className="grid grid-cols-3 gap-2 mt-2" role="group" aria-labelledby="settings-theme-label">
             {THEMES.map((option) => (
               <button
                 key={option}
@@ -223,9 +221,9 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
         </div>
 
         <div>
-          <label className="text-sm font-medium text-slate-800 dark:text-slate-200">{t("settings.language")}</label>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t("settings.languageHint")}</p>
+          <label htmlFor="settings-language" className="text-sm font-medium text-slate-800 dark:text-slate-200">{t("settings.language")}</label>
           <select
+            id="settings-language"
             className={`${inputClass} mt-2`}
             value={draft.language || ""}
             onChange={(e) => void setAndApply({ language: e.target.value })}
@@ -238,9 +236,6 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
           </select>
         </div>
 
-        <p className="text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-3">
-          {t("settings.autoDetectNote")}
-        </p>
       </section>
       )}
 
@@ -250,13 +245,12 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             {t("settings.shipmentDefaults")}
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t("settings.shipmentDefaultsHint")}</p>
         </div>
 
         <div>
-          <label className="text-sm font-medium text-slate-800 dark:text-slate-200">{t("settings.defaultModality")}</label>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t("settings.defaultModalityHint")}</p>
+          <label htmlFor="settings-default-modality" className="text-sm font-medium text-slate-800 dark:text-slate-200">{t("settings.defaultModality")}</label>
           <select
+            id="settings-default-modality"
             className={`${inputClass} mt-2`}
             value={draft.default_modality}
             onChange={(e) => set("default_modality", e.target.value)}
@@ -271,9 +265,9 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
         </div>
 
         <div>
-          <label className="text-sm font-medium text-slate-800 dark:text-slate-200">{t("settings.defaultUnit")}</label>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t("settings.defaultUnitHint")}</p>
+          <label htmlFor="settings-default-unit" className="text-sm font-medium text-slate-800 dark:text-slate-200">{t("settings.defaultUnit")}</label>
           <select
+            id="settings-default-unit"
             className={`${inputClass} mt-2`}
             value={draft.default_unit}
             onChange={(e) => set("default_unit", e.target.value)}
@@ -288,7 +282,6 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
 
         <Toggle
           label={t("settings.prefillDocuments")}
-          hint={t("settings.prefillDocumentsHint")}
           checked={draft.prefill_documents}
           onChange={(value) => set("prefill_documents", value)}
         />
@@ -301,9 +294,6 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             {t("account.documentDetails")}
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            {t("settings.myDetailsHint")}
-          </p>
         </div>
 
         <Field
@@ -312,10 +302,11 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
           onChange={(value) => set("consignor_name", value)}
         />
         <div>
-          <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+          <label htmlFor="settings-consignor-address" className="text-sm font-medium text-slate-800 dark:text-slate-200">
             {t("settings.consignorAddress")}
           </label>
           <textarea
+            id="settings-consignor-address"
             className={`${inputClass} mt-1 min-h-[80px]`}
             value={draft.consignor_address}
             onChange={(e) => set("consignor_address", e.target.value)}
@@ -338,7 +329,7 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
         />
         <Field
           label={t("settings.emergencyContact")}
-          hint={t("settings.emergencyContactHint")}
+          type="tel"
           value={draft.emergency_contact}
           onChange={(value) => set("emergency_contact", value)}
         />
@@ -347,7 +338,6 @@ export default function SettingsPage({ user, onUserChange, onPasswordChanged, ar
 
       {active === "details" && (
         <div className="space-y-2">
-          <p className="text-xs text-slate-500 dark:text-slate-400">{t("settings.signatureHint")}</p>
           <SignaturePad
             value={draft.signature_image || null}
             onChange={(dataUrl) => set("signature_image", dataUrl ?? "")}
@@ -404,24 +394,32 @@ function AdminSettings({ section }: { section: TabKey }) {
   const [saving, setSaving] = useState(false);
   const [testTo, setTestTo] = useState("");
   const [testing, setTesting] = useState(false);
+  const [loadError, setLoadError] = useState("");
   // Switching the history off destroys what it kept. The server refuses
   // while anything is kept; the screen asks first, with the counts, and
   // deletes on confirmation before saving the switch.
   const [discard, setDiscard] = useState<{ shipments: number; trips: number } | null>(null);
 
-  useEffect(() => {
-    api
+  const load = () => {
+    setLoadError("");
+    return api
       .instanceSettings()
       .then((values) => {
         setSettings(values);
         setDraft(values);
       })
-      .catch((e) => toast.error(String(e)));
+      .catch((e) => setLoadError(String(e)));
+  };
+  useEffect(() => {
+    void load();
     // toast is stable for the provider's lifetime; this effect runs once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!draft || !settings) return null;
+  if (!draft || !settings) return <section className={`${panelClass} p-5 space-y-3`}>
+    <p role={loadError ? "alert" : "status"}>{loadError || t("wizard.loading")}</p>
+    {loadError && <button type="button" className={buttonSecondary} onClick={() => void load()}>{t("historyAccess.retry")}</button>}
+  </section>;
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(settings);
 
@@ -457,6 +455,7 @@ function AdminSettings({ section }: { section: TabKey }) {
   };
 
   const submit = async () => {
+    if (saving || !dirty) return;
     setSaving(true);
     try {
       if (settings.history_enabled && !draft.history_enabled) {
@@ -488,22 +487,19 @@ function AdminSettings({ section }: { section: TabKey }) {
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-xs text-slate-500 dark:text-slate-400">{t("settings.adminIntro")}</p>
-
+    <fieldset disabled={saving} className="space-y-4" aria-busy={saving}>
       <section hidden={section !== "admin"} className={`${panelClass} p-5 space-y-5`}>
         <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {t("settings.adminNewUsers")}
         </h4>
 
         <div>
-          <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+          <label htmlFor="settings-default_language" className="text-sm font-medium text-slate-800 dark:text-slate-200">
             {t("settings.adminDefaultLanguage")}
           </label>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {t("settings.adminDefaultLanguageHint")}
-          </p>
+
           <select
+                id="settings-default_language"
             className={`${inputClass} mt-2`}
             value={draft.default_language}
             onChange={(e) => set("default_language", e.target.value)}
@@ -517,10 +513,11 @@ function AdminSettings({ section }: { section: TabKey }) {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+          <label htmlFor="settings-default_theme" className="text-sm font-medium text-slate-800 dark:text-slate-200">
             {t("settings.adminDefaultTheme")}
           </label>
           <select
+                id="settings-default_theme"
             className={`${inputClass} mt-2`}
             value={draft.default_theme}
             onChange={(e) => set("default_theme", e.target.value as ThemeChoice)}
@@ -535,15 +532,15 @@ function AdminSettings({ section }: { section: TabKey }) {
 
         <Field
           label={t("settings.organisationName")}
-          hint={t("settings.organisationHint")}
           value={draft.organisation_name}
           onChange={(value) => set("organisation_name", value)}
         />
         <div>
-          <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+          <label htmlFor="settings-organisation_address" className="text-sm font-medium text-slate-800 dark:text-slate-200">
             {t("settings.organisationAddress")}
           </label>
           <textarea
+                id="settings-organisation_address"
             className={`${inputClass} mt-1 min-h-[80px]`}
             value={draft.organisation_address}
             onChange={(e) => set("organisation_address", e.target.value)}
@@ -552,20 +549,20 @@ function AdminSettings({ section }: { section: TabKey }) {
       </section>
 
       <section hidden={section !== "dg"} className={`${panelClass} p-5 space-y-5`}>
-        <div><h3 className="font-semibold">{t("dgReview.settingsTitle")}</h3><p className="mt-2 text-sm text-slate-500">{t("dgReview.settingsHint")}</p><Link to="/users" className="mt-3 inline-flex text-sm font-medium underline">{t("nav.users")}</Link></div>
-        <Toggle label={t("dgReview.enabledSetting")} hint={t("dgReview.enabledHint")} checked={draft.dg_review_enabled !== false} onChange={value => set("dg_review_enabled", value)} />
-        <Toggle label={t("dgReview.superDgsaSetting")} hint={t("dgReview.superDgsaHint")} checked={draft.super_user_dgsa_enabled === true} onChange={value => set("super_user_dgsa_enabled", value)} />
+        <div><h3 className="font-semibold">{t("dgReview.settingsTitle")}</h3><Link to="/users" className="mt-3 inline-flex text-sm font-medium underline">{t("nav.users")}</Link></div>
+        <Toggle label={t("dgReview.enabledSetting")} checked={draft.dg_review_enabled !== false} onChange={value => set("dg_review_enabled", value)} />
+        <Toggle label={t("dgReview.superDgsaSetting")} checked={draft.super_user_dgsa_enabled === true} onChange={value => set("super_user_dgsa_enabled", value)} />
       </section>
       <section hidden={section !== "branding"} className={`${panelClass} p-5 space-y-5`}>
         <div>
           <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             {t("settings.adminBranding")}
           </h4>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t("settings.adminBrandingHint")}</p>
+
         </div>
         <Field
           label={t("settings.brandName")}
-          hint={t("settings.brandNameHint")}
+          placeholder="EMCargo"
           value={draft.brand_name ?? ""}
           onChange={(value) => set("brand_name", value)}
         />
@@ -577,19 +574,19 @@ function AdminSettings({ section }: { section: TabKey }) {
           <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             {t("settings.adminNetwork")}
           </h4>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t("settings.adminNetworkHint")}</p>
+
         </div>
 
         <Field
           label={t("settings.publicUrl")}
-          hint={t("settings.publicUrlHint")}
+          type="url"
+          placeholder="https://emcargo.example.com"
           value={draft.public_url}
           onChange={(value) => set("public_url", value)}
         />
 
         <Toggle
           label={t("settings.addressLookup")}
-          hint={t("settings.addressLookupHint")}
           checked={draft.address_lookup_enabled}
           onChange={(value) => set("address_lookup_enabled", value)}
         />
@@ -597,15 +594,16 @@ function AdminSettings({ section }: { section: TabKey }) {
           <>
             <Field
               label={t("settings.addressApiUrl")}
-              hint={t("settings.addressApiUrlHint")}
+              type="url"
               value={draft.address_api_url}
               onChange={(value) => set("address_api_url", value)}
             />
             <div>
-              <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+              <label htmlFor="settings-address_timeout_seconds" className="text-sm font-medium text-slate-800 dark:text-slate-200">
                 {t("settings.addressTimeout")}
               </label>
               <NumberInput
+                id="settings-address_timeout_seconds"
                 min={1}
                 max={60}
                 step={0.5}
@@ -619,7 +617,6 @@ function AdminSettings({ section }: { section: TabKey }) {
 
         <Toggle
           label={t("settings.catalogAutoSync")}
-          hint={t("settings.catalogAutoSyncHint")}
           checked={draft.catalog_auto_sync}
           onChange={(value) => set("catalog_auto_sync", value)}
         />
@@ -634,10 +631,10 @@ function AdminSettings({ section }: { section: TabKey }) {
 
         <Toggle
           label={t("settings.historyEnabled")}
-          hint={t("settings.historyEnabledHint")}
           checked={draft.history_enabled}
           onChange={(value) => set("history_enabled", value)}
         />
+        {!draft.history_enabled && <p role="status" className="text-sm text-slate-500 dark:text-slate-400">{t("settings.dgReviewsRetained")}</p>}
         <ConfirmDialog
           open={discard !== null}
           title={t("settings.historyDiscardTitle")}
@@ -651,11 +648,12 @@ function AdminSettings({ section }: { section: TabKey }) {
         />
 
         <div>
-          <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+          <label htmlFor="settings-audit_retention_days" className="text-sm font-medium text-slate-800 dark:text-slate-200">
             {t("settings.auditRetention")}
           </label>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t("settings.auditRetentionHint")}</p>
+
           <NumberInput
+                id="settings-audit_retention_days"
             min={1}
             max={3650}
             step={1}
@@ -669,13 +667,12 @@ function AdminSettings({ section }: { section: TabKey }) {
       <section hidden={section !== "access"} className={`${panelClass} p-5 space-y-5`}>
         <h4>{t("settingsNav.accessPolicy")}</h4>
         <div>
-          <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+          <label htmlFor="settings-two_factor_policy" className="text-sm font-medium text-slate-800 dark:text-slate-200">
             {t("settings.twoFactorPolicy")}
           </label>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {t("settings.twoFactorPolicyHint")}
-          </p>
+
           <select
+                id="settings-two_factor_policy"
             className={`${inputClass} mt-2`}
             value={draft.two_factor_policy}
             onChange={(e) =>
@@ -689,11 +686,12 @@ function AdminSettings({ section }: { section: TabKey }) {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+          <label htmlFor="settings-session_timeout_minutes" className="text-sm font-medium text-slate-800 dark:text-slate-200">
             {t("settings.sessionTimeout")}
           </label>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t("settings.sessionTimeoutHint")}</p>
+
           <NumberInput
+                id="settings-session_timeout_minutes"
             min={15}
             max={10080}
             step={15}
@@ -708,14 +706,12 @@ function AdminSettings({ section }: { section: TabKey }) {
         <h4>{t("settingsNav.cardOptions")}</h4>
         <Toggle
           label={t("settings.unCardsEnabled")}
-          hint={t("settings.unCardsEnabledHint")}
           checked={draft.un_cards_enabled}
           onChange={(value) => set("un_cards_enabled", value)}
         />
 
         <Toggle
           label={t("settings.cardLinks")}
-          hint={t("settings.cardLinksHint")}
           checked={draft.card_links_enabled}
           onChange={(value) => set("card_links_enabled", value)}
         />
@@ -724,9 +720,11 @@ function AdminSettings({ section }: { section: TabKey }) {
             holding the paper three days later cannot tell that from a code
             that simply failed to scan. */}
         {draft.card_links_enabled && !draft.public_url.trim() && (
-          <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-            {t("settings.cardLinksNeedsUrl")}
-          </p>
+          <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/30 dark:text-amber-200" role="status">
+            <p>{t("settings.cardLinksNeedsUrl")}</p>
+            <Field label={t("settings.publicUrl")} type="url" placeholder="https://emcargo.example.com"
+              value={draft.public_url} onChange={value => set("public_url", value)} />
+          </div>
         )}
 
       </section>
@@ -735,12 +733,11 @@ function AdminSettings({ section }: { section: TabKey }) {
           <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             {t("settings.mailTitle")}
           </h4>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t("settings.mailHint")}</p>
+
         </div>
 
         <Toggle
           label={t("settings.mailEnabled")}
-          hint={t("settings.mailEnabledHint")}
           checked={draft.mail_enabled}
           onChange={(value) => set("mail_enabled", value)}
         />
@@ -750,15 +747,16 @@ function AdminSettings({ section }: { section: TabKey }) {
             <div className="grid gap-4 md:grid-cols-2">
               <Field
                 label={t("settings.mailHost")}
-                hint={t("settings.mailHostHint")}
+                placeholder="smtp.example.com"
                 value={draft.mail_host}
                 onChange={(value) => set("mail_host", value)}
               />
               <div>
-                <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                <label htmlFor="settings-mail_port" className="text-sm font-medium text-slate-800 dark:text-slate-200">
                   {t("settings.mailPort")}
                 </label>
                 <NumberInput
+                id="settings-mail_port"
                   min={1}
                   max={65535}
                   className={`${inputClass} mt-1`}
@@ -767,10 +765,11 @@ function AdminSettings({ section }: { section: TabKey }) {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                <label htmlFor="settings-mail_security" className="text-sm font-medium text-slate-800 dark:text-slate-200">
                   {t("settings.mailSecurity")}
                 </label>
                 <select
+                id="settings-mail_security"
                   className={`${inputClass} mt-1`}
                   value={draft.mail_security}
                   onChange={(e) =>
@@ -784,20 +783,18 @@ function AdminSettings({ section }: { section: TabKey }) {
               </div>
               <Field
                 label={t("settings.mailUsername")}
-                hint={t("settings.mailUsernameHint")}
                 value={draft.mail_username}
                 onChange={(value) => set("mail_username", value)}
               />
               <div>
-                <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                <label htmlFor="settings-mail_password" className="text-sm font-medium text-slate-800 dark:text-slate-200">
                   {t("settings.mailPassword")}
                 </label>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {settings.mail_password_set ? t("settings.mailPasswordStored") : t("settings.mailPasswordHint")}
-                </p>
                 <input
+                id="settings-mail_password"
                   type="password"
                   autoComplete="new-password"
+                  placeholder={settings.mail_password_set ? t("settings.passwordUnchanged") : undefined}
                   className={`${inputClass} mt-1`}
                   value={draft.mail_password}
                   onChange={(e) => set("mail_password", e.target.value)}
@@ -805,7 +802,7 @@ function AdminSettings({ section }: { section: TabKey }) {
               </div>
               <Field
                 label={t("settings.mailFrom")}
-                hint={t("settings.mailFromHint")}
+                type="email"
                 value={draft.mail_from}
                 onChange={(value) => set("mail_from", value)}
               />
@@ -817,14 +814,13 @@ function AdminSettings({ section }: { section: TabKey }) {
             </div>
 
             <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-2">
-              <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+              <label htmlFor="settings-testTo" className="text-sm font-medium text-slate-800 dark:text-slate-200">
                 {t("settings.mailTest")}
               </label>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {dirty ? t("settings.mailTestSaveFirst") : t("settings.mailTestHint")}
-              </p>
+              {dirty && <p className="text-sm text-slate-500 dark:text-slate-400" role="status">{t("settings.mailTestSaveFirst")}</p>}
               <div className="flex flex-wrap items-center gap-2">
                 <input
+                id="settings-testTo"
                   type="email"
                   className={`${inputClass} max-w-xs`}
                   placeholder={t("settings.mailTestPlaceholder")}
@@ -845,49 +841,49 @@ function AdminSettings({ section }: { section: TabKey }) {
         )}
       </section>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="settings-savebar">
+        <span className="settings-save-state" role="status">{t(dirty ? "settingsNav.unsaved" : "settingsNav.allSaved")}</span>
         <button type="button" onClick={submit} disabled={saving || !dirty} className={buttonPrimary}>
           {saving ? t("settings.saving") : t("settings.saveAdmin")}
         </button>
       </div>
-    </div>
+    </fieldset>
   );
 }
 
 function Field({
   label,
-  hint,
   value,
   onChange,
+  type = "text",
+  placeholder,
 }: {
   label: string;
-  hint?: string;
   value: string;
   onChange: (value: string) => void;
+  type?: "text" | "tel" | "url" | "email";
+  placeholder?: string;
 }) {
   const id = useId();
   return (
     <div>
       <label htmlFor={id} className="text-sm font-medium text-slate-800 dark:text-slate-200">{label}</label>
-      {hint && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{hint}</p>}
-      <input id={id} className={`${inputClass} mt-1`} value={value} onChange={(e) => onChange(e.target.value)} />
+      <input id={id} type={type} placeholder={placeholder} className={`${inputClass} mt-1`} value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }
 
 function Toggle({
   label,
-  hint,
   checked,
   onChange,
 }: {
   label: string;
-  hint?: string;
   checked: boolean;
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className="flex items-start gap-3 cursor-pointer">
+    <label className="settings-toggle">
       <input
         type="checkbox"
         checked={checked}
@@ -896,7 +892,6 @@ function Toggle({
       />
       <span className="min-w-0">
         <span className="block text-sm font-medium text-slate-800 dark:text-slate-200">{label}</span>
-        {hint && <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">{hint}</span>}
       </span>
     </label>
   );
@@ -905,9 +900,8 @@ function Toggle({
 /**
  * The local AI model: an opt-in download, never part of the image.
  *
- * The assistant always works — without a model it runs its deterministic
- * chain. What this block installs is flexibility only: a small local model
- * that reads free text. The download is the assistant's single external
+ * The assistant is available only after a local language model is installed.
+ * The download is the assistant's single external
  * fetch, verified against the SHA-256 pinned in the repository, into
  * /data/assistant; while the sources are unpinned the button stays off.
  */
@@ -915,9 +909,11 @@ function AssistantAdmin() {
   const { t } = useTranslation();
   const toast = useToast();
   const [status, setStatus] = useState<AssistantStatus | null>(null);
+  const [failed, setFailed] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const refresh = () =>
-    api.assistantStatus().then(setStatus).catch((e) => toast.error(String(e)));
+    api.assistantStatus().then(next => { setStatus(next); setFailed(""); }).catch((e) => setFailed(String(e)));
 
   useEffect(() => {
     void refresh();
@@ -931,14 +927,21 @@ function AssistantAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status?.download.state]);
 
-  if (!status) return null;
+  if (!status) return <section className={`${panelClass} p-5 space-y-3`}>
+    <p role={failed ? "alert" : "status"}>{failed || t("wizard.loading")}</p>
+    {failed && <button type="button" className={buttonSecondary} onClick={() => void refresh()}>{t("historyAccess.retry")}</button>}
+  </section>;
 
   const act = async (action: "download" | "remove") => {
+    if (busy) return;
+    setBusy(true);
     try {
       await api.assistantModel(action);
       await refresh();
     } catch (e) {
       toast.error(String(e));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -947,7 +950,7 @@ function AssistantAdmin() {
       <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {t("settings.assistantTitle")}
       </h4>
-      <p className="text-sm text-slate-600 dark:text-slate-400">{t("settings.assistantIntro")}</p>
+      {failed && <p role="alert">{failed}</p>}
       <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
         <li>
           {t("settings.assistantMode")}:{" "}
@@ -956,21 +959,21 @@ function AssistantAdmin() {
           </span>
         </li>
         {status.download.state === "downloading" && (
-          <li className="text-amber-700 dark:text-amber-300">
+          <li role="status" className="text-amber-700 dark:text-amber-300">
             {t("settings.assistantDownloading")} ({status.download.detail})
           </li>
         )}
         {status.download.state === "error" && (
-          <li className="text-red-600 dark:text-red-400">{status.download.detail}</li>
+          <li role="alert" className="text-red-600 dark:text-red-400">{status.download.detail}</li>
         )}
       </ul>
       <div className="flex flex-wrap gap-2">
         {!status.installed && (
           <button
             type="button"
-            disabled={!status.installable || status.download.state === "downloading"}
+            disabled={busy || !status.installable || status.download.state === "downloading"}
             onClick={() => void act("download")}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+            className={buttonPrimary}
           >
             {t("settings.assistantInstall")}
           </button>
@@ -978,18 +981,19 @@ function AssistantAdmin() {
         {status.installed && (
           <button
             type="button"
+            disabled={busy}
             onClick={() => void act("remove")}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            className={buttonSecondary}
           >
             {t("settings.assistantRemove")}
           </button>
         )}
       </div>
       {!status.installable && !status.installed && (
-        <p className="text-xs text-slate-500 dark:text-slate-400">{t("settings.assistantUnpinned")}</p>
+        <p role="status" className="text-sm text-slate-500 dark:text-slate-400">{t("settings.assistantUnpinned")}</p>
       )}
       {!status.installed && (
-        <p className="text-xs text-slate-500 dark:text-slate-400">{t("settings.assistantFootprint")}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{t("settings.assistantFootprint")}</p>
       )}
     </section>
   );
@@ -1008,13 +1012,17 @@ export function UnCardsAdminPanel() {
   const { t } = useTranslation();
   const toast = useToast();
   const [status, setStatus] = useState<UnCardStoreStatus | null>(null);
+  const [failure, setFailure] = useState("");
   const [busy, setBusy] = useState<"" | "check" | "download" | "import" | "remove">("");
+  const upload = useRef<HTMLInputElement>(null);
 
-  const refresh = (remote = false) =>
-    api
+  const refresh = (remote = false) => {
+    setFailure("");
+    return api
       .unCardStoreStatus(remote)
       .then(setStatus)
-      .catch((e) => toast.error(e instanceof Error ? e.message : String(e)));
+      .catch((e) => setFailure(e instanceof Error ? e.message : String(e)));
+  };
 
   useEffect(() => {
     void refresh(false);
@@ -1047,9 +1055,11 @@ export function UnCardsAdminPanel() {
         <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {t("settings.unCardsStoreTitle")}
         </h4>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("settings.unCardsStoreIntro")}</p>
+
       </div>
 
+      {failure && <p role="alert">{failure}</p>}
+      {!status && !failure && <p role="status">{t("wizard.loading")}</p>}
       {local && !local.installed && (
         <p className="text-sm text-slate-700 dark:text-slate-300">{t("settings.unCardsNone")}</p>
       )}
@@ -1064,7 +1074,7 @@ export function UnCardsAdminPanel() {
           </p>
           {local.imported_at && (
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {t("settings.unCardsImportedAt", { date: local.imported_at })} · {local.location}
+              {t("settings.unCardsImportedAt", { date: local.imported_at })}
             </p>
           )}
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -1113,12 +1123,15 @@ export function UnCardsAdminPanel() {
         >
           {busy === "download" ? t("settings.unCardsDownloading") : t("settings.unCardsDownload")}
         </button>
-        <label className={`${buttonSecondary} cursor-pointer`}>
+        <button type="button" className={buttonSecondary} disabled={busy !== ""} onClick={() => upload.current?.click()}>
           {busy === "import" ? t("settings.unCardsImporting") : t("settings.unCardsImportZip")}
+        </button>
           <input
+            ref={upload}
             type="file"
             accept=".zip"
             className="hidden"
+            aria-label={t("settings.unCardsImportZip")}
             disabled={busy !== ""}
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -1134,7 +1147,6 @@ export function UnCardsAdminPanel() {
               );
             }}
           />
-        </label>
         {local?.installed && (
           <button
             type="button"
@@ -1173,7 +1185,7 @@ export function UnCardsAdminPanel() {
  * These act the moment a file is chosen, unlike the name above them, which
  * waits for the save button: a picture is a file on the server, not a value
  * in a form, and "choose a file, then also press save" is the step everyone
- * forgets. The hint says so. The server decides what a file is from its
+ * forgets. Success feedback confirms each upload. The server decides what a file is from its
  * bytes and refuses anything that is not a PNG, JPEG or WebP; the message it
  * answers with is shown as it comes.
  */
@@ -1249,14 +1261,11 @@ function BrandingPictures() {
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-sm font-medium text-slate-800 dark:text-slate-200">{t("settings.brandLogo")}</label>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-2">{t("settings.brandLogoHint")}</p>
         {slot("logo", t("settings.brandLogo"), branding.logo, api.uploadBrandLogo, api.removeBrandLogo,
               "/emcargo.svg?v=2.11.1")}
       </div>
       <div>
-        <label className="text-sm font-medium text-slate-800 dark:text-slate-200">{t("settings.brandModalities")}</label>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-2">{t("settings.brandModalitiesHint")}</p>
+        <h4 className="mb-2 text-sm font-medium text-slate-800 dark:text-slate-200">{t("settings.brandModalities")}</h4>
         <div className="grid gap-3">
           {MODALITIES.map((key) =>
             slot(key, t(`modality.${key}`), branding.modalities[key] ?? null,
@@ -1275,24 +1284,34 @@ function OrganisationPanel() {
   const toast = useToast();
   const { reload } = usePreferences();
   const [draft, setDraft] = useState<OrganisationSettings | null>(null);
+  const [saved, setSaved] = useState<OrganisationSettings | null>(null);
   const [failure, setFailure] = useState("");
   const [busy, setBusy] = useState(false);
-  useEffect(() => { api.organisationSettings().then(setDraft).catch(e => setFailure(String(e))); }, []);
+  const load = async () => {
+    setFailure("");
+    try { const settings = await api.organisationSettings(); setDraft(settings); setSaved(settings); }
+    catch (e) { setFailure(String(e)); }
+  };
+  useEffect(() => { void load(); }, []);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   async function save() {
-    if (!draft) return;
-    setBusy(true);
-    try { setDraft(await api.saveOrganisationSettings(draft)); await reload(); toast.success(t("settings.saved")); }
+    if (!draft || busy || !dirty) return;
+    setBusy(true); setFailure("");
+    try { const next = await api.saveOrganisationSettings(draft); setDraft(next); setSaved(next); await reload(); toast.success(t("settings.saved")); }
     catch (e) { setFailure(String(e)); }
     finally { setBusy(false); }
   }
-  return <section className={`${panelClass} p-5 space-y-5`}><div><h3 className="font-semibold">{t("settingsNav.organisation")}</h3><p className="mt-2 text-sm text-slate-500">{t("roles.superSettingsHint")}</p></div>
+  return <section className={`${panelClass} p-5 space-y-5`}><div><h3 className="font-semibold">{t("settingsNav.organisation")}</h3></div>
     {failure && <p role="alert">{failure}</p>}
-    {draft && <>
+    {!draft && (failure ? <button type="button" className={buttonSecondary} onClick={() => void load()}>{t("historyAccess.retry")}</button> : <p role="status">{t("wizard.loading")}</p>)}
+    {draft && <fieldset disabled={busy} className="space-y-5">
       <Field label={t("settings.organisationName")} value={draft.organisation_name} onChange={organisation_name => setDraft({ ...draft, organisation_name })} />
       <label className="block text-sm">{t("settings.organisationAddress")}<textarea className={`${inputClass} mt-2`} value={draft.organisation_address} onChange={e => setDraft({ ...draft, organisation_address: e.target.value })} /></label>
       <label className="block text-sm">{t("settings.adminDefaultLanguage")}<select className={`${inputClass} mt-2`} value={draft.default_language} onChange={e => setDraft({ ...draft, default_language: e.target.value })}>{SUPPORTED_LANGUAGES.map(language => <option key={language} value={language}>{LANGUAGE_NAMES[language]}</option>)}</select></label>
-      <label className="block text-sm">{t("settings.adminDefaultTheme")}<select className={`${inputClass} mt-2`} value={draft.default_theme} onChange={e => setDraft({ ...draft, default_theme: e.target.value as ThemeChoice })}>{THEMES.map(theme => <option key={theme} value={theme}>{t(`settings.theme${theme[0].toUpperCase()}${theme.slice(1)}`)}</option>)}</select></label>
-      <button className={buttonPrimary} disabled={busy} onClick={() => void save()}>{t("settings.save")}</button>
-    </>}
+      <label className="block text-sm">{t("settings.adminDefaultTheme")}<select className={`${inputClass} mt-2`} value={draft.default_theme} onChange={e => setDraft({ ...draft, default_theme: e.target.value as ThemeChoice })}>{THEMES.map(theme => <option key={theme} value={theme}>{t(theme === "system" ? "settings.auto" : `theme.${theme}`)}</option>)}</select></label>
+      <div className="settings-savebar"><span className="settings-save-state" role="status">{t(dirty ? "settingsNav.unsaved" : "settingsNav.allSaved")}</span>
+        <button type="button" className={buttonPrimary} disabled={busy || !dirty} onClick={() => void save()}>{t(busy ? "settings.saving" : "settings.save")}</button>
+      </div>
+    </fieldset>}
   </section>;
 }

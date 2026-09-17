@@ -4,10 +4,18 @@ import { useTranslation } from "react-i18next";
 import { api, type DgReview, type ShipmentIn } from "../api/client";
 import { ShieldIcon } from "../components/icons";
 
+/** Save revisions are concurrency bookkeeping, not a different load to approve. */
+export function reviewInputKey(payload: ShipmentIn): string {
+  return JSON.stringify({ ...payload, snapshot: undefined, draft: undefined, expected_cargo_revision: undefined }, function(key, value) {
+    if (key === "cargo") return value == null ? undefined : { ...value, revision: undefined };
+    return value;
+  });
+}
+
 export function useDgReview(payload: ShipmentIn, enabled: boolean, active: boolean, sourceReviewId?: string | null) {
   // The source state is for reopening only. Approval covers the actual
   // shipment/document inputs; changing tabs must not invalidate a decision.
-  const key = JSON.stringify({ ...payload, snapshot: undefined, draft: undefined });
+  const key = reviewInputKey(payload);
   const [state, setState] = useState<{ key: string; review: DgReview | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
@@ -19,7 +27,7 @@ export function useDgReview(payload: ShipmentIn, enabled: boolean, active: boole
     let timer: ReturnType<typeof setTimeout>;
     const check = async () => {
       try {
-        const result = await api.dgReviewStatus(JSON.parse(key));
+        const result = await api.dgReviewStatus(payload);
         if (!cancelled) { setState({ key, review: result }); setFailure(""); }
       } catch (e) { if (!cancelled) { setState(null); setFailure(String(e)); } }
       if (!cancelled) timer = setTimeout(() => void check(), 15000);

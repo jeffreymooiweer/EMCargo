@@ -13,9 +13,8 @@ export default function HistoryStatus({ title, admin = false, embedded = false }
     <section className="surface history-status-panel">
       <HistoryIcon className="h-8 w-8" />
       <div><h3>{t(loading ? "wizard.loading" : publicSettings ? "historyAccess.disabled" : "historyAccess.unavailable")}</h3>
-        {publicSettings ? <><p>{t("history.off")}</p><p>{t(admin ? "historyAccess.adminHint" : "historyAccess.memberHint")}</p></>
-          : !loading && <p>{t("historyAccess.retryHint")}</p>}
-        {publicSettings && <Link className="mt-3 block text-sm underline" to="/dg-reviews">{t("dgReview.privacyLink")}</Link>}
+        {publicSettings && !admin && <p>{t("historyAccess.memberHint")}</p>}
+        {publicSettings && <Link className="mt-3 block text-sm underline" to="/dg-reviews">{t("dgReview.title")}</Link>}
         {publicSettings && admin && <Link className="action-primary" to="/admin/settings/organisation"><SettingsIcon />{t("historyAccess.settings")}</Link>}
         {!publicSettings && !loading && <button className="action-secondary" type="button" onClick={() => void reload()}><RefreshIcon />{t("historyAccess.retry")}</button>}
       </div>

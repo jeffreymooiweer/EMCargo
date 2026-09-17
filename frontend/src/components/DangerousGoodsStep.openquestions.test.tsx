@@ -129,7 +129,7 @@ describe("the DG step without a UN number", () => {
   it("asks for the substance before exposing dependent fields", () => {
     renderStep(false);
     expect(screen.queryByText("proper_shipping_name")).toBeNull();
-    expect(screen.getByText("dgFocus.chooseSubstance")).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "un_number" })).toBeVisible();
     expect(screen.queryByText("dgstep.summaryTitle")).toBeNull();
   });
 });

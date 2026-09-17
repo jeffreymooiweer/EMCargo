@@ -95,6 +95,8 @@ interface Props {
   onImport?: (text: string, mode: "append" | "replace") => void;
   onLineWeightChange?: (lineId: number, field: "weight_each_kg" | "weight_total_kg", value: number | null) => void;
   initialPaste?: boolean;
+  /** The cargo workspace is the single editor for packaging and destinations. */
+  cargoManaged?: boolean;
   translateMessage: (msg: string) => string;
 }
 
@@ -152,6 +154,7 @@ export default function ReviewLinesPanel({
   onLineWeightChange,
   translateMessage,
   initialPaste,
+  cargoManaged = false,
 }: Props) {
   const { t, i18n } = useTranslation();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -314,7 +317,6 @@ export default function ReviewLinesPanel({
         {onImport && <GoodsImport initialPaste={initialPaste} hasLines={hasLines} onImport={onImport}
           dropped={dropped} onDroppedHandled={() => setDropped(null)} />}
       </div>
-      {!hasLines && <p className="goods-empty-hint">{t("review.simpleIntro")}</p>}
       {dragging && <p className="goods-drop-hint">{t("review.importDrop")}</p>}
       {draftLines.length > 1 && attention + unanswered > 0 && (
         <div className="goods-attention">
@@ -396,7 +398,7 @@ export default function ReviewLinesPanel({
                   {t("review.lineDetails")}<DetailsIcon open={open} />
                 </button>
               </div>
-              <EquipmentLineFields line={line} lines={draftLines} result={item} onChange={(patch) => updateDraft(line.id, patch)} />
+              <EquipmentLineFields cargoManaged={cargoManaged} line={line} lines={draftLines} result={item} onChange={(patch) => updateDraft(line.id, patch)} />
               <Derived line={line} item={item} stale={stale} expanded={open} translateMessage={translateMessage} />
               <SubstanceQuestion line={line} item={item} expanded={open} onAnswer={(patch) => answer(line, patch)} />
               {open && <LineDetails line={line} result={item} position={index + 1} catalogue={catalogue} id={panelId}

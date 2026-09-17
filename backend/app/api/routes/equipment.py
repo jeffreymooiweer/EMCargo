@@ -224,6 +224,9 @@ def remove_equipment_file(item_id: int, file_id: str, admin: User = Depends(requ
 @equipment_router.delete("/{item_id}")
 def delete_equipment(item_id: int, admin: User = Depends(require_manager), db: Session = Depends(get_db)):
     item = library.get(db, item_id)
+    from app.models.cargo import CargoIdentity
+    if db.query(CargoIdentity).filter_by(equipment_id=item_id).first():
+        raise api_error(409, "cargo.equipment_in_use")
     db.query(EquipmentFile).filter_by(equipment_id=item_id).delete(synchronize_session=False)
     db.query(EquipmentEvent).filter_by(equipment_id=item_id).delete(synchronize_session=False)
     db.delete(item)

@@ -17,6 +17,7 @@ const MaterieelPage = lazy(() => import("./pages/MaterieelPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const ShipmentsPage = lazy(() => import("./pages/ShipmentsPage"));
 const DgsaReportPage = lazy(() => import("./pages/DgsaReportPage"));
+const CargoTemplateLibrary = lazy(() => import("./components/cargo/CargoTemplateLibrary"));
 const ArticlesPage = lazy(() => import("./pages/ArticlesPage"));
 const AuditPage = lazy(() => import("./pages/AuditPage"));
 const TripsPage = lazy(() => import("./pages/TripsPage"));
@@ -62,10 +63,6 @@ export default function App() {
         {/* A reset link is opened by somebody who cannot sign in; sending
             them to /login would swallow the token in the address. */}
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        {/* The QR code on a transport document is scanned by somebody who has
-            no account here. Sending them to /login would make the code
-            useless, which is the whole point of it being public. */}
-        <Route path="/cards" element={<CardsPage />} />
         <Route path="*" element={<Navigate to="/login" replace state={{ from: location.pathname + location.search + location.hash }} />} />
       </Routes>
       </Suspense>
@@ -87,7 +84,7 @@ export default function App() {
           <Route path="/" element={<ModalitySelectPage />} />
           <Route path="/overzicht" element={<OverviewPage user={user} />} />
           <Route path="/wizard" element={<Navigate to="/" replace />} />
-          <Route path="/wizard/:modality" element={<WizardPage />} />
+          <Route path="/wizard/:modality" element={<WizardPage user={user} />} />
           <Route path="/groupage" element={<GroupagePage />} />
           {/* Retention remains optional; each page explains when it is off. */}
           <Route path="/shipments" element={<ShipmentsPage user={user} />} />
@@ -95,6 +92,7 @@ export default function App() {
           <Route path="/shipments/:id" element={<ShipmentsPage user={user} />} />
           <Route path="/trips" element={<TripsPage user={user} />} />
           <Route path="/trips/:id" element={<LegacyTripRoute />} />
+          <Route path="/packaging" element={<CargoTemplateLibrary user={user} />} />
           <Route path="/articles" element={<ArticlesPage user={user} />} />
           {canManage(user) && <Route path="/materieel" element={<MaterieelPage />} />}
           <Route path="/dg-reviews" element={<DgReviewsPage user={user} />} />

@@ -56,7 +56,7 @@ from app.version import get_version
 #: reader that understood the previous version would misread this one; bump the
 #: minor when something is added that an old reader can safely ignore.
 FORMAT = "emcargo.shipment"
-FORMAT_VERSION = "2.0"
+FORMAT_VERSION = "2.1"
 
 
 def _clean(value: Any) -> Any:
@@ -87,6 +87,7 @@ def build_shipment_export(
     profiles: list[str] | None = None,
     modality: str | None = None,
     documents: list[str] | None = None,
+    cargo=None,
 ) -> dict[str, Any]:
     """The shipment as a dictionary, ready to be written or returned.
 
@@ -109,6 +110,11 @@ def build_shipment_export(
         "consignment": _clean(dict(values or {})),
         "goods": _clean(list(lines or [])),
     }
+    if cargo is not None:
+        from app.services.cargo import assess
+        assessment = assess(cargo, lines)
+        export["cargo"] = assessment["cargo"]
+        export["cargo_assessment"] = {key: value for key, value in assessment.items() if key != "cargo"}
     if modality:
         export["modality"] = modality
     if regimes:
@@ -136,10 +142,11 @@ def render_shipment_export(
     profiles: list[str] | None = None,
     modality: str | None = None,
     documents: list[str] | None = None,
+    cargo=None,
 ) -> Path:
     """The same structure as a file, for the export step and the bundle."""
     export = build_shipment_export(
-        values, lines, dangerous_goods, language, profiles, modality, documents)
+        values, lines, dangerous_goods, language, profiles, modality, documents, cargo)
     fd, name = tempfile.mkstemp(suffix=".json")
     os.close(fd)
     out_path = Path(name)

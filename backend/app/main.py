@@ -20,6 +20,7 @@ from app.api.routes.branding import admin_router as branding_admin_router
 from app.api.routes.branding import public_router as branding_public_router
 from app.api.routes.cards import router as cards_router
 from app.api.routes.catalog import reference_router
+from app.api.routes.cargo import router as cargo_router
 from app.api.routes.catalog_search import router as catalog_search_router
 from app.api.routes.units import router as units_router
 from app.api.routes.equipment import equipment_router
@@ -58,6 +59,7 @@ logger = logging.getLogger(__name__)
 #: Authenticated document work, reference data and shared settings.
 WORK_ROUTERS = (
     assistant_router,
+    cargo_router,
     jobs_router,
     dangerous_goods_router,
     documents_router,

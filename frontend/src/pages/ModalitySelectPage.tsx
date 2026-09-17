@@ -27,7 +27,7 @@ export default function ModalitySelectPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { preferences, publicSettings, loaded } = usePreferences();
+  const { preferences, loaded } = usePreferences();
   const custom = useBranding().branding.modalities;
 
   // Someone who only ever ships by road should not tap the same tile every
@@ -46,7 +46,7 @@ export default function ModalitySelectPage() {
     <div className="start-workspace page-enter">
       <header className="page-heading">
         <div><p className="eyebrow">{t("nav.new")}</p><h2>{t("modality.title")}</h2>
-        <p>{t("modality.intro")}</p></div>
+        </div>
       </header>
       <div className="start-layout">
         <section className="mode-grid" aria-label={t("wizard.mode")}>
@@ -55,7 +55,7 @@ export default function ModalitySelectPage() {
               <span className="mode-card-rule">{({ road: "ADR", rail: "RID", sea: "IMDG", inland: "ADN" } as Record<string,string>)[key]}</span>
             </span>
             <span className="mode-card-content"><ModalityIcon modality={key} className="mode-card-icon" />
-              <span className="mode-copy"><strong>{t(`modality.${key}`)}</strong><span>{t(isModalityAvailable(key) ? `modality.${key}Desc` : "modality.inDevelopment")}</span></span>
+              <span className="mode-copy"><strong>{t(`modality.${key}`)}</strong>{!isModalityAvailable(key) && <span>{t("modality.inDevelopment")}</span>}</span>
               {isModalityAvailable(key) && <span className="mode-card-arrow"><ArrowRightIcon className="h-5 w-5" /></span>}
             </span>
           </button>)}
@@ -63,13 +63,9 @@ export default function ModalitySelectPage() {
         <aside className="start-import surface">
           <span className="import-glyph"><ImportIcon className="h-6 w-6" /></span>
           <h3>{t("studio.importTitle")}</h3>
-          <p>{t("studio.importHint")}</p>
           <button className="action-primary" onClick={() => navigate(`/wizard/${isModalityAvailable(preferred) ? preferred : "road"}?input=paste`)}>{t("overview.paste")}<ArrowRightIcon className="h-4 w-4" /></button>
           <span className="import-formats">XLSX <span>·</span> CSV <span>·</span> TXT</span>
         </aside>
-      </div>
-      <div className="start-footnote">
-        <p>{t(publicSettings?.history_enabled ? "studio.historyPrivacy" : publicSettings?.dg_review_enabled !== false ? "dgReview.storageHint" : "dashboard.privacy")}</p>
       </div>
     </div>
   );

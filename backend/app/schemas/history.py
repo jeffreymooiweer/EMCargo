@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.schemas import DocumentBundleRequest
+from app.schemas.cargo import CargoManifest
 
 
 class ShipmentIn(BaseModel):
@@ -18,6 +19,8 @@ class ShipmentIn(BaseModel):
     read here; the bundle is kept for "the documents again".
     """
 
+    cargo: CargoManifest | None = None
+    expected_cargo_revision: int | None = Field(default=None, ge=0)
     dg_review_id: str | None = Field(default=None, max_length=36)
     modality: str = Field(default="", max_length=16)
     language: str = Field(default="nl", max_length=8)
@@ -53,6 +56,7 @@ class ShipmentSummary(BaseModel):
     has_documents: bool
     #: Entry still in progress rather than a kept shipment.
     is_draft: bool = False
+    cargo_revision: int = 0
     created_by: str
     #: Whose work this is: the keeper's department when it was kept.
     department_id: int | None = None

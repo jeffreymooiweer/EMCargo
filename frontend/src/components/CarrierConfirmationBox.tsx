@@ -78,8 +78,9 @@ export default function CarrierConfirmationBox({ values, onChange }: Props) {
       </button>
       {open && (
         <div className="mt-2 space-y-2">
-          <p className="text-xs text-slate-500 dark:text-slate-400">{t("carrier.intro")}</p>
           <textarea
+            aria-label={t("carrier.title")}
+            disabled={busy}
             className="min-h-[96px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
             placeholder={t("carrier.placeholder")}
             value={text}
@@ -94,7 +95,7 @@ export default function CarrierConfirmationBox({ values, onChange }: Props) {
             >
               {t("carrier.read")}
             </button>
-            {summary && <p className="text-xs text-slate-600 dark:text-slate-300">{summary}</p>}
+            {summary && <p role="status" className="text-xs text-slate-600 dark:text-slate-300">{summary}</p>}
           </div>
         </div>
       )}

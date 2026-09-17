@@ -50,3 +50,16 @@ it("lets the admin's disabled review policy take effect without a review request
   expect(screen.getByRole("button", { name: "Export" })).toBeEnabled();
   expect(api.dgReviewStatus).not.toHaveBeenCalled();
 });
+
+it("keeps release across save revisions but invalidates a changed cargo quantity", async () => {
+  api.dgReviewStatus.mockResolvedValue(released);
+  const cargo = { schema_version: 1 as const, revision: 2, shipment_id: "same-load", units: [], allocations: [{ id: "allocation", goods_id: 7, unit_id: "box", quantity: 8 }] };
+  const shipment = { ...payload, cargo, expected_cargo_revision: 4 };
+  const { rerender } = render(<Harness shipment={shipment} />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Export" })).toBeEnabled());
+  rerender(<Harness shipment={{ ...shipment, expected_cargo_revision: 5, cargo: { ...cargo, revision: 3 } }} />);
+  expect(screen.getByRole("button", { name: "Export" })).toBeEnabled();
+  api.dgReviewStatus.mockResolvedValue(null);
+  rerender(<Harness shipment={{ ...shipment, cargo: { ...cargo, allocations: [{ ...cargo.allocations[0], quantity: 9 }] } }} />);
+  expect(screen.getByRole("button", { name: "Export" })).toBeDisabled();
+});

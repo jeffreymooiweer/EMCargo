@@ -44,8 +44,9 @@ or inspection of the actual load. Changes to values, quantities, documents,
 language, profiles or signature require another review. Download, ZIP, mail,
 completed-history saving and historical document/JSON downloads enforce this on
 the server. Editing a browser status or reusing an approval id with changed
-content does not release a new version. Draft saving and public reference cards
-remain usable before approval. Updates to software, sources or templates still
+content does not release a new version. Draft saving and authenticated reference
+cards remain usable before approval; card access still requires sign-in and the
+administrator's card-link setting. Updates to software, sources or templates still
 require checking the actual files before operational use.
 
 Reopening and downloading the same released review reuses its kept shipment when

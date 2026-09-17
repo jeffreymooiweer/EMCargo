@@ -105,6 +105,7 @@ class LineResult:
     equipment: dict[str, Any] | None = None
     equipment_role: str = "cargo"
     container_line_id: int | None = None
+    cargo_goods_id: int | None = None
 
 
 def _load_aliases_json(raw: str) -> list[str]:
@@ -609,6 +610,7 @@ def process_line(
         equipment=frozen,
         equipment_role=overrides.get("equipment_role") or "cargo",
         container_line_id=overrides.get("container_line_id"),
+        cargo_goods_id=overrides.get("cargo_goods_id"),
     )
 
 

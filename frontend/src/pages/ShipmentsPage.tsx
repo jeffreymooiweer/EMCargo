@@ -1,5 +1,10 @@
 import { canOversee } from "../permissions";
 import HistoryStatus from "../components/HistoryStatus";
+import CargoSummary from "../components/cargo/CargoSummary";
+import { cargoGoods, cargoLines } from "../wizard/cargoState";
+import { readSnapshot } from "../wizard/snapshot";
+import { readCargo } from "../utils/cargo";
+import type { LineItem } from "../api/client";
 /**
  * The shipments this installation kept.
  *
@@ -313,7 +318,7 @@ function ShipmentList({ language, admin }: { language: string; admin: boolean })
           aria-label={t("history.retry")} title={t("history.retry")}><RefreshIcon /></button>
       </div>}
       {!loading && !loadFailed && items.length === 0 && (
-        <p className={`${panelClass} p-5 text-sm text-slate-600 dark:text-slate-300`}>{t("history.empty")}</p>
+        <div className={`${panelClass} p-5 space-y-3`}><p className="text-sm text-slate-600 dark:text-slate-300">{t("history.empty")}</p>{q || activeFilters ? <button className="action-secondary" onClick={() => { setQ(""); clearFilters(); }}>{t("history.clearFilters")}</button> : <Link className="action-primary" to="/">{t("nav.new")}</Link>}</div>
       )}
 
       {/* Phone: cards */}
@@ -540,6 +545,9 @@ function ShipmentView({ id, language }: { id: number; language: string }) {
   if (!shipment) return null;
 
   const documents = Array.isArray(shipment.export.documents) ? (shipment.export.documents as string[]) : [];
+  const snapshot = readSnapshot(shipment.snapshot);
+  const cargo = readCargo(shipment.export.cargo) ?? snapshot?.cargo;
+  const lines = Array.isArray(shipment.export.goods) ? shipment.export.goods as LineItem[] : snapshot ? cargoLines(snapshot.draftLines, snapshot.result) : [];
   const downloadAgain = async () => {
     setBusy(true);
     try {
@@ -613,10 +621,9 @@ function ShipmentView({ id, language }: { id: number; language: string }) {
             <TrashIcon /><span className="shipment-action-label">{t("history.remove")}</span>
           </button>
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          {shipment.has_documents ? t("history.documentsHint") : t("history.documentsNone")}
-        </p>
+        {!shipment.has_documents && <p className="text-xs text-slate-500 dark:text-slate-400">{t("history.documentsNone")}</p>}
       </div>
+      {cargo && <div className={`${panelClass} p-4 sm:p-6`}><CargoSummary value={cargo} goods={cargoGoods(lines, cargo)} /></div>}
 
       <ConfirmDialog
         open={confirmRemove}

@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, expect, it, vi } from "vitest";
 import DgReviewsPage from "./DgReviewsPage";
 import { ToastProvider } from "../toast/ToastProvider";
+import { createCargoUnit, emptyCargo } from "../utils/cargo";
 
 const api = vi.hoisted(() => ({ dgReview: vi.fn(), dgReviews: vi.fn(), documentsRegistry: vi.fn(), validateDocument: vi.fn(), decideDgReview: vi.fn() }));
 vi.mock("../api/client", () => ({ api }));
@@ -41,4 +42,21 @@ it.each(["user", "super_user", "admin"])("does not offer specialist decisions to
   expect(screen.queryByRole("button", { name: "dgReview.approve" })).toBeNull();
   expect(screen.queryByRole("textbox")).toBeNull();
   if (role !== "admin") expect(screen.queryByRole("link", { name: "dgsa.title" })).toBeNull();
+});
+
+/** A specialist must see the submitted packing tree, including mixed contents,
+ * without any control being able to change the frozen submission. */
+it("shows the submitted packing structure without editing controls", async () => {
+  const box = createCargoUnit({ id: "box-model", name: "Mixed box", category: "box", tare_kg: 1 });
+  api.dgReview.mockResolvedValue({ ...review, shipment: { ...review.shipment,
+    lines: [{ line_id: 1, description: "Bolts", quantity: 100, unit: "pcs", include: true, weight_total_kg: 5 }],
+    cargo: { ...emptyCargo(), units: [box], allocations: [{ id: "allocation-1", goods_id: 1, unit_id: box.id, quantity: 100 }] },
+  } });
+  open("dg_specialist");
+  await screen.findByRole("heading", { name: "DG-100" });
+  expect(screen.getByText(box.code)).toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: /Mixed box/ }));
+  expect(screen.getByText("Bolts")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "cargo.newUnit" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "cargo.place" })).not.toBeInTheDocument();
 });

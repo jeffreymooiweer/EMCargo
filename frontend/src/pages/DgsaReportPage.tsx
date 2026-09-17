@@ -15,6 +15,7 @@ import { Link } from "react-router";
 
 import { api, Department, DgsaFormResponse, DgsaReport, User } from "../api/client";
 import DgsaReportForm from "../components/DgsaReportForm";
+import HistoryStatus from "../components/HistoryStatus";
 import { documentLanguage } from "../i18n/language";
 import { usePreferences } from "../settings/preferences";
 import { useToast } from "../toast/ToastProvider";
@@ -176,14 +177,7 @@ function DgsaReportContent({ user }: { user?: User | null }) {
     }
   };
 
-  if (!historyOn) {
-    return (
-      <div className="page-heading report-heading">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{t("dgsa.title")}</h2>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t("history.off")}</p>
-      </div>
-    );
-  }
+  if (!historyOn) return <HistoryStatus title={t("dgsa.title")} admin={admin} />;
 
   const monthName = (m: number) => new Date(year, m - 1, 1).toLocaleString(i18n.language, { month: "long" });
   const yearChoices = years.includes(year) ? years : [year, ...years];
@@ -195,7 +189,6 @@ function DgsaReportContent({ user }: { user?: User | null }) {
       </Link>
       <div className={`${panelClass} p-5 sm:p-8`}>
         <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">{t("dgsa.title")}</h2>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-3xl">{t("dgsa.intro")}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-[10rem_1fr_auto] items-end">
           <label className="text-xs text-slate-500 dark:text-slate-400">
             {t("dgsa.year")}
@@ -255,7 +248,6 @@ function DgsaReportContent({ user }: { user?: User | null }) {
 
       {view === "form" && (
         <>
-          <p className="text-sm text-slate-600 dark:text-slate-300 max-w-3xl">{t("dgsa.formIntro")}</p>
           {form ? (
             <DgsaReportForm year={year} department={department} language={language} form={form} onSaved={setSavedAt} />
           ) : (
@@ -361,7 +353,6 @@ function DgsaReportContent({ user }: { user?: User | null }) {
 
           <section className={`${panelClass} p-4 sm:p-6`}>
             <h3 className="font-semibold text-slate-900 dark:text-slate-100">{report.duties_heading}</h3>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("dgsa.dutiesIntro")}</p>
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-800 dark:text-slate-200">
               {report.duties.map((d) => (
                 <li key={d.key}>{d.text}</li>

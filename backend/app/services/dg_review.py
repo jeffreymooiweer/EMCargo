@@ -24,12 +24,20 @@ def canonical(value) -> str:
 def document_data(payload: DocumentExportRequest, signature: str | None = None) -> dict:
     data = payload.model_dump(exclude={"dg_review_id"})
     data["signature_image"] = signature or payload.signature_image or None
+    if data.get("cargo") is not None:
+        data["cargo"].pop("revision", None)
+    else:
+        data.pop("cargo", None)
     data["dangerous_goods"] = data.get("dangerous_goods") or []
     return data
 
 
 def bundle_data(payload: DocumentBundleRequest) -> dict:
     data = payload.model_dump(exclude={"dg_review_id", "documents"})
+    if data.get("cargo") is not None:
+        data["cargo"].pop("revision", None)
+    else:
+        data.pop("cargo", None)
     data["dangerous_goods"] = data.get("dangerous_goods") or []
     data["signature_image"] = payload.signature_image or None
     data["documents"] = [document_data(doc, payload.signature_image) for doc in payload.documents]
@@ -37,7 +45,11 @@ def bundle_data(payload: DocumentBundleRequest) -> dict:
 
 
 def shipment_data(payload: ShipmentIn) -> dict:
-    data = payload.model_dump(exclude={"snapshot", "draft", "dg_review_id", "bundle"})
+    data = payload.model_dump(exclude={"snapshot", "draft", "dg_review_id", "bundle", "expected_cargo_revision"})
+    if data.get("cargo") is not None:
+        data["cargo"].pop("revision", None)
+    else:
+        data.pop("cargo", None)
     data["dangerous_goods"] = data.get("dangerous_goods") or []
     data["bundle"] = bundle_data(payload.bundle) if payload.bundle else None
     return data
@@ -132,7 +144,8 @@ def submit(db: Session, user: User, payload: ShipmentIn) -> DgReview:
             for product in products
         ):
             raise error(422, "review.incomplete")
-    if (payload.bundle.dangerous_goods != payload.dangerous_goods
+    if (payload.bundle.cargo != payload.cargo
+            or payload.bundle.dangerous_goods != payload.dangerous_goods
             or payload.bundle.profiles != payload.profiles
             or payload.bundle.output_language != payload.language
             or sorted(payload.documents) != sorted(item.document_key for item in payload.bundle.documents)):
@@ -148,7 +161,7 @@ def submit(db: Session, user: User, payload: ShipmentIn) -> DgReview:
             raise error(422, "review.inconsistent")
         if (item.dangerous_goods != payload.dangerous_goods or item.lines != payload.lines
                 or item.profiles != payload.profiles or item.modality != payload.modality
-                or item.output_language != payload.language):
+                or item.output_language != payload.language or item.cargo != payload.cargo):
             raise error(422, "review.inconsistent")
         document = get_document(item.document_key)
         if document is None:
