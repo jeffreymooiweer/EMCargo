@@ -10,6 +10,8 @@ import { useToast } from "../toast/ToastProvider";
 import ConfirmDialog from "../toast/ConfirmDialog";
 import { ArrowRightIcon, CheckIcon, RefreshIcon, ShieldIcon } from "../components/icons";
 import DgCompliancePanel from "../components/DgCompliancePanel";
+import CargoSummary from "../components/cargo/CargoSummary";
+import { cargoGoods } from "../wizard/cargoState";
 
 const when = (value: string, language: string) => new Date(value.endsWith("Z") ? value : `${value}Z`).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" });
 
@@ -71,7 +73,7 @@ export default function DgReviewsPage({ user }: { user: User }) {
   }
   const shipment = detail?.shipment;
   return <div className="collection-page page-enter dg-review-workspace">
-    <header className="page-heading"><div><p className="eyebrow">{t("dgReview.eyebrow")}</p><h2>{detail?.reference || t("dgReview.title")}</h2><p>{t(specialist || user.role === "admin" ? "dgReview.queueHint" : "dgReview.mineHint")}</p></div>
+    <header className="page-heading"><div><p className="eyebrow">{t("dgReview.eyebrow")}</p><h2>{detail?.reference || t("dgReview.title")}</h2></div>
       <div className="flex flex-wrap gap-2">{id && <Link className="action-secondary" to="/dg-reviews">{t("dgReview.back")}</Link>}
         {canUseDgsa(user, publicSettings) && <Link className="action-secondary" to="/shipments/report">{t("dgsa.title")}</Link>}
         <button className="action-secondary" disabled={loading || busy} onClick={() => setRefresh(n => n + 1)}><RefreshIcon />{t("dgReview.refresh")}</button></div>
@@ -80,12 +82,12 @@ export default function DgReviewsPage({ user }: { user: User }) {
     {failure && <p className="editor-feedback" data-kind="error" role="alert">{failure}</p>}
     {loading ? <p role="status">{t("wizard.loading")}</p> : !failure && !id ? <section className="surface">
       <div className="review-filter"><label>{t("dgReview.filter")}<select className="directory-input" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}><option value="">{t("directory.allStatuses")}</option>{["pending", "approved", "changes_requested"].map(value => <option key={value} value={value}>{t(`dgReview.${value}`)}</option>)}</select></label><span>{t("dgReview.count", { count: total })}</span></div>
-      {rows.length === 0 ? <div className="directory-empty"><ShieldIcon className="h-9 w-9" /><h3>{t("dgReview.empty")}</h3><p>{t("dgReview.emptyHint")}</p></div> : <ul className="review-list">{rows.map(row => <li key={row.id}><Link to={`/dg-reviews/${row.id}`}><div><strong>{row.reference || t("history.noReference")}</strong><p>{row.created_by} · {t(`modality.${row.modality}`)} · {when(row.created_at, i18n.language)}</p></div><span className="review-status" data-status={row.status}>{t(`dgReview.${row.status}`)}</span><ArrowRightIcon className="h-5 w-5" /></Link></li>)}</ul>}
+      {rows.length === 0 ? <div className="directory-empty"><ShieldIcon className="h-9 w-9" /><h3>{t("dgReview.empty")}</h3>{status ? <button className="action-secondary" onClick={() => { setStatus(""); setPage(1); }}>{t("history.clearFilters")}</button> : <Link className="action-secondary" to="/shipments">{t("nav.shipments")}</Link>}</div> : <ul className="review-list">{rows.map(row => <li key={row.id}><Link to={`/dg-reviews/${row.id}`}><div><strong>{row.reference || t("history.noReference")}</strong><p>{row.created_by} · {t(`modality.${row.modality}`)} · {when(row.created_at, i18n.language)}</p></div><span className="review-status" data-status={row.status}>{t(`dgReview.${row.status}`)}</span><ArrowRightIcon className="h-5 w-5" /></Link></li>)}</ul>}
       {total > 25 && <div className="review-filter"><button className="action-secondary" disabled={page === 1} onClick={() => setPage(n => n - 1)}>{t("wizard.back")}</button><span>{page} / {Math.ceil(total / 25)}</span><button className="action-secondary" disabled={page * 25 >= total} onClick={() => setPage(n => n + 1)}>{t("wizard.next")}</button></div>}
     </section> : !failure && detail && shipment && <>
       <section className="surface review-summary"><ShieldIcon className="h-8 w-8" /><div><span className="review-status" data-status={detail.status}>{t(`dgReview.${detail.status}`)}</span><p>{t("dgReview.submittedBy", { name: detail.created_by, date: when(detail.created_at, i18n.language) })}</p>{detail.reviewed_by && <p>{t("dgReview.reviewedBy", { name: detail.reviewed_by, date: detail.reviewed_at ? when(detail.reviewed_at, i18n.language) : "" })}</p>}{detail.comment && <blockquote className="review-comment">{detail.comment}</blockquote>}</div></section>
       <section className="surface p-5 sm:p-6"><h3 className="mb-4 font-semibold">{t("dgReview.submittedShipment")}</h3><p className="mb-4 text-sm text-slate-500">{t("dgReview.snapshotHint")}</p><ShipmentFields values={shipment.values} labels={fieldLabels} />
-        <h4 className="mb-3 mt-6 font-semibold">{t("wizard.lines")}</h4><ul className="review-goods">{shipment.lines.map((line, index) => <li key={index}><strong>{line.output_description || line.description}</strong><span>{line.quantity} {line.unit} · {line.weight_total_kg ?? "—"} kg</span></li>)}</ul>
+        {shipment.cargo ? <CargoSummary value={shipment.cargo} goods={cargoGoods(shipment.lines, shipment.cargo)} /> : <><h4 className="mb-3 mt-6 font-semibold">{t("wizard.lines")}</h4><ul className="review-goods">{shipment.lines.map((line, index) => <li key={index}><strong>{line.output_description || line.description}</strong><span>{line.quantity} {line.unit} · {line.weight_total_kg ?? "—"} kg</span></li>)}</ul></>}
       </section>
       <DgCompliancePanel entries={shipment.dangerous_goods || []} profiles={shipment.profiles} />
       <section className="surface p-5 sm:p-6"><h3 className="mb-4 font-semibold">{t("dgReview.declaration")}</h3>{shipment.dangerous_goods?.map((entry, index) => <div key={index} className="review-declaration">{entry.products.map((product, productIndex) => <details key={productIndex} open><summary>UN {String(product.un_number || "—")} · {String(product.proper_shipping_name || "")}</summary><DataFields value={product} /></details>)}<details><summary>{t("dgReview.packaging")}</summary><DataFields value={{ ...entry, products: undefined }} /></details></div>)}</section>

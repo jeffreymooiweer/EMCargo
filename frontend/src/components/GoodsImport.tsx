@@ -165,7 +165,6 @@ export default function GoodsImport({ hasLines, onImport, dropped, onDroppedHand
             <h3 ref={heading} id="goods-import-title" tabIndex={-1}>{t("review.importTitle")}</h3>
             <button type="button" onClick={close} className="goods-import-close" aria-label={t("review.cancel")}><CloseIcon className="h-5 w-5" /></button>
           </header>
-          <p className="goods-import-intro">{t("review.importIntro")}</p>
           <label className={buttonClass + " goods-file-button"}>
             <ImportIcon />{busy ? t("import.parsingFile") : t("review.importFile")}
             <input ref={fileInput} type="file" accept=".xlsx,.csv,.txt" className="sr-only" disabled={busy}

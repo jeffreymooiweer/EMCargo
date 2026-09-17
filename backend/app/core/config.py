@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     admin_email: str | None = None
     admin_password: str | None = None
     log_level: str = "INFO"
+    cargo_max_units: int = 2000
+    cargo_max_allocations: int = 50000
+    cargo_max_depth: int = 20
     # The bundled interface uses the same origin as its API and needs no
     # cross-origin permission. External interfaces must be named explicitly.
     cors_allowed_origins: str = ""

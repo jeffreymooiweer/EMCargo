@@ -28,7 +28,7 @@ from app.core.dates import utc_filter_bound, utc_timestamp
 from app.models.shipment import Shipment
 from app.models.user import Department, User
 from app.schemas.history import ShipmentDetail, ShipmentIn, ShipmentSummary
-from app.services import departments
+from app.services import departments, cargo_storage
 from app.services.documents.shipment_export import build_shipment_export
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,7 @@ def discard_kept(db: Session) -> dict[str, int]:
     from app.services import trips
 
     counts = kept_counts(db)
+    cargo_storage.forget(db, [row[0] for row in db.query(Shipment.id).all()])
     db.query(Shipment).delete()
     db.commit()
     trips.discard_all(db)
@@ -127,15 +128,27 @@ def _index(record: Shipment, export: dict[str, Any], payload: ShipmentIn) -> Non
 def keep(db: Session, user: User, payload: ShipmentIn,
          existing: Shipment | None = None, *, commit: bool = True) -> Shipment:
     """Keep a shipment — a new row, or the same row brought up to date."""
+    if payload.cargo is not None and existing is None:
+        existing = db.query(Shipment).filter_by(cargo_id=payload.cargo.shipment_id).first()
+        if existing is not None and existing.created_by_id != user.id:
+            from app.core.messages import error
+            raise error(409, "cargo.identity_conflict")
+    if existing is not None and not existing.is_draft and payload.draft:
+        from app.core.messages import error
+        raise error(409, "cargo.conflict")
+    cargo_changed = cargo_storage.validate_payload(payload, existing, db)
     export = build_shipment_export(
         payload.values, payload.lines, payload.dangerous_goods,
         language=payload.language, profiles=payload.profiles,
-        modality=payload.modality or None, documents=payload.documents or None)
-    snapshot_json = json.dumps(payload.snapshot, ensure_ascii=False)
+        modality=payload.modality or None, documents=payload.documents or None, cargo=payload.cargo)
+    snapshot = dict(payload.snapshot)
+    if payload.cargo is not None:
+        snapshot["cargo"] = payload.cargo.model_dump(mode="json")
+    snapshot_json = json.dumps(snapshot, ensure_ascii=False)
     bundle_json = (json.dumps(payload.bundle.model_dump(), ensure_ascii=False)
                    if payload.bundle and payload.bundle.documents else None)
     export_json = json.dumps(export, ensure_ascii=False)
-    size = len(snapshot_json) + len(bundle_json or "") + len(export_json)
+    size = sum(len(part.encode("utf-8")) for part in (snapshot_json, bundle_json or "", export_json))
     if size > MAX_RECORD_BYTES:
         raise RecordTooLarge(
             f"The shipment is {size / 1024 / 1024:.1f} MB, more than the "
@@ -152,6 +165,8 @@ def keep(db: Session, user: User, payload: ShipmentIn,
     # Saving the same row without the draft flag is what turns entry in
     # progress into a kept shipment; there is no separate act.
     record.is_draft = bool(payload.draft)
+    if payload.cargo is not None:
+        record.cargo_id = payload.cargo.shipment_id
     record.snapshot_json = snapshot_json
     record.bundle_json = bundle_json
     record.export_json = export_json
@@ -159,6 +174,10 @@ def keep(db: Session, user: User, payload: ShipmentIn,
     index_shipment(record, payload)
     if existing is None:
         db.add(record)
+    if existing is None and cargo_changed:
+        record.cargo_revision = 1
+    db.flush()
+    cargo_storage.remember(db, record, payload.cargo)
     if commit:
         db.commit()
     else:
@@ -168,6 +187,7 @@ def keep(db: Session, user: User, payload: ShipmentIn,
 
 
 def forget(db: Session, record: Shipment) -> None:
+    cargo_storage.forget(db, [record.id])
     db.delete(record)
     db.commit()
 
@@ -180,6 +200,7 @@ def discard_drafts(db: Session) -> int:
     gone = int(db.query(func.count(Shipment.id))
                .filter(Shipment.is_draft.is_(True)).scalar() or 0)
     if gone:
+        cargo_storage.forget(db, [row[0] for row in db.query(Shipment.id).filter(Shipment.is_draft.is_(True)).all()])
         db.query(Shipment).filter(Shipment.is_draft.is_(True)).delete()
         db.commit()
         logger.info("Shipment history switched off: %s draft(s) discarded", gone)
@@ -225,6 +246,7 @@ def summary(record: Shipment) -> ShipmentSummary:
         has_dangerous_goods=record.has_dangerous_goods,
         has_documents=bool(record.has_documents),
         is_draft=bool(record.is_draft),
+        cargo_revision=record.cargo_revision or 0,
         created_by=record.creator.username if record.creator else "",
         department_id=record.department_id,
         department=record.department.name if record.department else "",

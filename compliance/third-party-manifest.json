@@ -3553,7 +3553,7 @@
       "paths": [
         "frontend/package.json"
       ],
-      "version": "2.14.0",
+      "version": "2.15.0 (version metadata only; dependencies unchanged)",
       "source_url": null,
       "copyright_holder": "Original rights holders; see source notices",
       "license_expression": "LicenseRef-EMCargo",
@@ -3561,12 +3561,12 @@
       "redistribution_basis": "Project-authored build/dependency declaration; dependencies keep their own licenses.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package.json": "056af13e132c23cdf0111f97f8601c3eb34be7b9a24b0bff6abb98b15f05e747"
+        "frontend/package.json": "fa6822137247b3116d30fa559e7641879945e7131f39bd4c4329dc81e13e5bd0"
       },
       "distribution_channels": [
         "source"
       ],
-      "reviewed_at": "2026-09-15",
+      "reviewed_at": "2026-09-17",
       "reviewer": "Codex technical evidence inventory; unresolved is not legal clearance"
     },
     {
@@ -3575,7 +3575,7 @@
       "paths": [
         "frontend/package-lock.json"
       ],
-      "version": "2.14.0",
+      "version": "2.15.0 (version metadata only; dependencies unchanged)",
       "source_url": null,
       "copyright_holder": "Jeffrey Mooiweer",
       "license_expression": "LicenseRef-EMCargo",
@@ -3583,14 +3583,14 @@
       "redistribution_basis": "The declaration is project-authored; the resolved packages retain their own licenses and require a generated SBOM.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package-lock.json": "8d6a7b6cca64028c331faa34a5ebdbcec1597341b698578071965cc3bbb8094d"
+        "frontend/package-lock.json": "12cf74be40e6ca57e7717e90a86fa38428d2c65d15b4affa361d3d2afa56981b"
       },
       "distribution_channels": [
         "image",
         "native",
         "source"
       ],
-      "reviewed_at": "2026-09-15",
+      "reviewed_at": "2026-09-17",
       "reviewer": "Codex technical inventory"
     },
     {

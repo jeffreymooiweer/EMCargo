@@ -438,7 +438,7 @@ export default function DangerousGoodsStep({
 
   return (
     <div className="dg-workspace space-y-4">
-      <header className="dg-step-heading"><div><h3>{t("dgFocus.title")}</h3><p>{t("dgFocus.intro")}</p></div>
+      <header className="dg-step-heading"><div><h3>{t("dgFocus.title")}</h3></div>
         <details className="dg-source"><summary><DocumentIcon />{t("dgFocus.sources")}</summary><div><p>{localised(instructions?.dg_intro, lang) || t("wizard.dgIntro")}</p><p>{t("wizard.dgSource")}</p></div></details>
       </header>
       {preparing && <p className="dg-preparing" role="status"><RefreshIcon className="h-4 w-4 animate-spin" />{t("dgFocus.preparing")}</p>}
@@ -481,7 +481,7 @@ export default function DangerousGoodsStep({
             <div><p>{t("wizard.dgLine")} {entry.line_id}</p><h3>{entry.vehicle}</h3></div>
           </header>
           <details className="dg-position-edit"><summary>{t("dgFocus.editPosition")}<ChevronDownIcon /></summary>
-            <Field label={t("wizard.dgVehicle")} help={t("wizard.dgVehicleHelp")} value={entry.vehicle}
+            <Field label={t("wizard.dgVehicle")} value={entry.vehicle}
               onChange={(v) => updateEntry(entryIndex, { vehicle: v })} />
           </details>
           {entry.products.map((product, productIndex) => {
@@ -520,11 +520,13 @@ export default function DangerousGoodsStep({
               field === "type_of_package" ? (
                 <div key={field}>
                   <div className="flex items-center gap-1.5">
-                    <label className="text-sm font-medium text-slate-800 dark:text-slate-200">{labelFor(field)}</label>
+                    <label htmlFor={`dg-${entry.line_id}-${productIndex}-package`} className="text-sm font-medium text-slate-800 dark:text-slate-200">{labelFor(field)}</label>
                     {helpFor(field) && <InfoTooltip text={helpFor(field)} />}
                   </div>
                   <div className="mt-1">
                     <SuggestInput<DgPackaging>
+                      id={`dg-${entry.line_id}-${productIndex}-package`}
+                      ariaLabel={labelFor(field)}
                       value={String(product.type_of_package ?? "")}
                       onChange={(v) => updateProduct(entryIndex, productIndex, { type_of_package: v })}
                       onPick={(p) =>
@@ -537,7 +539,6 @@ export default function DangerousGoodsStep({
                       minLength={1}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("dgsearch.packagingHint")}</p>
                 </div>
               ) : (
                 <Field
@@ -562,13 +563,15 @@ export default function DangerousGoodsStep({
               <div className={`grid gap-4 ${showAll ? "md:grid-cols-2" : ""}`}>
                 <div className="dg-identity-search">
                   <div className="flex items-center gap-1.5">
-                    <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                    <label htmlFor={`dg-${entry.line_id}-${productIndex}-un`} className="text-sm font-medium text-slate-800 dark:text-slate-200">
                       {labelFor("un_number")}
                     </label>
                     {helpFor("un_number") && <InfoTooltip text={helpFor("un_number")} />}
                   </div>
                   <div className="mt-1">
                     <SuggestInput<DgUnEntry>
+                      id={`dg-${entry.line_id}-${productIndex}-un`}
+                      ariaLabel={labelFor("un_number")}
                       value={product.un_number ?? ""}
                       onChange={(v) => updateProduct(entryIndex, productIndex, { un_number: v })}
                       onPick={(un) => applyUnEntry(entryIndex, productIndex, un)}
@@ -578,7 +581,6 @@ export default function DangerousGoodsStep({
                       onBlur={() => lookupUn(entryIndex, productIndex, product.un_number ?? "")}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("dgsearch.unHint")}</p>
                 </div>
                 {showAll &&
                   [...productFields, ...extraFields.filter((f) => !(CORE_FIELDS as readonly string[]).includes(f))]
@@ -698,7 +700,6 @@ export default function DangerousGoodsStep({
                 </>
               )}
 
-              {!un && <p className="dg-start-hint">{t("dgFocus.chooseSubstance")}</p>}
               {un && (
                 <button
                   type="button"
@@ -815,7 +816,6 @@ function AutoDerivedPanel({ prepared }: { prepared: DgPrepareResult }) {
     <div className={`${panelClass} p-5 space-y-3`}>
       <div>
         <h3 className="font-semibold text-slate-900 dark:text-slate-100">{t("dgauto.title")}</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400">{t("dgauto.intro")}</p>
       </div>
 
       {/* A carriage prohibition stays in view at all times: it must never

@@ -49,7 +49,7 @@ it("validates confirmation and keeps errors in place before signing out on succe
   vi.mocked(api.changePassword).mockRejectedValueOnce(new Error("Incorrect current password")).mockResolvedValue({ ok: true, reauthenticate: true });
   render(<MemoryRouter initialEntries={["/account/security"]}><PasswordPanel onPasswordChanged={changed} /><Position /></MemoryRouter>);
   await userEvent.type(screen.getByLabelText("account.currentPassword"), "old synthetic password");
-  await userEvent.type(screen.getByLabelText("account.newPassword"), "new synthetic password");
+  await userEvent.type(screen.getByLabelText("account.newPasswordMinimum"), "new synthetic password");
   const repeat = screen.getByLabelText("account.repeatPassword");
   await userEvent.type(repeat, "different password");
   await userEvent.click(screen.getByRole("button", { name: "account.changePassword" }));

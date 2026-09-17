@@ -272,7 +272,7 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
 
   return createPortal(<div className="assistant-backdrop" data-testid="assistant-backdrop" onClick={onClose}>
     <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="assistant-title" className="assistant-dialog" data-busy={busy} onClick={event => event.stopPropagation()}>
-      <header className="assistant-header"><div className="assistant-mark"><AiIcon className="h-7 w-7" /></div><div><h2 id="assistant-title">{t("assistant.title")}</h2><p>{t("assistant.subtitle")}</p></div><button type="button" className="assistant-close" aria-label={t("assistant.close")} onClick={onClose}><CloseIcon className="h-5 w-5" /></button></header>
+      <header className="assistant-header"><div className="assistant-mark"><AiIcon className="h-7 w-7" /></div><div><h2 id="assistant-title">{t("assistant.title")}</h2></div><button type="button" className="assistant-close" aria-label={t("assistant.close")} onClick={onClose}><CloseIcon className="h-5 w-5" /></button></header>
       {availability !== "ready" ? <div className="assistant-availability">
         <h3 ref={heading} tabIndex={-1}>{t(availability === "checking" ? "assistant.checkingModel" : availability === "missing" ? "assistant.modelTitle" : "assistant.statusFailed")}</h3>
         <p role="status">{t(availability === "checking" ? "assistant.checkingModelHint" : availability === "missing" ? "assistant.modelRequired" : "assistant.problem.connection")}</p>
@@ -302,17 +302,13 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
                   disabled={busy || !!input.trim()} onPick={candidate => void pickBusiness(party, candidate)} /> : null;
             })}
             {screen === "describe" ? <>
-              <p className="assistant-eyebrow">{t("assistant.begin")}</p>
               <h3 ref={heading} tabIndex={-1}>{t("assistant.describeLabel")}</h3>
-              <p className="assistant-intro">{t("assistant.describeHint")}</p>
               <button type="button" className="assistant-secondary mb-4" disabled={busy || modelBlocked} onClick={() => setDocumentOpen(true)}>{t("intake.open")}</button>
               <label className="sr-only" htmlFor="assistant-description">{t("assistant.describeLabel")}</label>
-              <textarea id="assistant-description" className="assistant-input assistant-description" value={input} onChange={e => setInput(e.target.value)} maxLength={4000} placeholder={t("assistant.describePlaceholder")} disabled={busy || modelBlocked} aria-describedby={error ? "assistant-error" : "assistant-examples"} />
-              <div id="assistant-examples" className="assistant-examples"><span>{t("assistant.tryExample")}</span>{["ordinaryExample", "dgExample"].map(key => <button type="button" key={key} disabled={busy || modelBlocked} onClick={() => setInput(t(`assistant.${key}`))}>{t(`assistant.${key}Label`)}</button>)}</div>
+              <textarea id="assistant-description" className="assistant-input assistant-description" value={input} onChange={e => setInput(e.target.value)} maxLength={4000} placeholder={t("assistant.describePlaceholder")} disabled={busy || modelBlocked} aria-describedby={error ? "assistant-error" : undefined} />
             </> : screen === "ready" ? <>
               <div className="assistant-ready-mark"><CheckIcon className="h-7 w-7" /></div>
-              <p className="assistant-eyebrow">{t("assistant.readyEyebrow")}</p>
-              <h3 ref={heading} tabIndex={-1}>{t("assistant.readyTitle")}</h3><p className="assistant-intro">{t("assistant.ready")}</p>
+              <h3 ref={heading} tabIndex={-1}>{t("assistant.readyTitle")}</h3>
               {review?.has_dangerous_goods && <p className="assistant-release-note">{t("assistant.dgReviewNotice")}</p>}
               {!!review?.optional_count && !working.include_optional && <button type="button" disabled={busy || modelBlocked} className="assistant-optional" onClick={() => void send("", "optional")}>{t("assistant.optionalDetails", { count: review.optional_count })}<ArrowRightIcon className="h-4 w-4" /></button>}
               <button type="button" disabled={busy || modelBlocked} className="assistant-text-button" onClick={() => { setScreen("describe"); setPending(null); setInput(""); setError(""); }}>{t("assistant.addGoods")}</button>
@@ -333,7 +329,7 @@ export default function AssistantModal({ open, onClose, buildState, onApplyState
               {info && <button type="button" className="assistant-text-button" onClick={() => setShowInfo(!showInfo)} aria-expanded={showInfo}>{t("assistant.info")}</button>}
               {showInfo && <p className="assistant-help">{info}</p>}
             </>}
-            {error && <div id="assistant-error" role="alert" className="assistant-error"><strong>{t(modelBlocked ? "assistant.modelTitle" : "assistant.needsClarification")}</strong><p>{error}</p>{!modelBlocked && pending?.required && <p>{t("assistant.requiredHelp")}</p>}{modelBlocked && <div className="assistant-availability-actions"><button type="button" disabled={busy} className="assistant-secondary" onClick={() => void recheckModel()}>{t("assistant.retryStatus")}</button><button type="button" className="assistant-secondary" onClick={onClose}>{t("assistant.continueManually")}</button></div>}</div>}
+            {error && <div id="assistant-error" role="alert" className="assistant-error"><strong>{t(modelBlocked ? "assistant.modelTitle" : "assistant.needsClarification")}</strong><p>{error}</p>{modelBlocked && <div className="assistant-availability-actions"><button type="button" disabled={busy} className="assistant-secondary" onClick={() => void recheckModel()}>{t("assistant.retryStatus")}</button><button type="button" className="assistant-secondary" onClick={onClose}>{t("assistant.continueManually")}</button></div>}</div>}
             <div className="assistant-status" role="status" aria-live="polite">{busy ? <span className="assistant-thinking"><AiIcon className="h-4 w-4" />{t("assistant.thinking")}</span> : !error && notice ? <span><CheckIcon className="h-4 w-4" />{notice}</span> : null}</div>
           </div>
         </div>

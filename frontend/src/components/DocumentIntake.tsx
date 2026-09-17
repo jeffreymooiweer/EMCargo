@@ -173,7 +173,7 @@ export default function DocumentIntake({ state, language, onAccept, onCancel }: 
   const proof = (item: PackingGood | PackingField) => <details className="intake-proof"><summary onClick={() => showSource(item.source_ids)}>{t("intake.source")}</summary><blockquote>{item.excerpt}</blockquote></details>;
 
   return <div className="document-intake">
-    <header className="intake-heading"><div><p className="assistant-eyebrow">{t("intake.eyebrow")}</p><h3>{t("intake.title")}</h3><p>{t("intake.intro")}</p></div>
+    <header className="intake-heading"><div><h3>{t("intake.title")}</h3></div>
       <button type="button" className="assistant-secondary" disabled={busy} onClick={() => fileInput.current?.click()}><ImportIcon />{t(source ? "intake.otherFile" : "intake.choose")}</button>
       <input ref={fileInput} type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" className="sr-only" aria-label={t("intake.choose")}
         onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void read(file); }} />
@@ -186,7 +186,7 @@ export default function DocumentIntake({ state, language, onAccept, onCancel }: 
         </select></div>
         {page && <><img src={page.preview} alt={t("intake.pageNumber", { number: page.number })} />
           {page.warnings.map(warning => <p className="intake-notice" key={warning}>{t(`intake.warning.${warning}`)}</p>)}
-          <details className="intake-transcript"><summary>{t("intake.correctText")}</summary><p>{t("intake.correctTextHint")}</p>
+          <details className="intake-transcript"><summary>{t("intake.correctText")}</summary>
             <textarea aria-label={t("intake.recognisedText")} disabled={busy} maxLength={40000} value={page.lines.map(line => line.text).join("\n")} onChange={event => {
               const lines = event.target.value.split("\n").map((text, index) => ({ id: `p${page.number}l${index + 1}`, text, confidence: null }));
               setSource({ ...source, pages: source.pages.map((entry, index) => index === pageIndex ? { ...entry, lines, corrected: true } : entry) });
@@ -194,8 +194,8 @@ export default function DocumentIntake({ state, language, onAccept, onCancel }: 
             }} /></details></>}
       </aside>
       <section className="intake-proposal" aria-label={t("intake.proposal")}>
-        {stage !== "proposal" ? <div className="intake-awaiting"><p>{t("intake.sourceHint")}</p>{!busy && <button className="assistant-primary" onClick={() => void retry()}>{t("intake.prepare")}</button>}</div>
-          : <><h4>{t("intake.proposal")}</h4><p className="intake-proposal-hint">{t("intake.reviewHint")}</p>
+        {stage !== "proposal" ? <div className="intake-awaiting">{!busy && <button className="assistant-primary" onClick={() => void retry()}>{t("intake.prepare")}</button>}</div>
+          : <><h4>{t("intake.proposal")}</h4>
             {warnings.map(warning => <p className="intake-notice" key={warning}>{t(`intake.warning.${warning}`)}</p>)}
             {goods.map((row, index) => <article className="intake-good" key={index} data-picked={row.picked}>
               <label className="intake-include"><input type="checkbox" checked={row.picked} disabled={busy} onChange={event => changeGood(index, { picked: event.target.checked })} />{t("intake.includeGood", { number: index + 1 })}</label>
@@ -230,7 +230,7 @@ export function DocumentEvidenceList({ evidence }: { evidence: DocumentEvidence[
   const { t } = useTranslation();
   if (!evidence.length) return null;
   return <details className="document-evidence"><summary>{t("intake.savedSources", { count: evidence.length })}</summary>
-    <p>{t("intake.savedSourcesHint")}</p><ul>{evidence.map((item, index) => <li key={index}>
+    <ul>{evidence.map((item, index) => <li key={index}>
       <strong>{item.value}</strong><span>{item.name} · {t("intake.pagesLabel")} {item.pages.join(", ")}{item.method === "corrected" ? ` · ${t("intake.corrected")}` : ""}</span>
       <blockquote>{item.excerpt}</blockquote></li>)}</ul></details>;
 }

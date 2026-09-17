@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, TwoFactorSetup, TwoFactorStatus } from "../api/client";
 import { useToast } from "../toast/ToastProvider";
@@ -24,24 +24,31 @@ export default function TwoFactorPanel() {
   const [code, setCode] = useState("");
   const [renewing, setRenewing] = useState(false);
   const [renewCode, setRenewCode] = useState("");
+  const [disabling, setDisabling] = useState(false);
   const [codes, setCodes] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const running = useRef(false);
   const toast = useToast();
 
-  const load = () => api.twoFactorStatus().then(setStatus).catch((e) => toast.error(String(e)));
+  const load = () => {
+    setLoadError("");
+    return api.twoFactorStatus().then(setStatus).catch((e) => setLoadError(e instanceof Error ? e.message : String(e)));
+  };
   useEffect(() => {
     void load();
-    // toast is stable for the provider's lifetime; this effect runs once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const run = async (action: () => Promise<unknown>) => {
+    if (running.current) return;
+    running.current = true;
     setBusy(true);
     try {
       await action();
     } catch (e) {
       toast.error(String(e));
     } finally {
+      running.current = false;
       setBusy(false);
     }
   };
@@ -66,6 +73,8 @@ export default function TwoFactorPanel() {
     run(async () => {
       await api.twoFactorDisable(code);
       setCode("");
+      setCodes(null);
+      setDisabling(false);
       toast.success(t("twoFactor.disabled"));
       await load();
     });
@@ -87,20 +96,25 @@ export default function TwoFactorPanel() {
       await load();
     });
 
-  if (!status) return null;
+  if (!status) return <section className={`${panelClass} p-5 space-y-4`}>
+    <h3 className="text-lg font-semibold">{t("twoFactor.title")}</h3>
+    {loadError ? <><p role="alert" className="text-red-700 dark:text-red-300">{loadError}</p>
+      <button type="button" className={buttonSecondary} onClick={() => void load()}>{t("history.retry")}</button></>
+      : <p role="status">{t("wizard.loading")}</p>}
+  </section>;
 
   return (
-    <section className={`${panelClass} p-5 space-y-4`}>
+    <section className={`${panelClass} p-5 space-y-4`} aria-busy={busy}>
       <div>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {t("twoFactor.title")}
         </h3>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("twoFactor.intro")}</p>
       </div>
+      {loadError && <p role="alert" className="text-red-700 dark:text-red-300">{loadError}</p>}
 
       {status.required && !status.active && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
-          {t("twoFactor.requiredHere")} {t("twoFactor.enforced")}
+          {t("twoFactor.requiredStatus")}
         </p>
       )}
 
@@ -113,28 +127,27 @@ export default function TwoFactorPanel() {
             {t("twoFactor.codesLeft", { count: status.recovery_codes_left })}
           </p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={buttonSecondary} disabled={busy} onClick={() => { setRenewing(true); setCodes(null); }}>
+            <button type="button" className={buttonSecondary} disabled={busy} aria-expanded={renewing} aria-controls="renew-codes-form" onClick={() => { setRenewing(true); setDisabling(false); setCode(""); setCodes(null); }}>
               {t("twoFactor.newCodes")}
             </button>
+            {!status.required && !disabling && <button type="button" className={buttonSecondary} disabled={busy} aria-expanded={false}
+              onClick={() => { setDisabling(true); setRenewing(false); setRenewCode(""); }}>{t("twoFactor.turnOff")}</button>}
           </div>
-          {renewing && <form className="space-y-2" onSubmit={event => { event.preventDefault(); if (renewCode.trim() && !busy) void newCodes(); }}>
+          {renewing && <form id="renew-codes-form" className="space-y-2" onSubmit={event => { event.preventDefault(); if (renewCode.trim() && !busy) void newCodes(); }}>
             <label htmlFor="renew-code" className="block text-sm font-medium">{t("twoFactor.renewCode")}</label>
-            <p className="text-xs text-slate-500 dark:text-slate-400" id="renew-hint">{t("twoFactor.renewHint")}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400" id="renew-hint">{t("twoFactor.replacesCodes")}</p>
             <div className="flex flex-wrap gap-2">
               {status.method === "email" && <button type="button" className={buttonSecondary} disabled={busy} onClick={sendCode}>{t("twoFactor.sendCode")}</button>}
-              <input id="renew-code" autoFocus autoComplete="one-time-code" aria-describedby="renew-hint" className={`${inputClass} max-w-[12rem]`} value={renewCode} onChange={event => setRenewCode(event.target.value)} />
+              <input id="renew-code" autoFocus disabled={busy} autoComplete="one-time-code" aria-describedby="renew-hint" className={`${inputClass} max-w-[12rem]`} value={renewCode} onChange={event => setRenewCode(event.target.value)} />
               <button className={buttonPrimary} disabled={busy || !renewCode.trim()}>{t("twoFactor.confirm")}</button>
               <button type="button" className={buttonSecondary} disabled={busy} onClick={() => { setRenewing(false); setRenewCode(""); }}>{t("twoFactor.cancel")}</button>
             </div>
           </form>}
-          {!status.required && (
-            <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
+          {!status.required && disabling && (
+            <form id="disable-two-factor-form" className="border-t border-slate-100 pt-3 dark:border-slate-800" onSubmit={event => { event.preventDefault(); if (code.trim() && !busy) void disable(); }}>
               <label className="text-sm font-medium text-slate-800 dark:text-slate-200" htmlFor="off-code">
-                {t("twoFactor.turnOff")}
+                {t("twoFactor.verificationOrRecoveryCode")}
               </label>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {status.method === "email" ? t("twoFactor.turnOffHintMail") : t("twoFactor.turnOffHint")}
-              </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {status.method === "email" && (
                   <button type="button" className={buttonSecondary} disabled={busy} onClick={sendCode}>
@@ -143,31 +156,36 @@ export default function TwoFactorPanel() {
                 )}
                 <input
                   id="off-code"
+                  autoFocus
+                  autoComplete="one-time-code"
+                  disabled={busy}
                   className={`${inputClass} max-w-[12rem]`}
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                 />
-                <button type="button" className={buttonSecondary} disabled={busy || !code.trim()} onClick={disable}>
+                <button type="submit" className={buttonSecondary} disabled={busy || !code.trim()}>
                   {t("twoFactor.turnOffDo")}
                 </button>
+                <button type="button" className={buttonSecondary} disabled={busy} onClick={() => { setDisabling(false); setCode(""); }}>{t("twoFactor.cancel")}</button>
               </div>
-            </div>
+            </form>
           )}
         </div>
       ) : setup ? (
-        <div className="space-y-3">
+        <form className="space-y-3" onSubmit={event => { event.preventDefault(); if (code.trim() && !busy) void confirm(); }}>
           {setup.method === "totp" ? (
             <>
-              <p className="text-sm text-slate-700 dark:text-slate-200">{t("twoFactor.scan")}</p>
+              <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">{t("twoFactor.authenticatorQr")}</h4>
               {/* Drawn by this server, not fetched from a QR service: the
                   secret in it is the whole secret. */}
               <div
                 className="inline-block rounded-lg bg-white p-2"
                 dangerouslySetInnerHTML={{ __html: setup.qr_svg }}
               />
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t("twoFactor.orType")} <code className="font-mono">{setup.secret}</code>
-              </p>
+              <details className="text-sm text-slate-500 dark:text-slate-400">
+                <summary className="cursor-pointer min-h-[44px] py-3">{t("twoFactor.setupKey")}</summary>
+                <code className="block break-all select-all font-mono">{setup.secret}</code>
+              </details>
             </>
           ) : (
             <p className="text-sm text-slate-700 dark:text-slate-200">{t("twoFactor.mailSent")}</p>
@@ -180,17 +198,19 @@ export default function TwoFactorPanel() {
               id="confirm-code"
               className={`${inputClass} max-w-[12rem]`}
               autoComplete="one-time-code"
+              inputMode="numeric"
+              disabled={busy}
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
-            <button type="button" className={buttonPrimary} disabled={busy || !code.trim()} onClick={confirm}>
+            <button type="submit" className={buttonPrimary} disabled={busy || !code.trim()}>
               {t("twoFactor.confirm")}
             </button>
-            <button type="button" className={buttonSecondary} disabled={busy} onClick={() => setSetup(null)}>
+            <button type="button" className={buttonSecondary} disabled={busy} onClick={() => { setSetup(null); setCode(""); }}>
               {t("twoFactor.cancel")}
             </button>
           </div>
-        </div>
+        </form>
       ) : (
         <div className="flex flex-wrap gap-2">
           <button type="button" className={buttonPrimary} disabled={busy} onClick={() => start("totp")}>

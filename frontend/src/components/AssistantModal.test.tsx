@@ -339,7 +339,7 @@ describe("AssistantModal", () => {
     const { onClose } = renderModal();
     await userEvent.type(await screen.findByLabelText("assistant.describeLabel"), "staal");
     await userEvent.click(screen.getByRole("button", { name: "assistant.start" }));
-    expect(await screen.findByText("assistant.ready")).toBeTruthy();
+    expect(await screen.findByText("assistant.readyTitle")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "assistant.done" }));
     expect(onClose).toHaveBeenCalled();
   });
@@ -384,7 +384,7 @@ it("keeps the answer on connection failure and allows retry without a toast", as
   expect(screen.queryByText("private runtime path")).toBeNull();
   stepMock.mockResolvedValueOnce({ state: QUESTION.state, events: [], pending: null });
   await userEvent.click(screen.getByRole("button", { name: "assistant.next" }));
-  expect(await screen.findByText("assistant.ready")).toBeInTheDocument();
+  expect(await screen.findByText("assistant.readyTitle")).toBeInTheDocument();
 });
 
 it("ignores a late answer after the assistant closes", async () => {

@@ -78,6 +78,8 @@ class Shipment(Base):
     work_fingerprint: Mapped[str] = mapped_column(String(64), default="")
     work_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     work_version: Mapped[int] = mapped_column(Integer, default=0)
+    cargo_revision: Mapped[int] = mapped_column(Integer, default=0)
+    cargo_id: Mapped[str | None] = mapped_column(String(36), nullable=True, unique=True)
 
     # A list needs document availability, never the document payload. This
     # SQL expression adds no physical column and also handles empty bundles.

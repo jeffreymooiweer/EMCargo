@@ -141,8 +141,7 @@ export default function UpdatePanel() {
   return <div className="updates-workspace">
     <section className="surface update-overview" aria-busy={checking || applying}>
       <div className="update-symbol"><RefreshIcon className={applying || checking ? "h-7 w-7 animate-spin" : "h-7 w-7"} /></div>
-      <div className="update-heading"><p className="eyebrow">EMCargo</p><h3>{t("settings.adminUpdates")}</h3>
-        <p>{t("updates.intro")}</p></div>
+      <div className="update-heading"><p className="eyebrow">EMCargo</p><h3>{t("settings.adminUpdates")}</h3></div>
       <div className="update-versions">
         <div><span>{t("updates.installed")}</span><strong>{status?.current ? `v${status.current}` : "—"}</strong></div>
         <div><span>{t("updates.latest")}</span><strong>{status?.latest ? `v${status.latest}` : "—"}</strong></div>
@@ -169,12 +168,11 @@ export default function UpdatePanel() {
     </section>
 
     <section className="surface update-preferences">
-      <label className="update-switch"><span><strong>{t("settings.updateCheck")}</strong><span>{t("settings.updateCheckHint")}</span></span>
+      <label className="update-switch"><span><strong>{t("settings.updateCheck")}</strong></span>
         <input type="checkbox" role="switch" checked={enabled ?? false} disabled={!instance || changing || applying} onChange={() => void toggleCheck()} /></label>
       <div className="update-capability"><span className="update-capability-label">{t("updates.inApp")}</span>
         <strong>{t(capability?.available ? "updates.ready" : capability ? "updates.setupNeeded" : "updates.loadingCapability")}</strong></div>
       {reasonKey && <p className="update-reason">{t(reasonKey)}</p>}
-      {capability?.available && <p className="update-reason">{t("settings.updateApplyHint")}</p>}
       {capability && !capability.available && method !== "docker" && <details className="update-setup">
         <summary>{t("updates.setup")}</summary>
         <pre>{method === "native" ? "sudo /opt/emcargo/current/deploy/native/update.sh" : `kubectl -n emcargo set image deployment/emcargo emcargo=ghcr.io/jeffreymooiweer/emcargo:${status?.latest || "<version>"}`}</pre>

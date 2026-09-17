@@ -27,7 +27,7 @@ export default function AboutPanel({ version }: { version: string }) {
       <Icon /><h4>{t(title)}</h4><p>{t(text)}</p>
     </section>)}</div>
     <Link to="/account/about/terms" className="about-terms-link"><span className="about-link-icon"><DocumentIcon /></span>
-      <span><strong>{t("legal.title")}</strong><span>{t("account.termsIntro")}</span></span><ArrowRightIcon /></Link>
+      <span><strong>{t("legal.title")}</strong></span><ArrowRightIcon /></Link>
     <div className="about-project-links">
       <a href={repository} target="_blank" rel="noreferrer"><CodeIcon /><span>{t("account.sourceCode")}</span><ArrowRightIcon /></a>
       <a href={`${repository}/releases`} target="_blank" rel="noreferrer"><HistoryIcon /><span>{t("account.releaseNotes")}</span><ArrowRightIcon /></a>

@@ -32,7 +32,7 @@ export default function TripAssessment({ result, consignments, pending, failed, 
       <span className="trip-assessment-icon">{pending ? <RefreshIcon className="trip-checking" /> : <Glyph />}</span>
       <div role="status" aria-live="polite">
         <h3 id="trip-assessment-title">{t(`tripWorkspace.assessment.${state}`)}</h3>
-        <p>{t(`tripWorkspace.assessment.${state}Hint`)}</p>
+        {state !== "empty" && state !== "checking" && state !== "neutral" && state !== "invalidMass" && <p>{t(`tripWorkspace.assessment.${state}Hint`)}</p>}
       </div>
       {(failed || savedAt) && <button type="button" className="trip-text-button" onClick={onRetry} disabled={pending || invalidMass}>
         <RefreshIcon />{t("tripWorkspace.recheck")}

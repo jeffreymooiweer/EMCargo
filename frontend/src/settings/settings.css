@@ -1,0 +1,52 @@
+.settings-workspace .settings-content,
+.settings-workspace .settings-content section,
+.settings-workspace .settings-content fieldset,
+.settings-workspace .settings-content input,
+.settings-workspace .settings-content select,
+.settings-workspace .settings-content textarea {
+  min-width: 0;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  min-height: 44px;
+  padding: .5rem 0;
+  cursor: pointer;
+}
+
+.settings-toggle input {
+  flex: 0 0 auto;
+  margin-top: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.settings-workspace .branding-slot {
+  flex-wrap: wrap;
+}
+
+.settings-workspace .branding-slot > .flex {
+  margin-left: auto;
+}
+
+.settings-workspace .branding-slot button,
+.settings-workspace .settings-content p {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .settings-workspace .branding-slot > .flex {
+    width: 100%;
+  }
+
+  .settings-workspace .branding-slot > .flex button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .settings-workspace .theme-choice {
+    padding-inline: .5rem;
+  }
+}

@@ -19,7 +19,6 @@ import {
   LocationInput,
   MODALITY_LOCATION_TYPES,
 } from "./GeoInputs";
-import InfoTooltip from "./InfoTooltip";
 import NhmCombobox from "./NhmCombobox";
 import SignaturePad from "./SignaturePad";
 import { WizardActions } from "./WizardShell";
@@ -37,10 +36,6 @@ const STATUS_BADGES: Partial<Record<FieldStatus, { key: string; className: strin
   CARRIER_PROVIDED: {
     key: "docfields.carrierProvided",
     className: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
-  },
-  OPERATIONAL: {
-    key: "docfields.operational",
-    className: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
   },
   SIGNATURE_REQUIRED: {
     key: "docfields.signatureRequired",
@@ -125,7 +120,7 @@ export default function DocumentFieldsStep({
 
   const setValue = (key: string, value: string) => onChange({ ...values, [key]: value });
 
-  const { groups, covered } = useMemo(() => {
+  const { groups } = useMemo(() => {
     const grouped = groupFields(registry, documents);
     if (!excludedFields.length) return grouped;
     const excluded = new Set(excludedFields);
@@ -295,7 +290,6 @@ export default function DocumentFieldsStep({
             {L(field.label)}
             {required && <span className="text-red-500"> *</span>}
           </label>
-          {field.help && <InfoTooltip text={L(field.help)} />}
           {badge && (
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.className}`}>
               {t(badge.key)}
@@ -362,15 +356,6 @@ export default function DocumentFieldsStep({
             onChange={(e) => setValue(field.key, e.target.value)}
           />
         )}
-        {/* Asked once, and said plainly whose question it also is: the same
-            answer serves every document that wants it, under its own name. */}
-        {field.alsoAsked.length > 0 && (
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {t("docgroups.alsoAsked", {
-              list: field.alsoAsked.map((one) => `${L(one.document)} (${L(one.label)})`).join(", "),
-            })}
-          </p>
-        )}
         {missed && (
           <p className="mt-1 text-xs text-red-600 dark:text-red-400">{t("docfields.fieldMissing")}</p>
         )}
@@ -398,7 +383,6 @@ export default function DocumentFieldsStep({
     <div className="space-y-4">
       <div className={`${panelClass} p-4 sm:p-6`}>
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t("docfields.sharedTitle")}</h3>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("docgroups.intro")}</p>
       </div>
 
       {warned && (
@@ -421,7 +405,6 @@ export default function DocumentFieldsStep({
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-red-700 dark:text-red-300">{t("docfields.stillEmptyHint")}</p>
         </div>
       )}
 
@@ -460,12 +443,6 @@ export default function DocumentFieldsStep({
       })}
 
       {onSignatureChange && <SignaturePad value={signature ?? null} onChange={onSignatureChange} />}
-
-      {covered.length > 0 && (
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {t("docfields.coveredByShared", { forms: covered.map((doc) => L(doc.label)).join(", ") })}
-        </p>
-      )}
 
       {/* In the wizard these land in the shell's action bar at the foot of the
           screen; on their own — as this component's own tests render it — they

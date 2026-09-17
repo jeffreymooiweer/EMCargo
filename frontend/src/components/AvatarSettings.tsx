@@ -28,7 +28,7 @@ export default function AvatarSettings({ user, onUserChange }: { user: User; onU
 
   return <section className="avatar-settings" aria-busy={busy} aria-label={t("profile.photo")}>
     <Avatar user={profile} large />
-    <div><h3>{t("profile.photo")}</h3><p>{t("profile.hint")}</p>
+    <div><h3>{t("profile.photo")}</h3>
       <div className="avatar-actions">
         <button type="button" className="action-secondary" onClick={() => input.current?.click()} disabled={busy}>
           <UploadIcon />{t(busy ? "profile.saving" : profile.avatar_url ? "profile.replace" : "profile.upload")}

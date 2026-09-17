@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ShipmentSummary } from "../api/client";
 import ShipmentsPage, { wizardLinkFor } from "./ShipmentsPage";
 import { ToastProvider } from "../toast/ToastProvider";
+import { createCargoUnit, emptyCargo } from "../utils/cargo";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -99,7 +100,7 @@ describe("de zendingenpagina", () => {
   it("zegt dat er niets bewaard wordt waar de historie uitstaat", () => {
     settings.history_enabled = false;
     renderAt("/shipments");
-    expect(screen.getByText("history.off")).toBeInTheDocument();
+    expect(screen.getByText("historyAccess.disabled")).toBeInTheDocument();
     expect(api.shipments).not.toHaveBeenCalled();
   });
 
@@ -362,4 +363,21 @@ describe("compact shipment actions", () => {
     await screen.findAllByText("CP-2026-100");
     expect(screen.queryByText("history.loadFailed")).toBeNull();
   });
+});
+
+/** The shipment detail must display the canonical exported packing snapshot;
+ * a stale editor snapshot must not silently replace the submitted contents. */
+it("shows saved cargo from the canonical export without offering mutations", async () => {
+  const box = createCargoUnit({ id: "box-model", name: "Saved mixed box", category: "box", tare_kg: 1 });
+  const cargo = { ...emptyCargo(), units: [box], allocations: [{ id: "allocation-1", goods_id: 1, unit_id: box.id, quantity: 12 }] };
+  api.shipment.mockResolvedValue({ ...kept[0],
+    snapshot: { version: 2, cargo: { ...cargo, units: [{ ...box, name: "Stale editor box" }] } },
+    export: { format: "emcargo.shipment", documents: ["cmr"], cargo, goods: [{ line_id: 1, description: "Pipe fittings", quantity: 12, unit: "pcs", include: true, weight_total_kg: 24 }] },
+  });
+  renderAt("/shipments/7");
+  expect(await screen.findByText("Saved mixed box")).toBeVisible();
+  expect(screen.queryByText("Stale editor box")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: /Saved mixed box/ }));
+  expect(screen.getByText("Pipe fittings")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "cargo.newUnit" })).not.toBeInTheDocument();
 });

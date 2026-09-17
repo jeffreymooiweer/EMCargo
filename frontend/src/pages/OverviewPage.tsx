@@ -109,7 +109,7 @@ export default function OverviewPage({ user }: { user?: User }) {
   return <div className="overview-workspace collection-page page-enter work-overview">
     <header className="page-heading"><div><p className="eyebrow">{t("nav.overview")}</p>
       <h2>{t(`overview.${hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}`)}{user && <span className="overview-name"> {user.display_name || user.username}</span>}</h2>
-      <p>{t("work.intro")}</p></div>
+      </div>
       <div className="work-create"><Link to="/" className="action-primary"><PlusIcon />{t("nav.new")}</Link>
         <Link to={`/wizard/${preferred}?input=document`} className="action-secondary"><ImportIcon />{t("work.import")}</Link></div>
     </header>
@@ -129,7 +129,7 @@ export default function OverviewPage({ user }: { user?: User }) {
       </div>
       {failure ? <div className="work-empty" role="alert"><p>{failure}</p><button className="action-secondary" onClick={() => setRefresh(value => value + 1)}>{t("overview.retry")}</button></div>
         : !data || loading && !data.items.length ? <p className="work-empty" role="status">{t("overview.loading")}</p>
-        : !data.items.length ? <div className="work-empty"><CheckIcon /><h3>{t("work.empty")}</h3><p>{t(query || mine ? "work.emptyFilter" : "work.emptyHint")}</p></div>
+        : !data.items.length ? <div className="work-empty"><CheckIcon /><h3>{t("work.empty")}</h3>{query || mine ? <button className="action-secondary" onClick={() => { setQuery(""); setMine(false); setPage(1); }}>{t("history.clearFilters")}</button> : <Link className="action-secondary" to="/">{t("nav.new")}</Link>}</div>
         : <><div className="work-row work-column-labels" aria-hidden="true"><span>{t("work.shipment")}</span><span>{t("work.next")}</span><span>{t("work.owner")}</span><span>{t("work.loadingDate")}</span><span /></div>
           <ul className="work-list">{data.items.map(item => <li className="work-row" key={`${item.kind}:${item.id}`}>
             <div className="work-shipment"><Link to={workDestination(item)}>{name(item)}</Link>
@@ -156,7 +156,7 @@ export default function OverviewPage({ user }: { user?: User }) {
         {people.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
       </select></label>
       <button className="action-primary" disabled={saving || !owner || Number(owner) === editing.owner_id} onClick={() => void change(editing, { owner_id: Number(owner) })}>{t("work.assign")}</button>
-      {(editing.completed_at || editing.status === "ready") && <div className="work-completion"><p>{t("work.completionHint")}</p>
+      {(editing.completed_at || editing.status === "ready") && <div className="work-completion">
         <button className="action-secondary" disabled={saving} onClick={() => void change(editing, { completed: !editing.completed_at })}>{t(editing.completed_at ? "work.reopen" : "work.finish")}</button></div>}
       {peopleFailure && <p role="alert" className="editor-feedback" data-kind="error">{peopleFailure}</p>}
     </div></div>}

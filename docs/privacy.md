@@ -111,14 +111,13 @@ sign on the outside. They are what an administrator chose to put there and nothi
 
 **The QR code on transport documents** (**Settings → QR code with UN cards on
 documents**, off by default) prints a code on every document that opens a page of UN
-cards. That page is the only one in EMCargo that does not ask for a sign-in, and
-deliberately so: the people it is for — the driver at the roadside, the warehouse taking
-the pallet in, the responder who arrived because something went wrong — have no account
-here, and a code that asks them to log in is a code that does nothing.
+cards. The page and direct PDF downloads require sign-in, just like the rest of
+the application. A scan made without a session opens sign-in first and returns
+to the requested UN numbers and regime afterwards.
 
 What the code carries is the UN numbers and the regime, and nothing else. No consignor,
-no consignee, no quantity, no reference, no shipment identifier — there is no shipment to
-look up, because EMCargo stores none. The document that carries the code already
+no consignee, no quantity, no reference, no shipment identifier. The link does not
+look up a stored shipment. The document that carries the code already
 prints those same UN numbers in plain text and larger, so the code discloses nothing the
 paper in the reader's hand does not already say.
 
@@ -128,15 +127,14 @@ out, because somebody standing at a vehicle needs to know a card is absent inste
 being handed a shorter list and left to assume it was complete. A card is never
 substituted from another regime — ADR and IMDG print different obligations.
 
-Because it is public it is also the narrowest thing in the application: it is off until
-an administrator turns it on, it needs the installation's public address configured
-before a single code is printed, it answers about at most thirty UN numbers per link, and
-it is rate limited to thirty requests a minute per caller. With the switch off the route
-answers 404 rather than 403 — an installation that has not opened this door does not owe
-a stranger the information that the door exists.
+Card links are off until an administrator turns them on. Printing a code needs
+the installation's address configured. Lookup answers about at most thirty UN
+numbers per link and is rate limited to thirty requests a minute per caller. Requests without a
+valid session answer 401. With the switch off, authenticated requests answer 404.
 
-There is nothing here to expire. The link addresses a UN number, not a consignment, so a
-code scanned in a year answers exactly what it answered on the day it was printed.
+The link addresses a UN number and regime, not a consignment. It has no shipment
+expiry; the cards available later depend on the installation's current card set,
+feature setting and the reader's active session.
 
 ## Account access
 
@@ -145,7 +143,7 @@ preferences, avatars and the organisation's settings live on this installation.
 The former open application is retired; an old `EMCARGO_MODE=open` variable does
 not bypass authentication or disable saved settings and auditing.
 
-The public UN-card links described above remain available without an account.
+UN-card links and direct card downloads also require a valid session.
 Login and account recovery, status probes and the branding displayed on the
 sign-in page are also reachable before signing in. Business API endpoints and
 API documentation require a valid session.

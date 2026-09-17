@@ -8,12 +8,11 @@
  * actor, the action or its group, a date range — a paged table, and the
  * same selection as CSV for whoever keeps records elsewhere.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { api, AuditEvent } from "../api/client";
-import { useToast } from "../toast/ToastProvider";
 
 const panelClass = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800";
 const inputClass =
@@ -36,7 +35,6 @@ function when(iso: string, language: string): string {
 
 export default function AuditPage() {
   const { t, i18n } = useTranslation();
-  const toast = useToast();
   const [items, setItems] = useState<AuditEvent[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -45,6 +43,8 @@ export default function AuditPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(true);
+  const [failure, setFailure] = useState("");
+  const request = useRef(0);
   const [actions, setActions] = useState<string[]>([]);
   const [actors, setActors] = useState<string[]>([]);
 
@@ -68,22 +68,25 @@ export default function AuditPage() {
   }), [actor, action, from, to]);
 
   const load = useCallback(async () => {
+    const current = ++request.current;
     setLoading(true);
+    setFailure("");
+    setItems([]);
     try {
       const answer = await api.audit({ ...query(), page, per_page: PER_PAGE });
+      if (current !== request.current) return;
       setItems(answer.items);
       setTotal(answer.total);
     } catch (e) {
-      toast.error(String(e));
+      if (current === request.current) setFailure(String(e));
     } finally {
-      setLoading(false);
+      if (current === request.current) setLoading(false);
     }
-    // toast is stable for the provider's lifetime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, page]);
 
   useEffect(() => {
     void load();
+    return () => { request.current += 1; };
   }, [load]);
 
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
@@ -105,13 +108,12 @@ export default function AuditPage() {
       <div className={`${panelClass} p-5 sm:p-8 flex flex-wrap items-start justify-between gap-3`}>
         <div>
           <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">{t("audit.title")}</h2>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-2xl">{t("audit.intro")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <a className={buttonSecondary} href={api.auditExportUrl(query())} download="emcargo-audit.csv">
             {t("audit.export")}
           </a>
-          <Link to="/admin/settings/organisation" className={buttonSecondary} title={t("audit.retentionHint")}>
+          <Link to="/admin/settings/organisation" className={buttonSecondary}>
             {t("audit.retention")}
           </Link>
         </div>
@@ -157,18 +159,27 @@ export default function AuditPage() {
         </select>
         <label className="text-xs text-slate-500 dark:text-slate-400">
           {t("audit.from")}
-          <input type="date" className={`${inputClass} mt-1`} value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
+          <input type="date" className={`${inputClass} mt-1`} max={to || undefined} value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
         </label>
         <label className="text-xs text-slate-500 dark:text-slate-400">
           {t("audit.to")}
-          <input type="date" className={`${inputClass} mt-1`} value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
+          <input type="date" className={`${inputClass} mt-1`} min={from || undefined} value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
         </label>
-        <p className="text-xs text-slate-500 dark:text-slate-400 md:col-span-4">
-          {t("audit.count", { count: items.length, total })}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3 md:col-span-4">
+          <p role="status" className="text-sm text-slate-500 dark:text-slate-400">
+            {loading ? t("wizard.loading") : !failure && t("audit.count", { count: items.length, total })}
+          </p>
+          {(actor || action || from || to) && <button type="button" className={buttonSecondary} onClick={() => {
+            setActor(""); setAction(""); setFrom(""); setTo(""); setPage(1);
+          }}>{t("history.clearFilters")}</button>}
+        </div>
       </div>
 
-      {!loading && items.length === 0 && (
+      {failure && <div className={`${panelClass} p-5 space-y-3`}>
+        <p role="alert">{failure}</p>
+        <button type="button" className={buttonSecondary} onClick={() => void load()}>{t("historyAccess.retry")}</button>
+      </div>}
+      {!loading && !failure && items.length === 0 && (
         <p className={`${panelClass} p-5 text-sm text-slate-600 dark:text-slate-300`}>{t("audit.empty")}</p>
       )}
 
@@ -179,7 +190,7 @@ export default function AuditPage() {
             <div className="flex items-center gap-2">
               <span className="min-w-0 truncate font-semibold text-slate-900 dark:text-slate-100">{label(e.action)}</span>
             </div>
-            <p className="text-sm text-slate-700 dark:text-slate-200 truncate">
+            <p className="break-words text-sm text-slate-700 dark:text-slate-200">
               {e.actor_username || "—"}
               {e.summary ? ` · ${e.summary}` : ""}
             </p>
@@ -226,7 +237,7 @@ export default function AuditPage() {
         </div>
       )}
 
-      {pages > 1 && (
+      {!loading && !failure && pages > 1 && (
         <div className="flex items-center justify-between gap-3">
           <button type="button" className={buttonSecondary} disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
             {t("audit.previous")}

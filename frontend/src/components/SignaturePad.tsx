@@ -167,16 +167,15 @@ export default function SignaturePad({ value, onChange }: Props) {
   return (
     <section className={`${panelClass} p-4 sm:p-6`}>
       <h4 className="font-semibold text-slate-900 dark:text-slate-100">{t("signature.title")}</h4>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("signature.intro")}</p>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" className={tabClass(mode === "draw")} onClick={() => switchMode("draw")}>
+        <button type="button" aria-pressed={mode === "draw"} className={tabClass(mode === "draw")} onClick={() => switchMode("draw")}>
           <PenIcon className="mr-2 inline h-4 w-4" />{t("signature.draw")}
         </button>
-        <button type="button" className={tabClass(mode === "upload")} onClick={() => switchMode("upload")}>
+        <button type="button" aria-pressed={mode === "upload"} className={tabClass(mode === "upload")} onClick={() => switchMode("upload")}>
           <UploadIcon className="mr-2 inline h-4 w-4" />{t("signature.upload")}
         </button>
-        <button type="button" className={tabClass(mode === "skip")} onClick={() => switchMode("skip")}>
+        <button type="button" aria-pressed={mode === "skip"} className={tabClass(mode === "skip")} onClick={() => switchMode("skip")}>
           {t("signature.skip")}
         </button>
       </div>
@@ -185,6 +184,7 @@ export default function SignaturePad({ value, onChange }: Props) {
         <div className="mt-3">
           <canvas
             ref={canvasRef}
+            aria-label={t("signature.draw")}
             className="h-40 w-full max-w-xl cursor-crosshair touch-none rounded-xl border-2 border-dashed border-slate-300 bg-white dark:border-slate-600"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -208,24 +208,23 @@ export default function SignaturePad({ value, onChange }: Props) {
             >
               🗑 {t("signature.clear")}
             </button>
-            <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">{t("signature.drawHint")}</span>
           </div>
         </div>
       )}
 
       {mode === "upload" && (
         <div className="mt-3 space-y-2">
-          <label className="flex min-h-[44px] w-fit cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+          <label className="flex min-h-[44px] w-fit focus-within:ring-2 focus-within:ring-brand-500 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp"
-              className="hidden"
+              className="sr-only"
               onChange={(e) => handleUpload(e.target.files?.[0])}
             />
             {t("signature.chooseFile")}
           </label>
           <p className="text-xs text-slate-500 dark:text-slate-400">{t("signature.uploadHint")}</p>
-          {uploadError && <p className="text-sm text-red-600 dark:text-red-400">{uploadError}</p>}
+          {uploadError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{uploadError}</p>}
           {uploadPreview && (
             <div className="flex items-center gap-3">
               <img
@@ -248,7 +247,6 @@ export default function SignaturePad({ value, onChange }: Props) {
         </div>
       )}
 
-      {mode === "skip" && <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{t("signature.skipHint")}</p>}
 
       {value && mode !== "skip" && (
         <p className="mt-3 text-xs text-emerald-700 dark:text-emerald-300"><CheckIcon className="mr-1 inline h-4 w-4" />{t("signature.applied")}</p>

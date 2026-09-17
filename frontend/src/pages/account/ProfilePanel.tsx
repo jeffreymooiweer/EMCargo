@@ -66,7 +66,7 @@ export default function ProfilePanel({ user, onUserChange, onDirtyChange }: {
       </dl>
     </section>
     <form className="account-panel account-profile-form" onSubmit={submit} aria-busy={loading || saving}>
-      <div className="account-section-heading"><h3>{t("account.profile")}</h3><p>{t("account.profileIntro")}</p></div>
+      <div className="account-section-heading"><h3>{t("account.profile")}</h3></div>
       {loading ? <p role="status">{t("wizard.loading")}</p> : saved && <fieldset disabled={saving} className="account-fields">
         <label className="account-field-wide">{t("account.displayName")}<input value={draft.display_name} maxLength={80} autoComplete="nickname"
           placeholder={[draft.first_name, draft.last_name].filter(Boolean).join(" ") || user.username}

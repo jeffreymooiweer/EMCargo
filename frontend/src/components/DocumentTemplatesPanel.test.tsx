@@ -19,7 +19,7 @@ it("requires the local source and use basis, and reports a refused edition", asy
   await user.upload(screen.getByLabelText("templates.file"), file);
   expect(screen.getByRole("button", { name: "templates.import" })).toBeDisabled();
   await user.type(screen.getByLabelText("templates.source"), "Test author, edition 1");
-  await user.type(screen.getByLabelText("templates.basis"), "Original test grant");
+  await user.type(screen.getByLabelText("templates.usageRights"), "Original test grant");
   vi.mocked(api.importDocumentTemplate).mockRejectedValueOnce(new Error("Unsupported edition"));
   fireEvent.submit(screen.getByRole("button", { name: "templates.import" }).closest("form")!);
   expect(await screen.findByRole("alert")).toHaveTextContent("Unsupported edition");
@@ -34,9 +34,21 @@ it("refreshes availability only after the server accepts the original", async ()
   await user.selectOptions(await screen.findByRole("combobox"), "cmr");
   await user.upload(screen.getByLabelText("templates.file"), new File(["synthetic"], "original.pdf", { type: "application/pdf" }));
   await user.type(screen.getByLabelText("templates.source"), "Test author");
-  await user.type(screen.getByLabelText("templates.basis"), "Original test grant");
+  await user.type(screen.getByLabelText("templates.usageRights"), "Original test grant");
   vi.mocked(api.documentTemplates).mockResolvedValue(items.map(i => ({ ...i, available: true })));
   fireEvent.submit(screen.getByRole("button", { name: "templates.import" }).closest("form")!);
   await waitFor(() => expect(screen.getByRole("link", { name: "templates.preview" })).toHaveAttribute("href", "/api/settings/document-templates/cmr/preview"));
   expect(screen.getByRole("status")).toHaveTextContent("templates.saved");
+});
+
+/** An initial request failure must remain recoverable in place rather than
+ * stranding the administrator with an empty select and no way to reload it. */
+it("reloads the template list after a failed initial request", async () => {
+  vi.mocked(api.documentTemplates).mockRejectedValueOnce(new Error("Offline"));
+  render(<DocumentTemplatesPanel />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("Offline");
+  expect(screen.getByRole("combobox")).toBeDisabled();
+  await userEvent.click(screen.getByRole("button", { name: "history.retry" }));
+  await waitFor(() => expect(screen.getByRole("combobox")).toBeEnabled());
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });

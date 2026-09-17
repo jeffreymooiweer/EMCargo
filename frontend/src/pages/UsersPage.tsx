@@ -82,7 +82,7 @@ export default function UsersPage({ user: self }: { user: User | null }) {
   const target = typeof editing === "number" ? users.find(u => u.id === editing) : undefined;
 
   return <div className="collection-page page-enter users-workspace">
-    <header className="page-heading"><div><h2>{t("users.title")}</h2><p>{t("directory.intro")}</p><p className="mt-2 text-sm text-slate-500">{t("roles.managementHint")}</p></div>
+    <header className="page-heading"><div><h2>{t("users.title")}</h2></div>
       <button type="button" className="action-primary" disabled={busy || loading || failed} onClick={() => openEditor("new")}><PlusIcon />{t("users.newUser")}</button>
     </header>
     {historyOn && <nav className="directory-sections" aria-label={t("users.title")}>
@@ -169,16 +169,16 @@ function UserEditor({ target, self, guard, departments, historyOn, canInvite, bu
       </div>
       {target && <label className="editor-toggle"><input type="checkbox" checked={active} disabled={busy || !!guard} onChange={e => setActive(e.target.checked)} /><span>{t("directory.activeAccount")}</span></label>}
       {guardText && <p className="editor-hint">{guardText}</p>}
-      {!target && canInvite && <label className="editor-toggle"><input type="checkbox" checked={invite} onChange={e => setInvite(e.target.checked)} /><span>{t("users.invite")}<small>{t("users.inviteHint")}</small></span></label>}
-      {!target && !sendInvite && <div><label>{t("users.password")}<input className={inputClass} type="password" value={password} minLength={8} required autoComplete="new-password" aria-describedby="new-user-password-hint" onChange={e => setPassword(e.target.value)} /></label><p id="new-user-password-hint" className="editor-hint">{t("users.passwordHint")}</p></div>}
+      {!target && canInvite && <label className="editor-toggle"><input type="checkbox" checked={invite} onChange={e => setInvite(e.target.checked)} /><span>{t("users.invite")}</span></label>}
+      {!target && !sendInvite && <label>{t("users.password")}<input className={inputClass} type="password" value={password} minLength={8} required autoComplete="new-password" placeholder={t("users.passwordHint")} onChange={e => setPassword(e.target.value)} /></label>}
       <footer><button type="button" className="action-secondary" disabled={busy} onClick={onClose}>{t("toast.cancel")}</button><button className="action-primary" disabled={busy}>{t(busy ? "directory.saving" : target ? "directory.save" : sendInvite ? "users.createAndInvite" : "users.create")}</button></footer>
     </form>
     {target && <details className="editor-security"><summary><ShieldIcon />{t("directory.security")}</summary><div>
       <form className="editor-form" onSubmit={event => { event.preventDefault(); void run(() => api.updateUser(target.id, { password }), t("users.passwordReset")).then(ok => { if (ok) setPassword(""); }); }}>
-        <label>{t("users.newPasswordFor", { name: target.username })}<input className={inputClass} type="password" value={password} minLength={8} required autoComplete="new-password" onChange={e => setPassword(e.target.value)} /></label>
+        <label>{t("users.newPasswordFor", { name: target.username })}<input className={inputClass} type="password" value={password} minLength={8} required autoComplete="new-password" placeholder={t("users.passwordHint")} onChange={e => setPassword(e.target.value)} /></label>
         <button className="action-secondary" disabled={busy}>{t("users.resetPasswordDo")}</button>
       </form>
-      <p className="editor-hint">{t("users.clearTwoFactorHint")}</p><button type="button" className="action-secondary" disabled={busy} onClick={() => setClearFactor(true)}>{t("users.clearTwoFactor")}</button>
+      <button type="button" className="action-secondary" disabled={busy} onClick={() => setClearFactor(true)}>{t("users.clearTwoFactor")}</button>
       <button type="button" className="editor-delete" disabled={busy || !!guard} title={guardText} onClick={() => onRemove(target)}><TrashIcon />{t("users.delete")}</button>
     </div></details>}
     <ConfirmDialog open={clearFactor} title={t("users.clearTwoFactor")} body={t("users.clearTwoFactorConfirm", { name: target?.username })} confirmLabel={t("users.clearTwoFactor")}
@@ -235,7 +235,6 @@ function DepartmentsPanel({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {t("departments.title")}
         </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t("departments.intro")}</p>
       </div>
 
       {departments.length === 0 && (

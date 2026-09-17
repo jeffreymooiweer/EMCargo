@@ -98,7 +98,7 @@ describe("de modaliteitkeuze", () => {
     renderAt("/?choose=1");
     const sea = screen.getByRole("button", { name: /modality.sea/ });
     expect(sea).toBeEnabled();
-    expect(sea).toHaveTextContent("modality.seaDesc");
+    expect(sea).toHaveTextContent("IMDG");
     await userEvent.click(sea);
     expect(screen.getByLabelText("Destination")).toHaveTextContent("/wizard/sea");
   });

@@ -14,12 +14,16 @@
  * a fallback and the version is checked for a major break only.
  */
 import type { CalcResult, DgEntry, DocumentEvidence } from "../api/client";
+import type { CargoManifest } from "../api/cargo";
+import { readCargo } from "../utils/cargo";
 import type { DraftLine } from "../components/ReviewLinesPanel";
 
-export const SNAPSHOT_VERSION = 1;
+export const SNAPSHOT_VERSION = 2;
 
 export interface WizardSnapshot {
   version: number;
+  cargo?: CargoManifest;
+  cargoBaseRevision?: number | null;
   modality: string;
   stepKey: "lines" | "dg" | "details" | "export";
   /** The language the documents are drawn up in; null means the screen's. */
@@ -52,6 +56,8 @@ export function readSnapshot(raw: unknown): WizardSnapshot | null {
   const version = typeof raw.version === "number" ? raw.version : 0;
   if (version < 1 || version > SNAPSHOT_VERSION) return null;
 
+  const cargo = raw.cargo == null ? null : readCargo(raw.cargo);
+  if (raw.cargo != null && !cargo) return null;
   const draftLines = Array.isArray(raw.draftLines)
     ? (raw.draftLines.filter(isRecord) as unknown as DraftLine[])
     : [];
@@ -70,11 +76,13 @@ export function readSnapshot(raw: unknown): WizardSnapshot | null {
   // The next id must clear every line there is, including the blank one a
   // missing list falls back to — a duplicate id is two rows editing as one.
   const nextId = typeof raw.nextId === "number" && raw.nextId > 0
-    ? raw.nextId
+    ? Math.max(raw.nextId, Math.max(0, ...lines.map(line => Number(line.id) || 0)) + 1)
     : Math.max(0, ...lines.map((line) => Number(line.id) || 0)) + 1;
 
   return {
     version,
+    ...(cargo ? { cargo } : {}),
+    cargoBaseRevision: typeof raw.cargoBaseRevision === "number" ? raw.cargoBaseRevision : null,
     modality: typeof raw.modality === "string" ? raw.modality : "",
     stepKey,
     docLang: typeof raw.docLang === "string" ? raw.docLang : null,

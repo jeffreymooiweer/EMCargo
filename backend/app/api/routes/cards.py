@@ -1,24 +1,9 @@
-"""The one route that needs no sign-in: the UN cards a QR code opens.
+"""Authenticated access to the UN cards a transport-document QR code opens.
 
-A QR code on a transport document is scanned by the driver at the roadside,
-the warehouse taking the pallet in, the responder who arrived because
-something went wrong. None of them has an account here, and a code that asks
-them to log in is a code that does nothing. So this router is public, and
-because it is public it is the narrowest thing in the application:
-
-* it is **off unless an administrator turns it on** — a new door is a new
-  door, and the person who owns the installation opens it rather than finding
-  it open;
-* it answers about **UN numbers only**, never about a consignment. There is no
-  shipment to look up, which is also why the roadmap's question about link
-  lifetime does not arise: the link addresses the regulation, and the
-  regulation does not expire the way a stored job would;
-* what it serves is the card set an administrator imported — EMCargo's own
-  datasheets built from the measured tables. The document that carries the QR
-  already prints those UN numbers in plain text and larger, so the code
-  discloses nothing the paper does not;
-* it is rate limited, because an unauthenticated route that reads files is
-  exactly the shape of thing a script is pointed at.
+The administrator's switch enables card links, never anonymous access. Both
+lookup and direct PDF requests require the same active session and second
+factor policy as the rest of the application. The frontend retains the scan's
+full URL through sign-in.
 
 A card that is not in the store is reported absent. It is never substituted
 from another modality: the regimes print different obligations, and a card
@@ -33,22 +18,22 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.deps import get_current_user
 from app.core.ratelimit import CARD_LINKS, limiter
 from app.services.documents.un_card_store import MODALITIES, card_path
 from app.services.settings_store import instance_settings
 
-router = APIRouter(prefix="/cards", tags=["cards"])
+router = APIRouter(prefix="/cards", tags=["cards"], dependencies=[Depends(get_current_user)])
 
 #: How many UN numbers one link may ask about. A transport document does not
-#: carry fifty, and a cap keeps the public route from being turned into a
+#: carry fifty, and a cap keeps the route from being turned into a
 #: bulk reader of the whole store.
 MAX_NUMBERS = 30
 
 
 def _enabled(db: Session) -> None:
     if not instance_settings(db).card_links_enabled:
-        # 404 rather than 403: an installation that has not opened this door
-        # does not owe a stranger the information that the door exists.
+        # A disabled feature stays absent even for a signed-in account.
         raise HTTPException(status_code=404, detail="Not found")
 
 

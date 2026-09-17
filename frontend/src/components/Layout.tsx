@@ -71,7 +71,7 @@ export default function Layout({ user, onLogout }: Props) {
   }
   const destinations = [
     {to: "/overzicht", label: t("nav.overview")}, {to: "/shipments", label: t("nav.shipments")}, {to: "/trips", label: t("nav.trips")}, {to: "/articles", label: t("nav.articles")},
-    {to: "/", label: t("nav.new")},
+    {to: "/", label: t("nav.new")}, {to: "/packaging", label: t("nav.packaging")},
     ...(manager ? [{to: "/materieel", label: t("nav.materieel")}, {to: "/users", label: t("nav.users")}] : []),
     ...(admin ? [{to: "/audit", label: t("nav.audit")}] : []),
     {to: "/dg-reviews", label: t("dgReview.title")},
@@ -104,11 +104,13 @@ export default function Layout({ user, onLogout }: Props) {
       {link("/dg-reviews", t("dgReview.title"), ShieldIcon, compact)}
       {compact ? <>
         {link("/articles", t("nav.articles"), GoodsIcon, true)}
+        {link("/packaging", t("nav.packaging"), LibraryIcon, true)}
         {manager && link("/materieel", t("nav.materieel"), RoadIcon, true)}
-      </> : <details className="emcargo-nav-group" open={location.pathname.startsWith("/articles") || location.pathname.startsWith("/materieel") || undefined}>
+      </> : <details className="emcargo-nav-group" open={location.pathname.startsWith("/articles") || location.pathname.startsWith("/materieel") || location.pathname.startsWith("/packaging") || undefined}>
         <summary className="emcargo-nav-link"><LibraryIcon className="h-[22px] w-[22px]" /><span>{t("nav.library")}</span><ChevronDownIcon className="ml-auto h-3.5 w-3.5" /></summary>
         <div className="emcargo-subnav">
           {link("/articles", t("nav.articles"), GoodsIcon, false)}
+          {link("/packaging", t("nav.packaging"), LibraryIcon, false)}
           {manager && link("/materieel", t("nav.materieel"), RoadIcon, false)}
         </div>
       </details>}

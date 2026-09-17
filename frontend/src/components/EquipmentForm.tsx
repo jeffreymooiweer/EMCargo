@@ -5,6 +5,7 @@ import NumberInput from "./NumberInput";
 import ContainerTemplatePicker from "./ContainerTemplatePicker";
 import EquipmentInspections, { InspectionSummary } from "./EquipmentInspections";
 import { containerUses, facilities } from "../utils/inspections";
+import { CloseIcon } from "./icons";
 
 export default function EquipmentForm({ initial, onSave, busy, formId }: {
   initial: EquipmentItem; onSave: (item: EquipmentItem) => Promise<void>; busy: boolean; formId: string;
@@ -13,6 +14,9 @@ export default function EquipmentForm({ initial, onSave, busy, formId }: {
   const [form, setForm] = useState<EquipmentItem>(() => structuredClone(initial));
   const [template, setTemplate] = useState<ContainerTemplate>();
   const [editDimensions, setEditDimensions] = useState(false);
+  const [aliasDraft, setAliasDraft] = useState("");
+  const aliasesWithDraft = (aliases = form.aliases) => [...new Set([...(aliases ?? []), ...aliasDraft.split(/[,\n]/)].map(value => value.trim()).filter(Boolean))];
+  const addAlias = () => { setForm(previous => ({ ...previous, aliases: aliasesWithDraft(previous.aliases) })); setAliasDraft(""); };
   const patch = (values: Partial<EquipmentItem>) => setForm(previous => ({ ...previous, ...values }));
   const isContainer = form.kind === "container";
   const dimensionsKnown = [form.length_cm, form.width_cm, form.height_cm, form.weight_kg].every(value => value != null && value > 0);
@@ -27,7 +31,7 @@ export default function EquipmentForm({ initial, onSave, busy, formId }: {
     // Native validation must be able to focus a field inside any closed section.
     let section = (event.target as HTMLElement).closest("details");
     while (section) { section.open = true; section = section.parentElement?.closest("details") ?? null; }
-  }} onSubmit={event => { event.preventDefault(); void onSave(form); }}>
+  }} onSubmit={event => { event.preventDefault(); void onSave(aliasDraft.trim() ? { ...form, aliases: aliasesWithDraft() } : form); }}>
     <fieldset disabled={busy} className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2">
         {select("kind", ["vehicle", "machine", "container", "other"])}
@@ -50,8 +54,7 @@ export default function EquipmentForm({ initial, onSave, busy, formId }: {
               {isContainer && text("asset_code")}{text("brand")}
               {form.kind === "vehicle" && text("model_name")}
               {isContainer ? <>{text("container_type")}{select("container_use", containerUses)}</> : <>{text("serial_number")}{form.kind === "machine" && text("registration")}{select("propulsion", ["", "diesel", "petrol", "electric", "lpg", "hybrid", "other"])}</>}
-              {text("current_location", "current_location", { disabled: !!initial.id })}{select("availability", ["unknown", "available", "planned", "in_transit", "maintenance"])}
-              {!!initial.id && <p className="text-xs text-slate-500 sm:col-span-2">{t("equipmentSimple.locationHint")}</p>}
+              {initial.id ? <div className="equipment-field"><span>{t("assets.current_location")}</span><span>{form.current_location || t("assets.locationUnknown")}</span></div> : text("current_location")}{select("availability", ["unknown", "available", "planned", "in_transit", "maintenance"])}
               {select("condition", ["unknown", "good", "damaged", "unserviceable"])}
             </div>
             {isContainer && <section><h4 className="mb-3 text-sm font-semibold">{t("assets.facilities")}</h4><div className="grid grid-cols-2 gap-2">{facilities.map(value => <label key={value} className="equipment-check"><input type="checkbox" checked={(form.facilities ?? []).includes(value)} onChange={event => patch({ facilities: event.target.checked ? [...(form.facilities ?? []), value] : (form.facilities ?? []).filter(key => key !== value) })} />{t(`assets.facilityValues.${value}`)}</label>)}</div></section>}
@@ -60,7 +63,10 @@ export default function EquipmentForm({ initial, onSave, busy, formId }: {
               {form.kind === "other" && number("wall_thickness_mm")}
               {area("transport_instructions")}{area("accessories")}{area("notes")}
               {text("planned_reference")}{text("planned_date", "planned_date", { date: true })}
-              <label className="equipment-field sm:col-span-2">{t("materieel.aliases")}<input className="equipment-input" value={(form.aliases ?? []).join(", ")} onChange={event => patch({ aliases: event.target.value.split(",").map(value => value.trim()) })} /></label>
+              <div className="sm:col-span-2 space-y-2">
+                <div className="flex items-end gap-2"><label className="equipment-field min-w-0 flex-1">{t("materieel.aliases")}<input className="equipment-input" value={aliasDraft} onChange={event => setAliasDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); addAlias(); } }} /></label><button className="action-secondary" type="button" disabled={!aliasDraft.trim()} onClick={addAlias}>{t("articles.create")}</button></div>
+                {!!form.aliases?.filter(Boolean).length && <ul className="flex flex-wrap gap-2">{form.aliases.map((alias, index) => alias ? <li key={`${index}-${alias}`}><button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm dark:border-slate-700" aria-label={`${t("materieel.delete")}: ${alias}`} onClick={() => patch({ aliases: form.aliases?.filter((_, current) => current !== index) })}><span>{alias}</span><CloseIcon className="h-4 w-4" /></button></li> : null)}</ul>}
+              </div>
             </div>
             <details className="equipment-section">
               <summary>{t("assets.configurations")}{!!form.configurations?.length && <span className="equipment-count">{form.configurations.length}</span>}</summary>

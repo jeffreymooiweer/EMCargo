@@ -285,7 +285,6 @@ export default function LineDetails({
               <legend className="px-1 text-sm font-medium text-amber-900 dark:text-amber-200">
                 {t("review.substanceTitle")}
               </legend>
-              <p className="text-xs text-amber-900 dark:text-amber-300">{t("review.substanceHint")}</p>
               <div className="mt-2 grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className={labelClass} htmlFor={field("un")}>

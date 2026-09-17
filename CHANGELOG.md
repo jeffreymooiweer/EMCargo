@@ -1,5 +1,37 @@
 # Changelog
 
+## [2.15.0] - 2026-09-17
+
+### Added
+
+- Add mixed, nested cargo: select goods or load units and place them together in
+  boxes, larger packages, pallets or transport units. Split quantities across
+  identical packages, retain the remainder, move, unpack and undo. Bulk goods,
+  long lengths, pipes and machines remain directly loadable without packaging.
+- Give physical packages and carriers stable identifiers, with reusable-unit
+  selection and frozen shipment specifications. Add a packaging library and a
+  versioned cargo contract for a future separate planner plugin.
+- Keep unknown measurements unknown; calculate goods, packaging and carrier tare
+  separately, enforce allocation/capacity constraints and reject stale writes.
+- Preserve cargo in saved drafts, shipment copies, specialist review and exports.
+  CMR, AVC, packing lists and delivery notes use outer packages; specialized
+  documents explicitly report unsupported nested projections.
+
+### Changed
+
+- Simplify controls throughout shipment entry, goods/equipment libraries,
+  organisation work, account settings and administration. Remove permanent
+  instructional copy; retain field names, actual errors and consequential facts.
+- Add keyboard-operable suggestions, concise search-name tags, direct retry
+  actions and accessible password/verification forms in all four languages.
+
+### Fixed
+
+- Require sign-in for QR-linked safety cards and preserve the intended link after
+  login. Existing roles and specialist-release requirements remain enforced.
+- Prevent late draft writes from reverting finished shipments, preserve cargo
+  identity during transport-mode changes, and migrate legacy container tare once.
+
 ## [2.14.1] - 2026-09-16
 
 ### Changed

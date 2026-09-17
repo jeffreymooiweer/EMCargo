@@ -183,6 +183,16 @@ def _010_equipment_assets(conn: Connection) -> None:
     EquipmentFile.__table__.create(conn, checkfirst=True)
 
 
+def _011_cargo(conn: Connection) -> None:
+    """Add cargo storage without rewriting any historical shipment snapshot."""
+    from app.models.cargo import PackagingTemplate, CargoIdentity, CargoUse
+    for model in (PackagingTemplate, CargoIdentity, CargoUse):
+        model.__table__.create(conn, checkfirst=True)
+    add_column(conn, "shipments", "cargo_revision INTEGER NOT NULL DEFAULT 0")
+    add_column(conn, "shipments", "cargo_id VARCHAR(36)")
+    conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_shipments_cargo_id ON shipments (cargo_id)"))
+
+
 #: In order. Append; never renumber, never remove.
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "shipments", _001_shipments),
@@ -195,6 +205,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (8, "shipment_drafts", _008_shipment_drafts),
     (9, "work_queue", _009_work_queue),
     (10, "equipment_assets", _010_equipment_assets),
+    (11, "cargo", _011_cargo),
 ]
 
 

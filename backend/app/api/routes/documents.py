@@ -40,6 +40,7 @@ from app.services.documents import (
     validate_document,
 )
 from app.services import regulations
+from app.services.cargo_documents import project_lines, validate_for_document
 from app.services.documents import brand, customs_route
 from app.services.documents.un_card_store import card_path as un_card_path
 from app.services.documents.avc_form import fill_avc_waybill, has_avc_template
@@ -109,6 +110,7 @@ def validate(payload: DocumentExportRequest, user: User = Depends(get_current_us
     document = get_document(payload.document_key)
     if document is None:
         raise HTTPException(status_code=404, detail="Unknown document")
+    validate_for_document(payload.cargo, payload.lines, payload.document_key, payload.values)
     errors, warnings = validate_document(
         document, payload.values, payload.lines, payload.dangerous_goods, payload.output_language
     )
@@ -169,7 +171,11 @@ def _render_export(document: dict, payload: DocumentExportRequest,
     hands out.
     """
     from app.services.container_loading import assess
-    payload = payload.model_copy(update={"lines": assess(payload.lines)[0]})
+    validate_for_document(payload.cargo, payload.lines, payload.document_key, payload.values)
+    if payload.cargo is not None and payload.document_key in {"cmr", "avc_waybill", "packing_list", "delivery_note"}:
+        payload = payload.model_copy(update={"lines": project_lines(payload.cargo, payload.lines, payload.dangerous_goods, payload.output_language), "dangerous_goods": None})
+    elif payload.cargo is None:
+        payload = payload.model_copy(update={"lines": assess(payload.lines)[0]})
     exporter = document.get("exporter")
     if ((exporter == "pdf_template" and not has_pdf_template(payload.document_key))
             or (exporter == "avc" and not has_avc_template())):
@@ -263,6 +269,7 @@ def _render_export(document: dict, payload: DocumentExportRequest,
             payload.output_language,
             profiles=payload.profiles or None,
             modality=payload.modality or None,
+            cargo=payload.cargo,
         )
     elif exporter == "iftdgn":
         # Not paper either: the UN/EDIFACT dangerous goods notification, from
@@ -348,6 +355,7 @@ def export(
     document = get_document(payload.document_key)
     if document is None:
         raise HTTPException(status_code=404, detail="Unknown document")
+    validate_for_document(payload.cargo, payload.lines, payload.document_key, payload.values)
     errors, _warnings = validate_document(
         document, payload.values, payload.lines, payload.dangerous_goods, payload.output_language
     )
@@ -382,6 +390,10 @@ def build_bundle(payload: DocumentBundleRequest, db: Session) -> tuple[Path, str
     """
     if not payload.documents:
         raise HTTPException(status_code=422, detail="Nothing to bundle")
+    if payload.cargo is not None or any(item.cargo is not None for item in payload.documents):
+        from app.services.cargo_storage import canonical
+        if any(canonical(item.cargo) != canonical(payload.cargo) for item in payload.documents):
+            raise error(422, "cargo.snapshot_mismatch")
 
     brand.use(db)
     signature_png = _decoded_signature(payload.signature_image)
@@ -395,6 +407,7 @@ def build_bundle(payload: DocumentBundleRequest, db: Session) -> tuple[Path, str
             if document is None:
                 notes.append(f"{item.document_key}: unknown document, not included")
                 continue
+            validate_for_document(item.cargo, item.lines, item.document_key, item.values)
             errors, _warnings = validate_document(
                 document, item.values, item.lines,
                 item.dangerous_goods, item.output_language,

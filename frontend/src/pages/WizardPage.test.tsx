@@ -5,19 +5,29 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AssistantState, DgEntry, DocumentRegistry, ShipmentDetail } from "../api/client";
 import type { DraftLine } from "../components/ReviewLinesPanel";
+import type { CargoManifest } from "../api/cargo";
+import type { CargoWorkspaceProps } from "../components/cargo/CargoWorkspace";
+import { unpackCargo } from "../utils/cargo";
 import WizardPage from "./WizardPage";
 
 const mocks = vi.hoisted(() => ({
   api: {
     documentsRegistry: vi.fn(), shipments: vi.fn(), shipment: vi.fn(), runningDraft: vi.fn(),
-    saveDraft: vi.fn(), calculate: vi.fn(), updateShipment: vi.fn(),
+    saveDraft: vi.fn(), calculate: vi.fn(), updateShipment: vi.fn(), keepShipment: vi.fn(),
   },
+  cargoApi: { assess: vi.fn(), reusableUnits: vi.fn() },
+  cargoProps: null as CargoWorkspaceProps | null,
   assistantProps: null as null | { onApplyState: (state: AssistantState) => void; buildState: () => AssistantState },
   toast: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
   settings: { history_enabled: true },
   preferences: { prefill_documents: false, consignor_name: "", default_unit: "pcs" },
 }));
 vi.mock("../api/client", () => ({ api: mocks.api }));
+vi.mock("../api/cargo", () => ({ cargoApi: mocks.cargoApi }));
+vi.mock("../components/cargo/CargoWorkspace", () => ({ default: (props: CargoWorkspaceProps) => {
+  mocks.cargoProps = props;
+  return <pre aria-label="Cargo manifest">{JSON.stringify(props.value)}</pre>;
+} }));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: "nl" } }) }));
 vi.mock("../settings/preferences", () => ({
   usePreferences: () => ({ preferences: mocks.preferences, publicSettings: mocks.settings, loaded: true }),
@@ -72,6 +82,7 @@ function open(path = "/wizard/road", strict = true) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   localStorage.clear();
   mocks.settings.history_enabled = true;
   mocks.preferences.prefill_documents = false;
@@ -82,6 +93,12 @@ beforeEach(() => {
   mocks.api.shipment.mockResolvedValue(saved());
   mocks.api.saveDraft.mockResolvedValue({ id: 42, updated_at: "2026-09-08T10:00:00Z" });
   mocks.api.updateShipment.mockResolvedValue({ id: 42, updated_at: "2026-09-13T10:00:00Z" });
+  mocks.api.keepShipment.mockResolvedValue({ id: 42, cargo_revision: 10, updated_at: "2026-09-17T10:00:00Z" });
+  mocks.cargoProps = null;
+  mocks.cargoApi.reusableUnits.mockResolvedValue([]);
+  mocks.cargoApi.assess.mockImplementation(async (cargo: CargoManifest) => ({ cargo, units: [], loose: [], issues: [],
+    totals: { goods_kg: 50, packaging_kg: 1, cargo_gross_kg: 51, transport_tare_kg: 0,
+      transport_gross_kg: 51, occupied_volume_m3: null, complete: true } }));
   mocks.api.calculate.mockImplementation(() => new Promise(() => {}));
 });
 afterEach(() => { vi.useRealTimers(); });
@@ -151,7 +168,7 @@ describe("shipment restoration", () => {
     open();
     await screen.findByLabelText("Goods description");
     await waitFor(() => expect(mocks.api.calculate).toHaveBeenCalledWith(expect.objectContaining({
-      line_overrides: [{ line_id: 1, ...override }],
+      line_overrides: [{ line_id: 1, cargo_goods_id: 1, ...override }],
     })));
   });
 
@@ -362,4 +379,156 @@ it("recalculates assistant weight changes made on the details step", async () =>
     text: "bureaustoelen | 4 | pcs",
     line_overrides: [expect.objectContaining({ line_id: 1, weight_each_kg: 13 })],
   })));
+});
+
+const PACKAGE_ID = "f53bd26f-fcdc-4e44-9b74-446f71edced8";
+const SHIPMENT_CARGO_ID = "3b98a64e-dafe-4840-8e04-149554bb78ed";
+const ALLOCATION_ID = "dc9bd290-1e3d-4555-9f64-226a89c264df";
+
+function packedShipment(stepKey = "lines"): ShipmentDetail {
+  const cargo: CargoManifest = {
+    schema_version: 1, shipment_id: SHIPMENT_CARGO_ID, revision: 3,
+    units: [{ id: PACKAGE_ID, code: "BOX-145", name: "Mixed box", category: "box", kind: "package", parent_id: null, tare_kg: 1 }],
+    allocations: [{ id: ALLOCATION_ID, goods_id: 7, unit_id: PACKAGE_ID, quantity: 2 }],
+  };
+  return {
+    ...saved(), cargo_revision: 9,
+    snapshot: {
+      ...saved().snapshot, version: 2, cargo, cargoBaseRevision: 2, stepKey, nextId: 8,
+      draftLines: [{ id: 7, description: "Packed bolts", quantity: 2, unit: "pcs", weight_total_kg: 50 }],
+      result: {
+        success: true,
+        lines: [{ line_id: 1, cargo_goods_id: 7, description: "Packed bolts", quantity: 2,
+          unit: "pcs", include: true, status: "ok", weight_total_kg: 50, weight_each_kg: 25,
+          messages: [], detected_un_numbers: [] }],
+        totals: { line_count: 1, included_count: 1, total_quantity: 2, total_weight_kg: 50,
+          total_material_volume_m3: 0, total_transport_volume_m3: 0, warning_count: 0, error_count: 0 },
+      },
+    },
+  };
+}
+
+/** Cargo uses stable draft IDs; calculation row positions and a locally stored
+ * revision must not replace the authoritative saved revision during autosave. */
+it("restores cargo identities and serializes autosaves against the latest saved revision", async () => {
+  vi.useFakeTimers();
+  mocks.api.runningDraft.mockResolvedValue(packedShipment());
+  mocks.api.saveDraft.mockResolvedValue({ id: 42, cargo_revision: 10, updated_at: "2026-09-17T10:00:00Z" });
+  open();
+  await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(2700); });
+  const first = mocks.api.saveDraft.mock.lastCall![0];
+  expect(first.expected_cargo_revision).toBe(9);
+  expect(first.cargo).toMatchObject({ shipment_id: SHIPMENT_CARGO_ID, units: [{ id: PACKAGE_ID }],
+    allocations: [{ id: ALLOCATION_ID, goods_id: 7, unit_id: PACKAGE_ID }] });
+  expect(first.lines[0]).toMatchObject({ line_id: 1, cargo_goods_id: 7 });
+  expect(first.snapshot.cargo).toEqual(first.cargo);
+  fireEvent.change(screen.getByLabelText("wizard.referenceLabel"), { target: { value: "SECOND-SAVE" } });
+  await act(async () => { await vi.advanceTimersByTimeAsync(2600); });
+  expect(mocks.api.saveDraft.mock.lastCall![0]).toMatchObject({ expected_cargo_revision: 10,
+    cargo: { shipment_id: SHIPMENT_CARGO_ID, units: [{ id: PACKAGE_ID }] } });
+});
+
+/** The guided intake can replace goods too. It must not bypass the normal
+ * deletion guard and leave a box referencing goods that no longer exist. */
+it("rejects an assistant deletion of allocated goods before changing the shipment", async () => {
+  mocks.api.runningDraft.mockResolvedValue(packedShipment());
+  open(); await screen.findByLabelText("Goods description");
+  await act(async () => mocks.assistantProps!.onApplyState({ draft_lines: [], dg_entries: [], doc_values: {} }));
+  expect(mocks.assistantProps!.buildState().draft_lines).toEqual(expect.arrayContaining([
+    expect.objectContaining({ id: 7, description: "Packed bolts" }),
+  ]));
+  expect(mocks.assistantProps!.buildState().doc_values?.shipment_reference).toBe("SAVED-42");
+  expect(mocks.toast.error).toHaveBeenCalledWith("cargoIntegration.assignedGoods");
+});
+
+/** Legacy containers existed as goods lines carrying tare. Unpacking removes
+ * the carrier from this shipment, and undo restores its identity without a
+ * second copy of its empty mass or dangling original container references. */
+it("unpacks and restores a migrated container without turning its tare into loose goods", async () => {
+  vi.useFakeTimers();
+  const legacy = saved("Container");
+  legacy.snapshot = { ...legacy.snapshot, nextId: 9, draftLines: [
+    { id: 3, description: "Container", quantity: 1, unit: "pcs", equipment_role: "container", weight_total_kg: 2000,
+      equipment: { equipment_id: 8, version: 1, kind: "container", specifications: "Container", weight_kg: 2000, container_number: "TEST1234567" } },
+    { id: 7, description: "Steel", quantity: 2, unit: "pcs", weight_total_kg: 50, container_line_id: 3 },
+  ] };
+  mocks.api.runningDraft.mockResolvedValue(legacy);
+  open(); await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+  fireEvent.click(screen.getByRole("button", { name: /^cargoIntegration.cargo/ }));
+  const before = structuredClone(mocks.cargoProps!.value);
+  const carrier = before.units[0];
+  await act(async () => mocks.cargoProps!.onChange(unpackCargo(before, mocks.cargoProps!.goods, [carrier.id])));
+  await act(async () => { await vi.advanceTimersByTimeAsync(2600); });
+  const unpacked = mocks.api.saveDraft.mock.lastCall![0];
+  expect(unpacked.cargo.units).toEqual([]);
+  expect(unpacked.lines.filter((line: { equipment_role?: string }) => line.equipment_role === "container")).toEqual([]);
+  expect(unpacked.lines.map((line: { weight_total_kg: number }) => line.weight_total_kg)).toEqual([50]);
+  expect(unpacked.snapshot.draftLines.every((line: DraftLine) => line.container_line_id == null)).toBe(true);
+  await act(async () => mocks.cargoProps!.onChange({ ...before, revision: mocks.cargoProps!.value.revision + 1 }));
+  await act(async () => { await vi.advanceTimersByTimeAsync(2600); });
+  const restored = mocks.api.saveDraft.mock.lastCall![0];
+  expect(restored.cargo.units).toEqual(expect.arrayContaining([expect.objectContaining({ id: carrier.id })]));
+  expect(restored.cargo.allocations).toEqual(before.allocations);
+  const restoredCarrier = restored.cargo.units.find((unit: { id: string }) => unit.id === carrier.id);
+  const carrierLines = restored.lines.filter((line: { equipment_role?: string }) => line.equipment_role === "container");
+  expect(carrierLines).toHaveLength(restoredCarrier.legacy_goods_id == null ? 0 : 1);
+});
+
+/** A failed network autosave used to poison pendingDraft forever, so the
+ * explicit save could not recover even after the connection returned. */
+it("allows an explicit save after an earlier autosave failed", async () => {
+  vi.useFakeTimers();
+  mocks.api.runningDraft.mockResolvedValue(packedShipment("export"));
+  mocks.api.saveDraft.mockRejectedValueOnce(new Error("offline"));
+  mocks.api.updateShipment.mockResolvedValue({ id: 42, cargo_revision: 10, updated_at: "2026-09-17T10:00:00Z" });
+  open(); await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(2700); });
+  expect(mocks.api.saveDraft).toHaveBeenCalledTimes(1);
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "history.keep" })); });
+  expect(mocks.api.updateShipment).toHaveBeenCalledWith(42, expect.objectContaining({ draft: false, expected_cargo_revision: 9 }));
+  expect(screen.getByTestId("history-status")).toHaveTextContent("history.keptAt");
+});
+
+/** Final save must cancel an autosave timer that has not fired and await an
+ * in-flight one. A late draft write must never hide a published shipment. */
+it("waits for pending autosave before publication and prevents later draft writes", async () => {
+  vi.useFakeTimers();
+  const pending = deferred<{ id: number; cargo_revision: number; updated_at: string }>();
+  mocks.api.runningDraft.mockResolvedValue(packedShipment("export"));
+  mocks.api.saveDraft.mockReturnValueOnce(pending.promise);
+  mocks.api.updateShipment.mockResolvedValue({ id: 42, cargo_revision: 11, updated_at: "2026-09-17T10:00:00Z" });
+  open(); await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(2700); });
+  expect(mocks.api.saveDraft).toHaveBeenCalledTimes(1);
+  fireEvent.change(screen.getByLabelText("wizard.referenceLabel"), { target: { value: "READY-42" } });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "history.keep" })); });
+  expect(mocks.api.updateShipment).not.toHaveBeenCalled();
+  await act(async () => pending.resolve({ id: 42, cargo_revision: 10, updated_at: "2026-09-17T10:00:00Z" }));
+  expect(mocks.api.updateShipment).toHaveBeenCalledWith(42, expect.objectContaining({ draft: false, expected_cargo_revision: 10,
+    values: expect.objectContaining({ shipment_reference: "READY-42" }) }));
+  await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
+  expect(mocks.api.saveDraft).toHaveBeenCalledTimes(1);
+});
+
+/** Switching modality while editing a retained shipment must not turn it into
+ * a fresh draft with the same physical unit IDs or lose its revision guard. */
+it("keeps the saved shipment and cargo identity when carrying edits to another modality", async () => {
+  const shipment = packedShipment("export");
+  mocks.api.shipment.mockResolvedValue(shipment);
+  mocks.api.calculate.mockResolvedValue(shipment.snapshot.result);
+  open("/wizard/road?shipment=42");
+  await screen.findByRole("button", { name: "history.update" });
+  fireEvent.change(screen.getByRole("combobox", { name: "wizard.mode" }), { target: { value: "rail" } });
+  expect(await screen.findByLabelText("Goods description")).toHaveValue("Packed bolts");
+  fireEvent.change(screen.getByLabelText("wizard.referenceLabel"), { target: { value: "CARRIED-42" } });
+  fireEvent.click(screen.getByRole("button", { name: "review.continueTo" }));
+  fireEvent.click(await screen.findByRole("button", { name: "history.update" }));
+  await waitFor(() => expect(mocks.api.updateShipment).toHaveBeenCalledWith(42, expect.objectContaining({
+    modality: "rail", draft: false, expected_cargo_revision: 9,
+    cargo: expect.objectContaining({ shipment_id: SHIPMENT_CARGO_ID, units: [expect.objectContaining({ id: PACKAGE_ID })] }),
+    values: expect.objectContaining({ shipment_reference: "CARRIED-42" }),
+  })));
+  expect(mocks.api.saveDraft).not.toHaveBeenCalled();
+  expect(mocks.api.keepShipment).not.toHaveBeenCalled();
 });

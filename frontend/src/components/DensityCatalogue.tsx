@@ -34,7 +34,6 @@ export default function DensityCatalogue() {
   }, [query, offset, category, i18n.language, attempt]);
 
   return <section className="surface p-4 sm:p-6 space-y-4" aria-label={t("densities.title")}>
-    <p className="text-sm text-slate-600 dark:text-slate-300">{t("densities.intro")}</p>
     <select value={category} onChange={event => { setCategory(event.target.value); setOffset(0); }} aria-label={t("densities.category")} className="w-full sm:w-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 text-sm">
       <option value="">{t("densities.allCategories")}</option>
       {CATEGORIES.map(value => <option key={value} value={value}>{t(`densities.categories.${value}`)}</option>)}

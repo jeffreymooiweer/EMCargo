@@ -15,7 +15,7 @@ vi.mock("./components/Layout", () => ({ default: () => <Outlet /> }));
 vi.mock("./pages/LoginPage", () => ({ default: ({ onLogin }: { onLogin: () => Promise<void> }) => <button onClick={() => void onLogin()}>Sign in</button> }));
 vi.mock("./pages/ModalitySelectPage", () => ({ default: () => <p>Transport choices</p> }));
 vi.mock("./pages/OverviewPage", () => ({ default: () => <p>Overview</p> }));
-vi.mock("./pages/CardsPage", () => ({ default: () => <p>Public UN cards</p> }));
+vi.mock("./pages/CardsPage", () => ({ default: () => <p>UN cards</p> }));
 vi.mock("./pages/ShipmentsPage", () => ({ default: () => <p>Saved shipment</p> }));
 vi.mock("./pages/SettingsPage", () => ({ default: ({ area = "account", sectionOverride }: { area?: string; sectionOverride?: string }) => <p>{area}:{sectionOverride || "settings"}</p> }));
 
@@ -43,9 +43,14 @@ it.each(["/", "/overzicht", "/wizard/road", "/settings", "/account/profile", "/a
   expect(api.health).not.toHaveBeenCalled();
 });
 
-it("keeps the public QR page reachable without a session", async () => {
+it("requires sign-in for a scanned card and restores its full URL afterwards", async () => {
+  api.me.mockRejectedValueOnce(new Error("Not authenticated")).mockResolvedValue({ user: account });
   page("/cards?un=1203&m=ADR");
-  expect(await screen.findByText("Public UN cards")).toBeInTheDocument();
+  const signIn = await screen.findByRole("button", { name: "Sign in" });
+  expect(screen.getByTestId("position")).toHaveTextContent("/login");
+  expect(screen.queryByText("UN cards")).toBeNull();
+  await userEvent.click(signIn);
+  expect(await screen.findByText("UN cards")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Sign in" })).toBeNull();
   expect(screen.getByTestId("position")).toHaveTextContent("/cards?un=1203&m=ADR");
 });

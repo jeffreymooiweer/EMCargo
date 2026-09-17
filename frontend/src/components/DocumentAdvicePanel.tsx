@@ -96,7 +96,7 @@ export default function DocumentAdvicePanel({ registry, modality, needsDg, selec
     { keys: advice.recommended, label: t("advice.recommended") },
     { keys: advice.possible, label: t("advice.possible"), optional: true },
     // Not documents: read by another system, not carried on the vehicle.
-    { keys: advice.integration, label: t("advice.integration"), note: t("advice.integrationNote"), optional: true },
+    { keys: advice.integration, label: t("advice.integration"), optional: true },
   ];
 
   /** The reason a whole group shares, if its documents are all on the list for
@@ -105,7 +105,8 @@ export default function DocumentAdvicePanel({ registry, modality, needsDg, selec
    *  document — each card says its own. */
   const sharedReason = (keys: string[]): string | null => {
     const kinds = new Set(keys.map((key) => advice.reasons[key]));
-    return kinds.size === 1 ? t(`advice.reason.${[...kinds][0]}`) : null;
+    const kind = [...kinds][0];
+    return kinds.size === 1 && (kind === "dgTransport" || kind === "dgSupport") ? t(`advice.reason.${kind}`) : null;
   };
 
   const docFor = (key: string): DocumentDefinition | undefined =>
@@ -115,16 +116,15 @@ export default function DocumentAdvicePanel({ registry, modality, needsDg, selec
     <div className={`${panelClass} space-y-3 p-4 sm:p-6`}>
       <div>
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t("advice.title")}</h3>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t("advice.intro")}</p>
       </div>
       {groups.map((group) => {
         if (group.keys.length === 0) return null;
         const shared = sharedReason(group.keys);
         const choices = (
             <div key={group.label}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {!group.optional && <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {group.label}
-              </p>
+              </p>}
               {(group.note ?? shared) && (
                 <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{group.note ?? shared}</p>
               )}
@@ -154,7 +154,7 @@ export default function DocumentAdvicePanel({ registry, modality, needsDg, selec
                         </span>
                         {/* Why it is on the list, where that differs from the
                             document beside it; otherwise the group said it. */}
-                        {!shared && (
+                        {!shared && (advice.reasons[key] === "dgTransport" || advice.reasons[key] === "dgSupport") && (
                           <span className="mt-0.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
                             {t(`advice.reason.${advice.reasons[key]}`)}
                           </span>

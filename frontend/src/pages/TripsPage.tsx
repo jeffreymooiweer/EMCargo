@@ -222,7 +222,7 @@ export default function TripsPage({ user }: { user?: User | null }) {
   const closePicker = () => { setPicker(false); addButton.current?.focus(); };
 
   return <div className="trip-workspace page-enter">
-    <header className="page-heading"><div><h1>{t("trips.title")}</h1><p>{t("tripWorkspace.intro")}</p></div>
+    <header className="page-heading"><div><h1>{t("trips.title")}</h1></div>
       <button type="button" className="action-secondary" disabled={locked || adding} onClick={() => change(startNew)}><PlusIcon />{t("trips.newTrip")}</button>
     </header>
     {!historyOn && <p className="trip-storage-note">{t("tripWorkspace.noStorage")}</p>}
@@ -240,11 +240,11 @@ export default function TripsPage({ user }: { user?: User | null }) {
                 <p>{consignment.route_label || t(consignment.entries.length ? "tripWorkspace.dgPositions" : "tripWorkspace.generalGoods", { count: productCount(consignment) })}</p></div>
               {consignment.entries.length > 0 && <span className="trip-dg-tag">DG</span>}
               <button className="trip-icon-button" type="button" aria-label={t("tripWorkspace.removeShipment", { name: consignment.name })} onClick={() => setDraft(d => ({ ...d, consignments: d.consignments.filter((_, i) => i !== index) }))}><CloseIcon /></button>
-            </li>)}</ul> : !picker && <div className="trip-empty"><ShipmentsIcon /><h3>{t("tripWorkspace.start")}</h3><p>{t(historyOn ? "tripWorkspace.startHint" : "tripWorkspace.importHint")}</p><button ref={addButton} className="action-primary" type="button" aria-expanded={picker} onClick={() => historyOn ? setPicker(true) : fileInput.current?.click()}><PlusIcon />{t("tripWorkspace.add")}</button></div>}
+            </li>)}</ul> : !picker && <div className="trip-empty"><ShipmentsIcon /><h3>{t("tripWorkspace.start")}</h3><button ref={addButton} className="action-primary" type="button" aria-expanded={picker} onClick={() => historyOn ? setPicker(true) : fileInput.current?.click()}><PlusIcon />{t("tripWorkspace.add")}</button></div>}
             {picker && historyOn && <ShipmentPicker selected={draft.consignments} busyIds={busyIds} onAdd={summary => void addShipment(summary)} onClose={closePicker} />}
             <div className="trip-composer-bottom"><button className="trip-text-button" type="button" disabled={importing} onClick={() => fileInput.current?.click()}><ImportIcon />{t(importing ? "tripWorkspace.adding" : "tripWorkspace.import")}</button>
               <input ref={fileInput} type="file" accept="application/json,.json" multiple className="sr-only" aria-label={t("tripWorkspace.import")} onChange={event => { void importFiles(event.target.files); event.target.value = ""; }} />
-              {!!draft.consignments.length && <details className="trip-vehicle" open={mass === undefined || (!!current?.result.lq_marking?.lq_gross_kg && current.result.lq_marking.required === null) || undefined}><summary>{t("tripWorkspace.vehicle")}{draft.mass && <span> · {draft.mass} t</span>}</summary><label htmlFor="trip-mass">{t("groupage.unitMass")}</label><input id="trip-mass" inputMode="decimal" placeholder={t("tripWorkspace.unknown")} value={draft.mass} aria-invalid={mass === undefined} aria-describedby="trip-mass-hint" onChange={event => setDraft(d => ({ ...d, mass: event.target.value }))} /><p id="trip-mass-hint">{t(mass === undefined ? "tripWorkspace.assessment.invalidMassHint" : "tripWorkspace.massHint")}</p></details>}
+              {!!draft.consignments.length && <details className="trip-vehicle" open={mass === undefined || (!!current?.result.lq_marking?.lq_gross_kg && current.result.lq_marking.required === null) || undefined}><summary>{t("tripWorkspace.vehicle")}{draft.mass && <span> · {draft.mass} t</span>}</summary><label htmlFor="trip-mass">{t("groupage.unitMass")}</label><input id="trip-mass" inputMode="decimal" placeholder={t("tripWorkspace.unknown")} value={draft.mass} aria-invalid={mass === undefined} aria-describedby={mass === undefined ? "trip-mass-error" : undefined} onChange={event => setDraft(d => ({ ...d, mass: event.target.value }))} />{mass === undefined && <p id="trip-mass-error" role="alert">{t("tripWorkspace.assessment.invalidMassHint")}</p>}</details>}
             </div>
           </fieldset>
           {saveFailure && <div className="trip-inline-error" role="alert">{saveFailure}</div>}

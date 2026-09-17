@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.schemas.settings import EMAIL_ADDRESS
+from app.schemas.cargo import CargoManifest
 
 
 class LoginRequest(BaseModel):
@@ -69,6 +70,7 @@ class UnCardsRequest(BaseModel):
 
 
 class DocumentExportRequest(BaseModel):
+    cargo: CargoManifest | None = None
     dg_review_id: str | None = Field(default=None, max_length=36)
     document_key: str
     values: dict = Field(default_factory=dict)
@@ -100,6 +102,7 @@ class DocumentBundleRequest(BaseModel):
     complaint when the shipment has no dangerous goods.
     """
 
+    cargo: CargoManifest | None = None
     dg_review_id: str | None = Field(default=None, max_length=36)
     documents: list[DocumentExportRequest] = Field(default_factory=list)
     dangerous_goods: list[dict] | None = None

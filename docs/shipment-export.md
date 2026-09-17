@@ -20,13 +20,13 @@ MMT-RDM, an eCMR pilot, a platform connector) builds on this file existing.
 
 ## What is in it
 
-The format identifier is now `emcargo.shipment`, with format version `2.0`.
+The format identifier is now `emcargo.shipment`, with format version `2.1`.
 Integrations must accept this new identifier before consuming new exports.
 
 ```json
 {
   "format": "emcargo.shipment",
-  "format_version": "2.0",
+  "format_version": "2.1",
   "generated_at": "2026-08-23T15:58:51+00:00",
   "generator": { "application": "EMCargo", "version": "1.161.0" },
   "language": "nl",
@@ -133,3 +133,10 @@ promise. The shipment history (v1.173.0) reopens a kept shipment from the wizard
 own saved state, not from this file; the file is what the history keeps *beside*
 that state as the documented record, and what the shipments page hands out as
 **Structured export (JSON)**.
+
+## Optional cargo hierarchy (format 2.1)
+
+The additive `cargo` and `cargo_assessment` fields preserve nested physical units,
+partial goods allocations, stable identifiers and explicit unknown measurements.
+The original `goods` lines remain available. See [Cargo contract v1](cargo-contract.md)
+for quantities, revisions, document mappings and the independent plugin interface.

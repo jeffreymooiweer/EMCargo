@@ -37,6 +37,15 @@ administrator system controls. DGSA reports are restricted to specialists and
 administrators unless the admin explicitly enables Super User report access.
 See [roles, release and storage](docs/dg-review.md) for the workflow and settings.
 
+## Cargo and packaging
+
+Combine different goods in a box and nest packages inside larger boxes or pallets.
+Keep bulk material, steel, pipes and machinery unpackaged or load them directly
+into an own, external or unspecified transport unit. Physical units have stable
+IDs; templates and saved shipments retain their own specifications. The
+[versioned cargo contract](docs/cargo-contract.md) supports a future separate
+planner module.
+
 ## EMCargo interface
 
 EMCargo 2.2 uses a navy and cobalt workspace, original transport photography,

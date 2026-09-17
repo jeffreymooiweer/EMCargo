@@ -1,3 +1,9 @@
+import { canManage } from "../permissions";
+import type { User } from "../api/client";
+import CargoWorkspace from "../components/cargo/CargoWorkspace";
+import { cargoApi, type CargoManifest, type CargoAssessment } from "../api/cargo";
+import { emptyCargo, cloneCargo, bindReusableCargo } from "../utils/cargo";
+import { cargoLines, cargoGoods, migrateCargo, templateCargoDrafts, editCargo, preservesCargo } from "../wizard/cargoState";
 import { containerAutoValues } from "../utils/containerValues";
 import { equipmentPatch } from "../utils/equipment";
 import { useDgReview, DgReviewGate } from "../wizard/useDgReview";
@@ -161,7 +167,7 @@ const MODALITY_DG_PROFILES: Record<string, string[]> = {
   multimodal: ["ADR", "IATA_DGR", "IMDG"],
 };
 
-export default function WizardPage() {
+export default function WizardPage({ user }: { user?: User } = {}) {
   const { t, i18n } = useTranslation();
   const { modality } = useParams();
   const lang = documentLanguage(i18n.language);
@@ -196,7 +202,32 @@ export default function WizardPage() {
   const [skippedQuestions, setSkippedQuestions] = useState<string[]>([]);
   const [draftLines, setDraftLines] = useState<DraftLine[]>([{ id: 1, description: "", quantity: 1, unit: "pcs" }]);
   const [nextId, setNextId] = useState(2);
+  const [cargo, setCargo] = useState<CargoManifest>(emptyCargo);
+  const cargoBaseRevision = useRef<number | null>(null);
+  const cargoSaving = useRef(false);
+  const [linesView, setLinesView] = useState<"goods" | "cargo">("goods");
+  const [cargoOpened, setCargoOpened] = useState(false);
+  const [cargoAssessmentState, setCargoAssessmentState] = useState<{ key: string; value: CargoAssessment | null; error: string } | null>(null);
   const [result, setResult] = useState<CalcResult | null>(null);
+  const cargoInputLines = useMemo(() => cargoLines(draftLines, result), [draftLines, result]);
+  const displayedCargoGoods = useMemo(() => cargoGoods(cargoInputLines, cargo), [cargoInputLines, cargo]);
+  const cargoUsed = cargo.units.length > 0 || cargo.revision > 0 || cargoBaseRevision.current != null;
+  const cargoPayload = cargoUsed ? cargo : undefined;
+  const cargoKey = cargoUsed ? JSON.stringify({ cargo, lines: cargoInputLines }) : "";
+  const cargoAssessment = cargoAssessmentState?.key === cargoKey ? cargoAssessmentState.value : null;
+  const cargoFailure = cargoAssessmentState?.key === cargoKey ? cargoAssessmentState.error : "";
+  useEffect(() => {
+    if (!cargoKey) return;
+    let active = true;
+    const timer = setTimeout(() => {
+      cargoApi.assess(cargo, cargoInputLines).then(value => {
+        if (active) setCargoAssessmentState({ key: cargoKey, value, error: "" });
+      }).catch(error => {
+        if (active) setCargoAssessmentState({ key: cargoKey, value: null, error: String(error) });
+      });
+    }, 200);
+    return () => { active = false; clearTimeout(timer); };
+  }, [cargoKey]);
   const [dgEntries, setDgEntries] = useState<DgEntry[]>([]);
   const [signature, setSignature] = useState<string | null>(null);
   const [documentEvidence, setDocumentEvidence] = useState<DocumentEvidence[]>([]);
@@ -371,6 +402,7 @@ export default function WizardPage() {
   }, [stepKey]);
 
   const goToField = (key: string) => {
+    if (key === "cargo") { setStepKey("lines"); setLinesView("cargo"); return; }
     if (key === "shipment_reference") {
       const field = document.getElementById("field-shipment_reference");
       field?.focus();
@@ -584,6 +616,7 @@ export default function WizardPage() {
         ...res,
         lines: res.lines.map((line, i) => ({
           ...line,
+          cargo_goods_id: flagged[i]?.id ?? line.line_id,
           dangerous_goods: Boolean(line.dangerous_goods || flagged[i]?.dangerous_goods),
           article: flagged[i]?.article ?? null,
           detected_un_numbers: flagged[i]?.confirmed_un
@@ -655,6 +688,9 @@ export default function WizardPage() {
   };
 
   const removeLine = (id: number) => {
+    if (cargo.allocations.some(item => item.goods_id === id) || cargo.units.some(unit => unit.legacy_goods_id === id)) {
+      setLinesView("cargo"); toast.error(t("cargoIntegration.assignedGoods")); return;
+    }
     setDraftLines((lines) => lines.filter((l) => l.id !== id));
     setResult(null);
   };
@@ -680,8 +716,10 @@ export default function WizardPage() {
     const before = draftLines;
     const beforeId = nextId;
     const beforeResult = result;
+    const beforeCargo = cargo;
     let added = 0;
     if (importMode === "replace") {
+      setCargo(previous => ({ ...previous, units: [], allocations: [], revision: previous.revision + 1 }));
       const lines = textToDraftLines(text);
       added = lines.length;
       setDraftLines(lines);
@@ -702,6 +740,7 @@ export default function WizardPage() {
             setDraftLines(before);
             setNextId(beforeId);
             setResult(beforeResult);
+            setCargo(beforeCargo);
             toast.success(t("wizard.importUndone"));
           },
         }],
@@ -797,7 +836,16 @@ export default function WizardPage() {
     waitingCarrier: boolean;
   } => {
     if (!registry) return { status: "draft", missing: [], waitingCarrier: false };
+    if (cargoUsed && (!cargoAssessment || cargoFailure || cargoAssessment.issues.some(issue => /exceeded|invalid|missing|cycle|allocated/.test(issue.code)))) {
+      return { status: "blocked", missing: [{ key: "cargo", label: t("cargoIntegration.checkCargo") }], waitingCarrier: false };
+    }
     if (doc.dg_only && !needsDg) return { status: "not_applicable", missing: [], waitingCarrier: false };
+    if (cargoUsed && cargo.units.some(unit => unit.kind === "package") && ["cim", "iata_dgd", "imo_dgd", "adn_transport_doc", "bl_si", "awb_si", "iftdgn", "vgm"].includes(doc.key)) {
+      return { status: "blocked", missing: [{ key: "cargo", label: t("errors.cargo.document_unsupported", { document: L(doc.label) }) }], waitingCarrier: false };
+    }
+    if (cargoUsed && ["cmr", "avc_waybill", "packing_list", "delivery_note", "vgm", "imo_dgd", "bl_si", "iftdgn"].includes(doc.key) && cargoAssessment?.totals.cargo_gross_kg == null) {
+      return { status: "blocked", missing: [{ key: "cargo", label: t("errors.cargo.documents_incomplete") }], waitingCarrier: false };
+    }
     const values = exportValuesFor(doc);
     const missing: { key: string; label: string }[] = [];
     if (["cmr", "avc_waybill"].includes(doc.key)) {
@@ -838,7 +886,8 @@ export default function WizardPage() {
   const payloadFor = (doc: DocumentDefinition): DocumentExportPayload => ({
     document_key: doc.key,
     values: exportValuesFor(doc),
-    lines: result?.lines ?? [],
+    lines: cargoInputLines,
+    cargo: cargoPayload,
     dangerous_goods: dgEntries.length > 0 ? dgEntries : undefined,
     output_language: docLang,
     // The regimes this consignment travels under. Only the documents that
@@ -901,6 +950,7 @@ export default function WizardPage() {
       await api.exportBundle({
         dg_review_id: dgReview.id,
         documents: readyDocs.map(payloadFor),
+        cargo: cargoPayload,
         dangerous_goods: dgEntries.length > 0 ? dgEntries : undefined,
         profiles: dgProfiles,
         output_language: docLang,
@@ -928,6 +978,8 @@ export default function WizardPage() {
    *  with, and what a draft is made of. */
   const wizardSnapshot = (): WizardSnapshot => ({
     version: SNAPSHOT_VERSION,
+    cargo,
+    cargoBaseRevision: cargoBaseRevision.current,
     modality: modality ?? "",
     stepKey,
     docLang: chosenDocLang,
@@ -945,17 +997,20 @@ export default function WizardPage() {
   /** The shipment as the server takes it. A draft carries no bundle: nothing
    *  has been produced yet, and the row stays small enough to write often. */
   const shipmentPayload = (draft: boolean): ShipmentIn => ({
+    expected_cargo_revision: cargoPayload ? cargoBaseRevision.current : undefined,
     modality: modality ?? "",
     language: docLang,
     profiles: dgProfiles,
     values: docValues,
-    lines: result?.lines ?? [],
+    lines: cargoInputLines,
+    cargo: cargoPayload,
     dangerous_goods: dgEntries.length > 0 ? dgEntries : undefined,
     documents: selected,
     bundle:
       !draft && readyDocs.length > 0
         ? {
             documents: readyDocs.map(payloadFor),
+            cargo: cargoPayload,
             dangerous_goods: dgEntries.length > 0 ? dgEntries : undefined,
             profiles: dgProfiles,
             output_language: docLang,
@@ -1001,7 +1056,11 @@ export default function WizardPage() {
 
   // Queue writes so an older autosave cannot overwrite the final explicit save.
   const persistDraft = (payload: ShipmentIn) => {
-    const write = pendingDraft.current.catch(() => undefined).then(() => api.saveDraft(payload));
+    const write = pendingDraft.current.catch(() => undefined).then(async () => {
+      const saved = await api.saveDraft({ ...payload, expected_cargo_revision: payload.cargo ? cargoBaseRevision.current : undefined });
+      if (payload.cargo) cargoBaseRevision.current = saved.cargo_revision ?? null;
+      return saved;
+    });
     pendingDraft.current = write;
     return write;
   };
@@ -1011,7 +1070,11 @@ export default function WizardPage() {
     window.clearTimeout(draftTimer.current);
     try {
       setDraftStatus("saving");
-      await persistDraft(shipmentPayload(true));
+      if (keptAt && historyId) {
+        await pendingDraft.current.catch(() => undefined);
+        const saved = await api.updateShipment(historyId, { ...shipmentPayload(false), expected_cargo_revision: cargoPayload ? cargoBaseRevision.current : undefined });
+        if (cargoPayload) cargoBaseRevision.current = saved.cargo_revision ?? null;
+      } else await persistDraft(shipmentPayload(true));
       navigate("/overzicht");
     } catch {
       setDraftStatus("failed");
@@ -1020,12 +1083,13 @@ export default function WizardPage() {
   };
 
   useEffect(() => {
-    if (restorePending || !historyOn || !hasEntry || reopenId || reviewSourceId || closing) return;
+    if (restorePending || !historyOn || !hasEntry || reopenId || reviewSourceId || closing || keeping || keptAt) return;
     const payload = shipmentPayload(true);
     const body = JSON.stringify(payload);
     if (body === draftBody.current) return;
     window.clearTimeout(draftTimer.current);
     draftTimer.current = window.setTimeout(() => {
+      if (cargoSaving.current) return;
       setDraftStatus("saving");
       persistDraft(payload)
         .then((saved) => {
@@ -1042,7 +1106,7 @@ export default function WizardPage() {
     // The payload is rebuilt from these; the body comparison does the rest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyOn, hasEntry, reopenId, reviewSourceId, stepKey, draftLines, docValues, result, dgEntries,
-      selectedDocs, signature, chosenDocLang, skippedQuestions, documentEvidence, closing, restorePending]);
+      selectedDocs, signature, chosenDocLang, skippedQuestions, documentEvidence, cargo, closing, restorePending, keeping, keptAt]);
 
   // Finish a read before allowing entry or autosave. Marking it restored when
   // the request started stranded StrictMode and registry-cancelled responses;
@@ -1060,17 +1124,24 @@ export default function WizardPage() {
       ? api.dgReview(reviewSourceId).then(review => ({ snapshot: review.shipment.snapshot, id: 0, updated_at: review.created_at, reference: review.reference, consignee_name: "" }))
       : reopenId ? api.shipment(Number(reopenId)) : api.runningDraft();
     request
-      .then((detail) => {
+      .then(async (detail) => {
         if (cancelled || restoredSource.current === restoreKey || (!reopenId && carriedEntry.current)) return;
         if (reopenId && !detail) throw new Error("Missing shipment");
         if (detail) {
           const snap = readSnapshot(detail.snapshot);
           if (!snap) throw new Error("Invalid shipment snapshot");
           if (reopenId || !snap.modality || snap.modality === modality) {
-            setDraftLines(snap.draftLines);
+            let restoredCargo = migrateCargo(snap.draftLines, snap.cargo);
+            if (restoredCargo.units.some(unit => unit.legacy_goods_id != null && unit.equipment_id != null)) {
+              restoredCargo = bindReusableCargo(restoredCargo, (await Promise.all([...new Set(restoredCargo.units.filter(unit => unit.equipment_id != null).map(unit => unit.equipment_id!))].map(id => cargoApi.reusableUnits("", id)))).flat());
+              if (cancelled) return;
+            }
+            setCargo(asTemplate ? cloneCargo(restoredCargo) : restoredCargo);
+            cargoBaseRevision.current = asTemplate || reviewSourceId ? null : ("cargo_revision" in detail ? Number(detail.cargo_revision) : snap.cargoBaseRevision) ?? null;
+            setDraftLines(asTemplate ? templateCargoDrafts(snap.draftLines, restoredCargo) : snap.draftLines);
             setDocumentEvidence(asTemplate ? [] : snap.documentEvidence ?? []);
             setNextId(snap.nextId);
-            setResult(snap.result);
+            setResult(asTemplate ? null : snap.result);
             setDgEntries(snap.dgEntries);
             setDocValues(asTemplate ? templateValues(snap.docValues, declarationKeys) : snap.docValues);
             setSelectedDocs(snap.selectedDocs);
@@ -1122,6 +1193,8 @@ export default function WizardPage() {
     carriedEntry.current = true;
     restoredSource.current = restoreKey;
     setSettledRestoreKey(restoreKey);
+    setCargo(migrateCargo(snap.draftLines, snap.cargo));
+    cargoBaseRevision.current = snap.cargoBaseRevision ?? null;
     setDraftLines(snap.draftLines);
     setDocumentEvidence(snap.documentEvidence ?? []);
     setNextId(snap.nextId);
@@ -1133,19 +1206,20 @@ export default function WizardPage() {
     setResult(null);
     setSelectedDocs(null);
     setStepKey("lines");
-    setHistoryId(null);
-    setKeptAt(null);
+    const origin = location.state as { sourceShipmentId?: number; keptAt?: string } | null;
+    setHistoryId(origin?.sourceShipmentId ?? null);
+    setKeptAt(origin?.keptAt ? new Date(origin.keptAt) : null);
     calculatedSignature.current = null;
     // Without this the entry would come back a second time on a reload, on top
     // of whatever had been typed since.
-    navigate(location.pathname, { replace: true });
+    navigate(location.pathname + location.search, { replace: true });
     // A new carry can arrive while React Router reuses this component.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state, location.pathname, restoreKey]);
 
   const switchModality = (next: string) => {
     if (!next || next === modality) return;
-    navigate(`/wizard/${next}`, { state: hasEntry ? { carry: wizardSnapshot() } : undefined });
+    navigate(`/wizard/${next}${keptAt && historyId ? `?shipment=${historyId}` : ""}`, { state: hasEntry ? { carry: wizardSnapshot(), sourceShipmentId: historyId, keptAt: keptAt?.toISOString() } : undefined });
     if (hasEntry) toast.info(t("wizard.modeCarried", { mode: t(`modality.${next}`) }));
   };
 
@@ -1159,6 +1233,9 @@ export default function WizardPage() {
     setDraftLines([{ id: 1, description: "", quantity: 1, unit: "pcs" }]);
     setDocumentEvidence([]);
     setNextId(2);
+    setCargo(emptyCargo());
+    cargoBaseRevision.current = null;
+    setLinesView("goods");
     setResult(null);
     setDgEntries([]);
     setDocValues({});
@@ -1199,6 +1276,14 @@ export default function WizardPage() {
         toast.error(t("draft.notADraft"));
         return;
       }
+      let importedCargo = migrateCargo(snap.draftLines, snap.cargo);
+      if (importedCargo.units.some(unit => unit.legacy_goods_id != null && unit.equipment_id != null)) {
+        importedCargo = bindReusableCargo(importedCargo, (await Promise.all([...new Set(importedCargo.units.filter(unit => unit.equipment_id != null).map(unit => unit.equipment_id!))].map(id => cargoApi.reusableUnits("", id)))).flat());
+      }
+      setCargo(importedCargo);
+      cargoBaseRevision.current = snap.cargoBaseRevision ?? null;
+      setHistoryId(null);
+      setKeptAt(null);
       setDraftLines(snap.draftLines);
       setDocumentEvidence(snap.documentEvidence ?? []);
       setNextId(snap.nextId);
@@ -1221,21 +1306,27 @@ export default function WizardPage() {
   // "the documents again"; the snapshot is this page's own state and comes
   // back untouched when the shipment is reopened.
   const keepInHistory = async (quietly = false) => {
-    if (!historyOn || !result || reviewBlocked) return;
+    if (!historyOn || !result || reviewBlocked || cargoSaving.current) return;
+    cargoSaving.current = true;
+    window.clearTimeout(draftTimer.current);
     setKeeping(true);
     try {
       const payload = shipmentPayload(false);
       payload.dg_review_id = dgReview.id;
       if (payload.bundle) payload.bundle.dg_review_id = dgReview.id;
+      await pendingDraft.current.catch(() => undefined);
+      payload.expected_cargo_revision = payload.cargo ? cargoBaseRevision.current : undefined;
       const kept = historyId
         ? await api.updateShipment(historyId, payload)
         : await api.keepShipment(payload);
+      if (payload.cargo) cargoBaseRevision.current = kept.cargo_revision ?? null;
       setHistoryId(kept.id);
       setKeptAt(new Date(kept.updated_at));
       if (!quietly) toast.success(t("history.keptToast"));
     } catch (e) {
       toast.error(String(e));
     } finally {
+      cargoSaving.current = false;
       setKeeping(false);
     }
   };
@@ -1293,6 +1384,7 @@ export default function WizardPage() {
         bundle: {
           dg_review_id: dgReview.id,
           documents: readyDocs.map(payloadFor),
+        cargo: cargoPayload,
           dangerous_goods: dgEntries.length > 0 ? dgEntries : undefined,
           profiles: dgProfiles,
           output_language: docLang,
@@ -1437,8 +1529,11 @@ export default function WizardPage() {
   /** What the assistant changed lands in the same state the classic wizard
    *  uses — switching between the two can therefore never lose data. */
   const applyAssistantState = (state: import("../api/client").AssistantState) => {
-    setDocumentEvidence(state.document_evidence ?? []);
     const nextLines = draftLinesFromAssistant(state, draftLines);
+    if (nextLines && !preservesCargo(nextLines, cargo)) {
+      toast.error(t("cargoIntegration.assignedGoods")); setLinesView("cargo"); setStepKey("lines"); return;
+    }
+    setDocumentEvidence(state.document_evidence ?? []);
     if (nextLines) {
       if (signatureOf(nextLines) !== signatureOf(draftLines) || nextLines.some(line => line.unconfirmed_weight_kg != null)) {
         // A later-step correction must invalidate export data immediately.
@@ -1474,8 +1569,12 @@ export default function WizardPage() {
 
   const includedLines = result?.lines.filter((line) => line.include) ?? [];
   // A sum of known package volumes is not the whole shipment's volume.
-  const completeTransportVolume = includedLines.length > 0 && includedLines.every(line => line.transport_volume_m3 != null)
-    ? result?.totals.total_transport_volume_m3 ?? null : null;
+  const completeTransportVolume = cargoUsed ? cargoAssessment?.totals.occupied_volume_m3 ?? null
+    : includedLines.length > 0 && includedLines.every(line => line.transport_volume_m3 != null)
+      ? result?.totals.total_transport_volume_m3 ?? null : null;
+  const completeShipmentWeight = cargoUsed ? cargoAssessment?.totals.cargo_gross_kg ?? null
+    : includedLines.length > 0 && includedLines.every(line => line.weight_total_kg != null)
+      ? result?.totals.total_weight_kg ?? null : null;
 
   /** The documents being prepared, for the panel that stands beside the work.
    *  A document that does not apply to this shipment is not being prepared and
@@ -1529,7 +1628,7 @@ export default function WizardPage() {
       { key: "goods", label: t("check.goods"),
         value: t("check.goodsValue", {
           count: result.totals.included_count,
-          weight: result.totals.total_weight_kg,
+          weight: completeShipmentWeight ?? "—",
           volume: completeTransportVolume ?? "—",
         }),
         onChange: () => setStepKey("lines") },
@@ -1587,7 +1686,7 @@ export default function WizardPage() {
       panel={
         <ShipmentPanel
           lines={result?.totals.line_count ?? draftLines.filter((line) => line.description.trim()).length}
-          weightKg={result?.totals.total_weight_kg ?? null}
+          weightKg={completeShipmentWeight}
           volumeM3={completeTransportVolume}
           attention={attention}
           documents={panelDocuments}
@@ -1600,7 +1699,7 @@ export default function WizardPage() {
           mode={historyOn ? "kept" : "file"}
           status={draftStatus}
           savedAt={draftSavedAt}
-          active={hasEntry && !reopenId && !reviewSourceId}
+          active={hasEntry && !reopenId && !reviewSourceId && !keptAt}
           onDiscard={historyOn ? discardDraft : undefined}
           onDownload={historyOn ? undefined : downloadDraft}
           onOpenFile={historyOn ? undefined : openDraftFile}
@@ -1657,7 +1756,17 @@ export default function WizardPage() {
           {/* The four counts were here, on this step and nowhere else. They
               are in the panel now, on every step — because the totals you are
               entering against do not stop mattering when you move on. */}
-          <ReviewLinesPanel
+          <div className="flex gap-2" role="group" aria-label={t("cargoIntegration.view")}>
+            <button type="button" className={linesView === "goods" ? "action-primary" : "action-secondary"} aria-pressed={linesView === "goods"} onClick={() => setLinesView("goods")}>{t("cargoIntegration.goods")}</button>
+            <button type="button" className={linesView === "cargo" ? "action-primary" : "action-secondary"} aria-pressed={linesView === "cargo"} onClick={() => { setCargoOpened(true); setLinesView("cargo"); }}>{t("cargoIntegration.cargo")}{cargo.units.length > 0 && <span className="equipment-count">{cargo.units.length}</span>}</button>
+          </div>
+          {(cargoOpened || linesView === "cargo") && <div hidden={linesView !== "cargo"}><CargoWorkspace value={cargo} assessment={cargoAssessment} goods={displayedCargoGoods} onChange={(next) => {
+            const change = editCargo(draftLines, cargo, next);
+            if (change.migrated) { setDraftLines(change.drafts); setResult(null); calculatedSignature.current = null; }
+            setCargo(change.cargo);
+          }} canManageTemplates={!!user && canManage(user)} /></div>}
+          <div hidden={linesView !== "goods"}><ReviewLinesPanel
+            cargoManaged
             initialPaste={searchParams.get("input") === "paste"}
             draftLines={draftLines}
             resultLines={result?.lines}
@@ -1685,7 +1794,9 @@ export default function WizardPage() {
               setResult(null);
             }}
             translateMessage={translateMessage}
-          />
+          /></div>
+          {cargoFailure && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{cargoFailure}</p>}
+
 
           <WizardActions>
             <button type="button" onClick={goFromLines} disabled={loading} className={buttonPrimary + " wizard-next"}
@@ -1752,7 +1863,7 @@ export default function WizardPage() {
           )}
           {lastShipment && (
             <div className={`${panelClass} flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between`}>
-              <p className="text-sm text-slate-600 dark:text-slate-400">{t("docfields.reuseLastHint")}</p>
+
               <button type="button" onClick={reuseLastShipment} className={buttonSecondary}>
                 {t("docfields.reuseLast")}
               </button>
@@ -1817,7 +1928,7 @@ export default function WizardPage() {
                     value={result.totals.total_weight_kg ?? ""}
                     onChange={(e) => handleTotalWeightChange(e.target.value === "" ? null : Number(e.target.value))}
                   />
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("wizard.adjustTotalWeightHint")}</p>
+
                 </div>
               </div>
 
@@ -1933,7 +2044,7 @@ export default function WizardPage() {
 
             {mailOpen && (
               <div className="space-y-3 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
-                <p className="text-xs text-slate-500 dark:text-slate-400">{t("wizardDocs.mailHint")}</p>
+
                 <div>
                   <label className="text-sm font-medium text-slate-800 dark:text-slate-200" htmlFor="mail-to">
                     {t("wizardDocs.mailTo")}
@@ -1981,7 +2092,7 @@ export default function WizardPage() {
                 </button>
               </div>
             )}
-            <p className="text-sm text-slate-600 dark:text-slate-400">{t("wizardDocs.intro")}</p>
+
             {/* The set itself is chosen where its questions are asked. From
                 here it is one press back to that choice, not a second place
                 to make it. */}
@@ -1997,13 +2108,7 @@ export default function WizardPage() {
                 {t("wizardDocs.changeSet")}
               </button>
             </p>
-            {readyDocs.length > 1 && dgEntries.length > 0 && (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t("wizardDocs.downloadAllHint")}
-              </p>
-            )}
-            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
-              {t("wizardDocs.exportNotice")}{" "}
+            <p className="text-xs text-slate-500">
               <Link to="/account/about/terms" className="font-medium underline">
                 {t("nav.legal")}
               </Link>
@@ -2099,7 +2204,7 @@ export default function WizardPage() {
             <div className={`${panelClass} p-4 sm:p-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`}>
               <div className="min-w-0">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t("history.keepTitle")}</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t("history.keepHint")}</p>
+
                 <p className="text-sm text-slate-700 dark:text-slate-200 mt-2" data-testid="history-status">
                   {keptAt
                     ? t("history.keptAt", { time: keptAt.toLocaleTimeString(i18n.language, { timeStyle: "short" }) })
@@ -2128,9 +2233,7 @@ export default function WizardPage() {
               <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {t("instructions.title")}
               </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {t("instructions.intro")}
-              </p>
+
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {t("instructions.languageRule")}
               </p>
@@ -2169,9 +2272,7 @@ export default function WizardPage() {
               <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {t("checklist.title")}
               </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {t("checklist.intro")}
-              </p>
+
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {t("checklist.notFilledIn")}
               </p>
@@ -2201,7 +2302,7 @@ export default function WizardPage() {
               <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {t("unCards.title")}
               </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">{t("unCards.intro")}</p>
+
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-sm text-slate-700 dark:text-slate-200">

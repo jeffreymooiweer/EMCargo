@@ -1,12 +1,7 @@
-"""The one public route in the application, and what keeps it narrow.
+"""Authenticated QR card lookup and its limits.
 
-Everything else here is behind a sign-in. This is not, because the people a QR
-code on a transport document is for — the driver at the roadside, the warehouse
-taking the pallet in, the responder who arrived because something went wrong —
-have no account here, and a code that asks them to log in is a code that does
-nothing.
-
-A public route earns a test per promise, so each of these pins one:
+The real-session regression tests live in test_authenticated_installation.
+These focused tests use a signed-in account to pin each card-store promise:
 
 * it is **closed until an administrator opens it**, and closed means invisible;
 * it answers about **UN numbers only** — there is no consignment to look up, so
@@ -30,7 +25,9 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import get_settings
 from app.core.database import Base, get_db
+from app.core.deps import get_current_user
 from app.main import app
+from app.models.user import User
 from app.schemas.settings import InstanceSettings
 from app.services import settings_store
 
@@ -61,6 +58,8 @@ def db(data):
 @pytest.fixture
 def client(db):
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_current_user] = lambda: User(
+        id=1, username="card-reader", email="reader@example.com", role="user", active=True)
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
@@ -84,7 +83,7 @@ def install_card(data_dir, un, modality):
 
 
 def test_the_door_is_shut_on_a_fresh_installation(client):
-    """No administrator has decided anything yet, so nothing is public."""
+    """Signing in alone does not enable the administrator's disabled feature."""
     assert client.get("/api/cards/lookup?un=1263").status_code == 404
     assert client.get("/api/cards/1263/ADR.pdf").status_code == 404
 
@@ -92,8 +91,7 @@ def test_the_door_is_shut_on_a_fresh_installation(client):
 def test_a_shut_door_does_not_announce_itself(client, data):
     """404 rather than 403, even with the card sitting right there.
 
-    An installation that has not opened this route does not owe a stranger the
-    information that the route exists and is merely switched off.
+    A disabled feature stays unavailable even to an authenticated account.
     """
     install_card(data[1], "1263", "ADR")
     response = client.get("/api/cards/1263/ADR.pdf")
@@ -318,9 +316,9 @@ def _document_styles():
     return _styles()
 
 
-def test_the_public_route_is_rate_limited(client, db):
-    """An unauthenticated route that reads files is the shape of thing a script
-    is pointed at. The number is in ``test_ratelimit_key``'s one table; what
+def test_the_card_route_is_rate_limited(client, db):
+    """Authentication does not replace limits on repeated card-store requests.
+    The number is in ``test_ratelimit_key``'s one table; what
     matters here is that the limit is reached rather than merely declared."""
     import logging
 
@@ -338,12 +336,12 @@ def test_the_public_route_is_rate_limited(client, db):
     assert seen[allowed] == 429
 
 
-def test_the_route_is_the_only_public_one(client):
-    """A sweep, so a second public router cannot appear without a decision.
+def test_cards_do_not_add_anonymous_application_routes(client):
+    """A sweep catches a route that accidentally loses its session dependency.
 
     Every route the application serves either needs a signed-in user, is one of
     the handful that has always been open (health, the setup probe, the login
-    endpoints themselves, the static frontend), or is this one.
+    endpoints themselves and the static frontend).
     """
     from app.core.deps import get_current_user, require_admin
 
@@ -385,5 +383,5 @@ def test_the_route_is_the_only_public_one(client):
     # admin router, which test_branding.py checks is guarded and absent from
     # the open application.
     the_door = {"/api/branding", "/api/branding/logo", "/api/branding/modality/{key}"}
-    assert set(open_routes) <= {"/api/cards/lookup", "/api/cards/{un}/{modality}.pdf"} | the_door, \
+    assert set(open_routes) <= the_door, \
         sorted(open_routes)

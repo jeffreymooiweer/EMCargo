@@ -30,6 +30,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
 
   const submitCode = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (verifying || !code.trim()) return;
     setVerifying(true);
     setError("");
     try {
@@ -50,9 +51,10 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
 
   const askReset = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (forgotBusy || !identifier.trim()) return;
     setForgotBusy(true);
     try {
-      await api.forgotPassword(identifier);
+      await api.forgotPassword(identifier.trim());
     } catch {
       // The server answers the same either way; a network hiccup should not
       // be the one thing that tells somebody the address was unknown.
@@ -103,17 +105,15 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
             <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mt-3">
               {t("login.twoFactorTitle")}
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-              {method === "email"
-                ? codeSent
+            {method === "email" && <p role={codeSent ? "status" : "alert"} className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+              {codeSent
                   ? t("login.twoFactorMailSent")
-                  : t("login.twoFactorMailFailed")
-                : t("login.twoFactorApp")}
-            </p>
+                  : t("login.twoFactorMailFailed")}
+            </p>}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1 text-slate-800 dark:text-slate-200" htmlFor="code">
-              {t("login.twoFactorCode")}
+              {t(method === "email" ? "login.twoFactorEmailCode" : "login.twoFactorAppCode")}
             </label>
             <input
               id="code"
@@ -123,9 +123,6 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {t("login.twoFactorRecoveryHint")}
-            </p>
           </div>
           {error && <p role="alert" className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
           <button
@@ -153,11 +150,12 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
 
   return (
     <AuthLayout>
-      <form onSubmit={submit} className="auth-card page-enter space-y-5">
+      <div className="auth-card page-enter space-y-5">
         <div className="auth-brand"><BrandLockup name={branding.name} logo={branding.logo} /></div>
-        <div><h1>{t("studio.loginTitle")}</h1><p className="auth-intro">{t("studio.loginHint")}</p></div>
+        <h1>{t(forgotOpen ? "login.forgot" : "studio.loginTitle")}</h1>
         {location.state?.passwordChanged && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">{t("account.passwordChanged")}</p>}
         {setupWarning && <p className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm">{setupWarning}</p>}
+        {!forgotOpen ? <form onSubmit={submit} className="space-y-5">
         <div>
           <label htmlFor="username" className="block text-sm font-medium mb-2 text-slate-800 dark:text-slate-200">{t("login.username")}</label>
           <input id="username" name="username" autoComplete="username" required className="w-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2" value={username} onChange={(e) => setUsername(e.target.value)} />
@@ -171,43 +169,37 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
           {busy ? t("studio.loginBusy") : t("login.submit")}<ArrowRightIcon className="h-4 w-4" />
         </button>
 
-        <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
-          {!forgotOpen && !forgotDone && (
             <button
               type="button"
-              onClick={() => setForgotOpen(true)}
+              onClick={() => { setIdentifier(username); setForgotOpen(true); }}
               className="text-sm text-brand-700 hover:underline dark:text-brand-300"
             >
               {t("login.forgot")}
             </button>
-          )}
-          {forgotOpen && !forgotDone && (
-            <div className="space-y-2">
+        </form> : <div className="space-y-4">
+          {!forgotDone ? <form onSubmit={askReset} className="space-y-3">
               <label htmlFor="reset-identifier" className="block text-sm font-medium text-slate-800 dark:text-slate-200">
                 {t("login.forgotLabel")}
               </label>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{t("login.forgotHint")}</p>
               <input
                 id="reset-identifier" autoComplete="username"
+                autoFocus required
                 className={fieldClass}
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
               />
               <button
-                type="button"
-                onClick={askReset}
+                type="submit"
                 disabled={forgotBusy || !identifier.trim()}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                className="action-primary w-full"
               >
                 {forgotBusy ? t("login.forgotSending") : t("login.forgotSubmit")}
               </button>
-            </div>
-          )}
-          {forgotDone && (
-            <p className="text-sm text-slate-600 dark:text-slate-300">{forgotDone}</p>
-          )}
-        </div>
-      </form>
+          </form> : <p role="status" className="text-sm text-slate-600 dark:text-slate-300">{forgotDone}</p>}
+          <button type="button" className="action-secondary w-full" disabled={forgotBusy}
+            onClick={() => { setForgotOpen(false); setForgotDone(""); }}>{t("login.twoFactorBack")}</button>
+        </div>}
+      </div>
     </AuthLayout>
   );
 }
