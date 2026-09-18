@@ -110,93 +110,36 @@ def test_without_the_switch_the_trips_routes_do_not_exist(db, monkeypatch):
             "consignments": trip()["consignments"], "profiles": ["ADR"]}).status_code == 200
 
 
-# --- 2. the server judges -----------------------------------------------------------
-
-
-def test_keeping_runs_the_check_and_indexes_its_answer(db, monkeypatch):
+def test_existing_trip_reopens_as_saved_without_recalculation(db, monkeypatch):
+    """Legacy editions and the historical calculation must not change on read."""
+    old = trips.keep(db, ADA, TripIn(**trip()))
+    old_result = old.result_json
     with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        kept = client.post("/api/trips", json=trip())
-        assert kept.status_code == 200, kept.text
-        row = kept.json()
-        assert row["name"] == "Wezep - Rotterdam, 6 September"
-        assert row["consignment_count"] == 2
-        assert row["total_points"] == 1200
-        assert row["exemption_lost"] is True
-        assert row["unit_max_mass_tonnes"] == 18
-        assert row["regulations"] == ["ADR"]
-        assert row["created_by"] == "ada" and row["department"] == "Sales"
-
-        detail = client.get(f"/api/trips/{row['id']}").json()
-        assert [c["name"] for c in detail["consignments"]] == ["Klant A", "Klant B"]
-        assert detail["consignments"][0]["shipment_id"] == 7
-        assert detail["result"]["adr_points"]["total_points"] == 1200
+        detail = client.get(f"/api/trips/{old.id}").json()
+        assert detail["consignment_count"] == 2
+        assert detail["total_points"] == 1200
         assert detail["result"]["exemption_lost"]["consignments"] == ["Klant A", "Klant B"]
-        assert detail["result"]["lq_marking"]["unit_max_mass_tonnes"] == 18
-        # The editions the answer was computed against, from the manifest.
         assert "adr" in detail["editions"]
+    db.refresh(old)
+    assert old.result_json == old_result
 
 
-def test_a_trip_that_stays_exempt_is_indexed_so(db, monkeypatch):
+def test_legacy_writes_are_refused_and_conversion_creates_no_physical_events(db, monkeypatch):
+    """The new workflow cannot silently reinterpret a saved DG calculation as transport."""
+    old = trips.keep(db, ADA, TripIn(**trip()))
     with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        payload = trip(consignments=[
-            {"name": "A", "entries": [{"products": [petrol("100")]}]},
-            {"name": "B", "entries": [{"products": [petrol("100")]}]}])
-        row = client.post("/api/trips", json=payload).json()
-        assert row["total_points"] == 600 and row["exemption_lost"] is False
-
-
-def test_one_consignment_can_start_a_trip(db, monkeypatch):
-    with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        alone = trip(consignments=trip()["consignments"][:1])
-        response = client.post("/api/trips", json=alone)
-        assert response.status_code == 200
-        assert response.json()["consignment_count"] == 1
-        assert response.json()["result"]["adr_points"]["total_points"] == 600
-    assert trips.count(db) == 1
-
-
-def test_empty_trip_is_refused_on_create_and_update(db, monkeypatch):
-    """The unified editor starts empty, but an empty load must not be saved."""
-    with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        assert client.post("/api/trips", json=trip(consignments=[])).status_code == 422
-        kept = client.post("/api/trips", json=trip()).json()
-        assert client.put(f"/api/trips/{kept['id']}", json=trip(consignments=[])).status_code == 422
-        assert client.get(f"/api/trips/{kept['id']}").json()["consignment_count"] == 2
-
-
-def test_general_freight_and_source_profiles_survive_reopening(db, monkeypatch):
-    """Ordinary freight belongs on the same trip; source profiles must survive edits."""
-    with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        payload = trip(consignments=[{"name": "Timber", "entries": [], "profiles": [],
-                                     "route_label": "Wezep → Oirschot"}], profiles=[])
-        kept = client.post("/api/trips", json=payload).json()
-        detail = client.get(f"/api/trips/{kept['id']}").json()
-        assert detail["consignments"][0]["entries"] == []
-        assert detail["consignments"][0]["profiles"] == []
-        assert detail["consignments"][0]["route_label"] == "Wezep → Oirschot"
-        assert kept["result"] == detail["result"]
-        assert kept["editions"] == detail["editions"]
-
-
-def test_keeping_again_brings_the_same_row_up_to_date(db, monkeypatch):
-    with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        first = client.post("/api/trips", json=trip()).json()
-        second = client.put(f"/api/trips/{first['id']}",
-                            json=trip(name="Renamed", unit_max_mass_tonnes=None)).json()
-        assert second["id"] == first["id"]
-        assert second["name"] == "Renamed" and second["unit_max_mass_tonnes"] is None
-        assert client.get("/api/trips").json()["total"] == 1
-
-
-def test_an_unknown_regime_is_refused_not_judged_as_adr(db, monkeypatch):
-    """"IDMG" was kept and judged under ADR's points until v1.190.0."""
-    with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        refused = client.post("/api/trips", json=trip(profiles=["IDMG"]))
-        assert refused.status_code == 422
-        assert "IDMG" in refused.text
-        kept = client.post("/api/trips", json=trip(profiles=["adr", "IATA"]))
-        assert kept.status_code == 200, kept.text
-        assert kept.json()["regulations"] == ["ADR", "IATA_DGR"]
+        assert client.post("/api/trips", json=trip()).status_code == 409
+        assert client.put(f"/api/trips/{old.id}", json=trip(name="Changed")).status_code == 409
+        converted = client.post(f"/api/deliveries/v1/from-trip/{old.id}").json()
+        assert converted["status"] == "draft"
+        assert converted["allocations"] == []
+        assert converted["events"] == []
+        assert converted["files"] == []
+        assert converted["legs"] == []
+        assert converted["legacy_trip_id"] == old.id
+        assert len(converted["legacy_consignments"]) == 2
+    db.refresh(old)
+    assert old.name == trip()["name"]
 
 
 # --- 3/4. the list and who sees it ----------------------------------------------------
@@ -204,12 +147,12 @@ def test_an_unknown_regime_is_refused_not_judged_as_adr(db, monkeypatch):
 
 def test_the_list_filters_and_follows_the_departments(db, monkeypatch):
     with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        client.post("/api/trips", json=trip(name="Monday"))
-        client.post("/api/trips", json=trip(name="Tuesday"))
+        trips.keep(db, ADA, TripIn(**trip(name="Monday")))
+        trips.keep(db, ADA, TripIn(**trip(name="Tuesday")))
     with application(db, monkeypatch, as_user=2) as bob:
         # Bob has no department; Sales' trips are not there for him.
         assert bob.get("/api/trips").json()["total"] == 0
-        bob.post("/api/trips", json=trip(name="Bob's van"))
+        trips.keep(db, db.get(User, 2), TripIn(**trip(name="Bob's van")))
         assert bob.get("/api/trips").json()["total"] == 1
         assert bob.get("/api/trips/1").status_code == 404
     with application(db, monkeypatch, as_user=3) as root:
@@ -224,7 +167,7 @@ def test_the_list_filters_and_follows_the_departments(db, monkeypatch):
 
 def test_forgetting_removes_the_row(db, monkeypatch):
     with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        kept = client.post("/api/trips", json=trip()).json()
+        kept = trips.detail(trips.keep(db, ADA, TripIn(**trip()))).model_dump()
         assert client.delete(f"/api/trips/{kept['id']}").json()["ok"] is True
         assert client.get(f"/api/trips/{kept['id']}").status_code == 404
         assert client.delete(f"/api/trips/{kept['id']}").status_code == 404
@@ -236,7 +179,7 @@ def test_a_removed_department_leaves_no_trip_behind_under_its_id(db, monkeypatch
     would be that department's. Until v1.190.0 the removal cleared users
     and shipments and forgot the trips."""
     with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        kept = client.post("/api/trips", json=trip()).json()
+        kept = trips.detail(trips.keep(db, ADA, TripIn(**trip()))).model_dump()
         assert kept["department_id"] == 1
     gone = departments.remove(db, db.get(Department, 1))
     assert gone["trips"] == 1
@@ -254,7 +197,7 @@ def test_trips_are_counted_when_the_history_is_switched_off(db, monkeypatch):
     monkeypatch.setenv("EMCARGO_HISTORY", "true")
     get_settings.cache_clear()
     trips.keep(db, ADA, TripIn(**trip()))
-    assert history.kept_counts(db) == {"shipments": 0, "trips": 1}
+    assert history.kept_counts(db) == {"shipments": 0, "trips": 1, "deliveries": 0}
     # Start-up with the setting off and a trip in the table switches it on.
     monkeypatch.setenv("EMCARGO_HISTORY", "false")
     get_settings.cache_clear()
@@ -267,7 +210,7 @@ def test_discarding_the_history_deletes_trips_too(db, monkeypatch, caplog):
     get_settings.cache_clear()
     trips.keep(db, ADA, TripIn(**trip()))
     with caplog.at_level(logging.WARNING):
-        assert history.discard_kept(db) == {"shipments": 0, "trips": 1}
+        assert history.discard_kept(db) == {"shipments": 0, "trips": 1, "deliveries": 0}
     assert trips.count(db) == 0
     assert "1 kept trip(s)" in caplog.text
 
@@ -277,11 +220,11 @@ def test_discarding_the_history_deletes_trips_too(db, monkeypatch, caplog):
 
 def test_the_audit_log_names_the_trip_and_nothing_on_it(db, monkeypatch):
     with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        kept = client.post("/api/trips", json=trip()).json()
-        client.put(f"/api/trips/{kept['id']}", json=trip())
+        kept = trips.detail(trips.keep(db, ADA, TripIn(**trip()))).model_dump()
+        assert client.put(f"/api/trips/{kept['id']}", json=trip()).status_code == 409
         client.delete(f"/api/trips/{kept['id']}")
     events = list(db.execute(select(AuditEvent).order_by(AuditEvent.id)).scalars())
-    assert [e.action for e in events] == ["trip.kept", "trip.updated", "trip.forgotten"]
+    assert [e.action for e in events] == ["trip.forgotten"]
     assert all(e.target_type == "trip" and e.summary == "Wezep - Rotterdam, 6 September"
                for e in events)
     assert not any("Klant" in e.summary or "1203" in e.summary for e in events)

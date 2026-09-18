@@ -62,7 +62,8 @@ def kept_counts(db: Session) -> dict[str, int]:
     where they are — they are not a record of any consignment."""
     from app.services import trips
 
-    return {"shipments": count(db), "trips": trips.count(db)}
+    from app.models.delivery import Delivery
+    return {"shipments": count(db), "trips": trips.count(db), "deliveries": db.query(Delivery).count()}
 
 
 def discard_kept(db: Session) -> dict[str, int]:
@@ -71,6 +72,8 @@ def discard_kept(db: Session) -> dict[str, int]:
     from app.services import trips
 
     counts = kept_counts(db)
+    from app.services.deliveries import discard_all
+    discard_all(db)
     cargo_storage.forget(db, [row[0] for row in db.query(Shipment.id).all()])
     db.query(Shipment).delete()
     db.commit()
@@ -96,7 +99,7 @@ def adopt_kept_data(db: Session) -> bool:
     if current.history_enabled:
         return False
     counts = kept_counts(db)
-    if not counts["shipments"] and not counts["trips"]:
+    if not any(counts.values()):
         return False
     save_instance_settings(db, current.model_copy(update={"history_enabled": True}))
     logger.warning("Shipment history switched on: the database holds %s kept "
@@ -141,6 +144,10 @@ def keep(db: Session, user: User, payload: ShipmentIn,
         payload.values, payload.lines, payload.dangerous_goods,
         language=payload.language, profiles=payload.profiles,
         modality=payload.modality or None, documents=payload.documents or None, cargo=payload.cargo)
+    if existing is not None:
+        from app.services.deliveries import guard_source, source_fingerprint
+        if source_fingerprint(json.loads(existing.export_json or "{}")) != source_fingerprint(export):
+            guard_source(db, existing.id)
     snapshot = dict(payload.snapshot)
     if payload.cargo is not None:
         snapshot["cargo"] = payload.cargo.model_dump(mode="json")
@@ -187,6 +194,8 @@ def keep(db: Session, user: User, payload: ShipmentIn,
 
 
 def forget(db: Session, record: Shipment) -> None:
+    from app.services.deliveries import guard_source
+    guard_source(db, record.id)
     cargo_storage.forget(db, [record.id])
     db.delete(record)
     db.commit()

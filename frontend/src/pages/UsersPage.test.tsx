@@ -9,6 +9,8 @@ vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => k
 vi.mock("../settings/preferences", () => ({ usePreferences: () => ({ publicSettings: { history_enabled: true, mail_enabled: false } }) }));
 const api = vi.hoisted(() => ({ listUsers: vi.fn(), departments: vi.fn(), updateUser: vi.fn(), createUser: vi.fn(), deleteUser: vi.fn(), clearTwoFactorFor: vi.fn() }));
 vi.mock("../api/client", () => ({ api }));
+const deliveryApi = vi.hoisted(() => ({ account: vi.fn(), saveAccount: vi.fn() }));
+vi.mock("../api/deliveries", () => ({ deliveries: deliveryApi, modes: ["road", "rail", "inland", "sea", "air"] }));
 const people: User[] = [
   { id: 1, username: "Ada", email: "ada@example.com", role: "admin", active: true },
   { id: 2, username: "Bart", email: "bart@example.com", role: "user", active: true, department_id: 4 },
@@ -17,6 +19,8 @@ const people: User[] = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  deliveryApi.account.mockResolvedValue({ roles: ["shipment", "planner"], modes: [] });
+  deliveryApi.saveAccount.mockResolvedValue({});
   // jsdom does not implement the browser's top layer; keep its dialog visible
   // while exercising the real forms and requests, without replacing the UI.
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };

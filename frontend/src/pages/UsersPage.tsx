@@ -6,6 +6,7 @@ import { usePreferences } from "../settings/preferences";
 import { useToast } from "../toast/ToastProvider";
 import ConfirmDialog from "../toast/ConfirmDialog";
 import Avatar from "../components/Avatar";
+import DeliveryAccountRoles from "../components/DeliveryAccountRoles";
 import { PlusIcon, PenIcon, SearchIcon, CloseIcon, UserIcon, ShieldIcon, TrashIcon } from "../components/icons";
 
 const inputClass = "directory-input";
@@ -164,7 +165,7 @@ function UserEditor({ target, self, guard, departments, historyOn, canInvite, bu
     <form className="editor-form" onSubmit={event => void save(event)}>
       {!target && <label>{t("users.username")}<input className={inputClass} value={username} minLength={3} maxLength={64} required autoComplete="off" onChange={e => setUsername(e.target.value)} /></label>}
       <label>{t("users.email")}<input className={inputClass} type="email" value={email} required onChange={e => setEmail(e.target.value)} /></label>
-      <div className="editor-fields"><label>{t("users.role")}<select className={inputClass} value={role} disabled={busy || !!guard} title={guardText} onChange={e => setRole(e.target.value)}>{ROLES.filter(value => self?.role === "admin" || ["user", "super_user"].includes(value)).map(value => <option key={value} value={value}>{t(roleLabel(value))}</option>)}</select></label>
+      <div className="editor-fields"><label>{t("users.role")}<select className={inputClass} value={role} disabled={busy || !!guard} title={guardText} onChange={e => setRole(e.target.value)}>{ROLES.filter(value => self?.role === "admin" || ["user", "shipment", "planner", "operator", "recipient", "super_user"].includes(value)).map(value => <option key={value} value={value}>{t(roleLabel(value))}</option>)}</select></label>
         {historyOn && target && <label>{t("departments.userDepartment")}<select className={inputClass} value={department} onChange={e => setDepartment(e.target.value)}><option value="">{t("departments.none")}</option>{departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>}
       </div>
       {target && <label className="editor-toggle"><input type="checkbox" checked={active} disabled={busy || !!guard} onChange={e => setActive(e.target.checked)} /><span>{t("directory.activeAccount")}</span></label>}
@@ -173,6 +174,7 @@ function UserEditor({ target, self, guard, departments, historyOn, canInvite, bu
       {!target && !sendInvite && <label>{t("users.password")}<input className={inputClass} type="password" value={password} minLength={8} required autoComplete="new-password" placeholder={t("users.passwordHint")} onChange={e => setPassword(e.target.value)} /></label>}
       <footer><button type="button" className="action-secondary" disabled={busy} onClick={onClose}>{t("toast.cancel")}</button><button className="action-primary" disabled={busy}>{t(busy ? "directory.saving" : target ? "directory.save" : sendInvite ? "users.createAndInvite" : "users.create")}</button></footer>
     </form>
+    {target && historyOn && <DeliveryAccountRoles target={target} self={self} busy={busy} run={run} />}
     {target && <details className="editor-security"><summary><ShieldIcon />{t("directory.security")}</summary><div>
       <form className="editor-form" onSubmit={event => { event.preventDefault(); void run(() => api.updateUser(target.id, { password }), t("users.passwordReset")).then(ok => { if (ok) setPassword(""); }); }}>
         <label>{t("users.newPasswordFor", { name: target.username })}<input className={inputClass} type="password" value={password} minLength={8} required autoComplete="new-password" placeholder={t("users.passwordHint")} onChange={e => setPassword(e.target.value)} /></label>

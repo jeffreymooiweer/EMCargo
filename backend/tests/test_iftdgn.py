@@ -313,7 +313,7 @@ def test_the_export_route_hands_out_an_edi_file():
     release()
     assert response.status_code == 200, response.text
     assert response.headers["content-type"].startswith("application/EDIFACT")
-    assert "filename=\"iftdgn_" in response.headers["content-disposition"]
+    assert "filename=\"DRAFT-iftdgn_" in response.headers["content-disposition"]
     assert response.headers["content-disposition"].endswith('.edi"')
     text = response.content.decode("latin-1")
     assert text.startswith("UNA:+.? '\nUNB+UNOC:3+Afzender BV+Transport O?'Neill & Sons+")

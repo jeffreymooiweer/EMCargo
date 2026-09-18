@@ -1,3 +1,4 @@
+import DeliveryActivity from "../components/DeliveryActivity";
 import { canOversee } from "../permissions";
 import HistoryStatus from "../components/HistoryStatus";
 import CargoSummary from "../components/cargo/CargoSummary";
@@ -47,14 +48,14 @@ function when(iso: string, language: string): string {
 
 /** The wizard address a kept shipment opens at: its own mode, its own id. */
 export function wizardLinkFor(shipment: ShipmentSummary): string {
-  return `/wizard/${shipment.modality || "road"}?shipment=${shipment.id}`;
+  return `/wizard/${shipment.modality || "preparation"}?shipment=${shipment.id}`;
 }
 
 /** The wizard address that starts a new shipment from a kept one: the same
  *  goods, parties and route, without the reference, the dates or the
  *  record's identity. */
 export function templateLinkFor(shipment: ShipmentSummary): string {
-  return `/wizard/${shipment.modality || "road"}?template=${shipment.id}`;
+  return `/wizard/${shipment.modality || "preparation"}?template=${shipment.id}`;
 }
 
 export default function ShipmentsPage({ user }: { user?: User | null }) {
@@ -287,8 +288,8 @@ function ShipmentList({ language, admin }: { language: string; admin: boolean })
           <span role="status">{picked.length > 0 ? t("history.selectedShort", { count: picked.length })
             : loading ? t("history.loading") : t("history.count", { count: items.length, total })}</span>
           {picked.length > 0 && <div className="shipments-selection-actions">
-            <Link to={`/trips?shipments=${picked.join(",")}`} className="shipment-action shipment-action-primary"
-              aria-label={t("history.toTrip", { count: picked.length })} title={t("history.toTrip", { count: picked.length })}>
+            <Link to={`/deliveries/new?shipments=${picked.join(",")}`} className="shipment-action shipment-action-primary"
+              aria-label={t("history.toDelivery", { count: picked.length })} title={t("history.toDelivery", { count: picked.length })}>
               <RoadIcon />
             </Link>
             <button type="button" className="shipment-action" onClick={() => setPicked([])}
@@ -592,7 +593,7 @@ function ShipmentView({ id, language }: { id: number; language: string }) {
           <Badges shipment={shipment} />
         </div>
         <div>
-          {row(t("history.modality"), t(`modality.${shipment.modality}`))}
+          {row(t("history.modality"), t(`modality.${shipment.modality || "preparation"}`))}
           {row(t("history.parties"), [shipment.consignor_name, shipment.consignee_name].filter(Boolean).join(" → ") || "—")}
           {row(t("history.goods"), shipment.goods_count)}
           {row(t("history.regulations"), shipment.regulations.join(", ") || "—")}
@@ -623,6 +624,7 @@ function ShipmentView({ id, language }: { id: number; language: string }) {
         </div>
         {!shipment.has_documents && <p className="text-xs text-slate-500 dark:text-slate-400">{t("history.documentsNone")}</p>}
       </div>
+      <DeliveryActivity shipmentId={shipment.id} />
       {cargo && <div className={`${panelClass} p-4 sm:p-6`}><CargoSummary value={cargo} goods={cargoGoods(lines, cargo)} /></div>}
 
       <ConfirmDialog

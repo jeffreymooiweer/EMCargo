@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 #: Every action the log can carry, and what its summary is allowed to hold.
 #: The interface translates the codes; the summaries are short and factual.
 ACTIONS: dict[str, str] = {
+    "delivery.changed": "delivery operation recorded (action code only)",
+    "delivery.access": "delivery assignment or task permissions changed (operation only)",
     "templates.imported": "a compatible document template imported for local use",
     "dg_review.submitted": "a shipment submitted for specialist review (reference only)",
     "dg_review.decided": "specialist release or request for changes (status only)",

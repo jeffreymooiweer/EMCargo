@@ -101,7 +101,7 @@ def _atomic(path: Path, content: bytes) -> None:
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
-        if os.geteuid() == 0:
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
             owner = path.parent.stat()
             os.chown(temporary, owner.st_uid, owner.st_gid)
         os.replace(temporary, path)
@@ -115,7 +115,7 @@ def install(key: str, content: bytes, *, source: str, rights_basis: str, actor: 
     digest = validate(key, content)
     directory = _directory(key)
     directory.mkdir(parents=True, exist_ok=True)
-    if os.geteuid() == 0:
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
         owner = get_settings().data_dir.stat()
         os.chown(directory.parent, owner.st_uid, owner.st_gid)
         os.chown(directory, owner.st_uid, owner.st_gid)

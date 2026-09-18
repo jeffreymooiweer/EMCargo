@@ -193,6 +193,13 @@ def _011_cargo(conn: Connection) -> None:
     conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_shipments_cargo_id ON shipments (cargo_id)"))
 
 
+def _012_deliveries(conn: Connection) -> None:
+    """Add operational storage without interpreting historical trip assessments."""
+    from app.models.delivery import Delivery, DeliveryAccount, DeliveryFile, DeliveryGrant, DeliveryLock
+    for model in (Delivery, DeliveryAccount, DeliveryFile, DeliveryGrant, DeliveryLock):
+        model.__table__.create(conn, checkfirst=True)
+
+
 #: In order. Append; never renumber, never remove.
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "shipments", _001_shipments),
@@ -206,6 +213,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (9, "work_queue", _009_work_queue),
     (10, "equipment_assets", _010_equipment_assets),
     (11, "cargo", _011_cargo),
+    (12, "deliveries", _012_deliveries),
 ]
 
 

@@ -79,39 +79,40 @@ def test_defaults_and_review_storage_are_independent_of_history(setup):
     assert as_role("user").post("/api/dg-reviews/status", json=payload).json() is None
 
 
-def test_final_outputs_require_release_and_an_exact_content_match(setup):
+def test_preparation_exports_are_stamped_without_execution_approval(setup):
+    """Saving source goods or printing a concept grants no permission to execute.
+
+    The delivery API now owns final issue. Old shipment/export endpoints must
+    remain useful for preparation, and must visibly mark every PDF as a draft,
+    even after an old specialist review is deleted or the source is edited.
+    """
+    import io
+    import zipfile
+    from pypdf import PdfReader
     db, as_role = setup
     settings_store.save_instance_settings(db, InstanceSettings(history_enabled=True))
-    payload = shipment(); client = as_role("user")
-    def output_attempts(data):
-        return [client.post("/api/documents/export", json=data["bundle"]["documents"][0]),
-                client.post("/api/documents/export/bundle", json=data["bundle"]),
-                client.post("/api/documents/export/bundle/mail", json={"bundle": data["bundle"], "to": ["recipient@example.com"]}),
-                client.post("/api/shipments", json=data)]
-    for response in output_attempts(payload):
-        assert response.status_code == 409, response.text
-    review_id = release(as_role, payload); client = as_role("user")
-    assert client.post("/api/documents/export", json=payload["bundle"]["documents"][0]).status_code == 200
-    assert client.post("/api/documents/export/bundle", json=payload["bundle"]).status_code == 200
+    payload = shipment()
+    client = as_role("user")
+    document = client.post("/api/documents/export", json=payload["bundle"]["documents"][0])
+    assert document.status_code == 200, document.text
+    assert "DRAFT" in "".join(page.extract_text() for page in PdfReader(io.BytesIO(document.content)).pages)
+    assert "DRAFT-" in document.headers["content-disposition"]
+    bundle = client.post("/api/documents/export/bundle", json=payload["bundle"])
+    assert bundle.status_code == 200
+    with zipfile.ZipFile(io.BytesIO(bundle.content)) as archive:
+        papers = [name for name in archive.namelist() if name.startswith("DRAFT-") and name.endswith(".pdf")]
+        assert papers
+        for name in papers:
+            assert "DRAFT" in "".join(page.extract_text() for page in PdfReader(io.BytesIO(archive.read(name))).pages)
     kept = client.post("/api/shipments", json=payload)
     assert kept.status_code == 200, kept.text
     shipment_id = kept.json()["id"]
-    repeated = client.post("/api/shipments", json=payload)
-    assert repeated.json()["id"] == shipment_id
-    assert client.get("/api/shipments").json()["total"] == 1
     assert client.get(f"/api/shipments/{shipment_id}/export.json").status_code == 200
-    assert client.post(f"/api/shipments/{shipment_id}/documents").status_code == 200
-    changed = deepcopy(payload)
-    changed["values"]["reference"] = "new reference"
-    changed["bundle"]["documents"][0]["values"]["reference"] = "new reference"
-    for response in output_attempts(changed):
-        assert response.status_code == 409, response.text
-    # Omitting the outer declaration cannot bypass the document's DG data.
-    changed = deepcopy(payload); changed["bundle"].pop("dangerous_goods")
-    assert client.post("/api/documents/export/bundle", json=changed["bundle"]).status_code == 409
+    review_id = release(as_role, payload)
+    client = as_role("user")
     assert client.delete(f"/api/dg-reviews/{review_id}").status_code == 200
-    assert client.post(f"/api/shipments/{shipment_id}/documents").status_code == 409
-    assert client.get(f"/api/shipments/{shipment_id}/export.json").status_code == 409
+    assert client.post(f"/api/shipments/{shipment_id}/documents").status_code == 200
+    assert client.get(f"/api/shipments/{shipment_id}/export.json").status_code == 200
 
 
 def test_no_dg_and_policy_off_do_not_require_release(setup):
@@ -122,14 +123,8 @@ def test_no_dg_and_policy_off_do_not_require_release(setup):
     assert client.post("/api/documents/export", json=shipment()["bundle"]["documents"][0]).status_code == 200
 
 
-def test_restored_sea_flow_requires_release_and_exports_the_approved_content(setup):
-    """Restoring sea selection must reach the current specialist workflow.
-
-    The older sea rendering archetypes disable review to isolate the PDF
-    generators. Exercise a real IMO declaration with review enabled here:
-    record the source assessment, obtain specialist approval, download the
-    declaration and bundle, then prove that changing the cargo invalidates it.
-    """
+def test_sea_preparation_requires_source_verification_and_stays_a_draft(setup):
+    """Verified sea source facts permit drafts, without implying execution release."""
     _, as_role = setup
     payload = shipment()
     payload.update(modality="sea", profiles=["IMDG"], documents=["imo_dgd"])
@@ -147,8 +142,8 @@ def test_restored_sea_flow_requires_release_and_exports_the_approved_content(set
     payload["snapshot"]["docValues"] = deepcopy(values)
 
     client = as_role("user")
-    assert client.post("/api/documents/export", json=document).status_code == 409
-    assert client.post("/api/documents/export/bundle", json=payload["bundle"]).status_code == 409
+    assert client.post("/api/documents/export", json=document).status_code == 200
+    assert client.post("/api/documents/export/bundle", json=payload["bundle"]).status_code == 200
     release(as_role, payload)
     client = as_role("user")
     response = client.post("/api/documents/export", json=document)
@@ -158,9 +153,13 @@ def test_restored_sea_flow_requires_release_and_exports_the_approved_content(set
     assert response.status_code == 200, response.text
     assert response.content.startswith(b"PK")
     document["lines"][0]["weight_total_kg"] = 900
-    assert client.post("/api/documents/export", json=document).status_code == 409
-    assert client.post("/api/documents/export/bundle", json=payload["bundle"]).status_code == 409
+    assert client.post("/api/documents/export", json=document).status_code == 200
+    assert client.post("/api/documents/export/bundle", json=payload["bundle"]).status_code == 200
 
+    unverified = deepcopy(document)
+    unverified["dangerous_goods"][0]["products"][0]["imdg_source_reviewed"] = "N"
+    response = client.post("/api/documents/export", json=unverified)
+    assert response.status_code in {409, 422}, response.text
 
 def test_only_specialists_decide_and_rejection_requires_explanation(setup):
     _, as_role = setup
@@ -245,7 +244,9 @@ def test_drafts_can_be_saved_but_do_not_bypass_dg_export_policy(setup):
     draft = client.post("/api/shipments", json=payload)
     assert draft.status_code == 200, draft.text
     assert client.post(f"/api/shipments/{draft.json()['id']}/documents").status_code == 409
-    assert client.get(f"/api/shipments/{draft.json()['id']}/export.json").status_code == 409
+    exported = client.get(f"/api/shipments/{draft.json()['id']}/export.json")
+    assert exported.status_code == 200
+    assert exported.json()["dangerous_goods"]
 
 
 def test_concurrent_downloads_keep_one_shipment_for_the_review(tmp_path):

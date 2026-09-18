@@ -7,16 +7,17 @@ import { ArrowRightIcon, ImportIcon } from "../components/icons";
 import { usePreferences } from "../settings/preferences";
 
 export const MODALITIES = ["road", "rail", "sea", "inland", "air", "multimodal"] as const;
-export type ModalityKey = (typeof MODALITIES)[number];
+export type ModalityKey = (typeof MODALITIES)[number] | "preparation";
 
 /** Released modes share one allowlist for tiles, preferences and wizard URLs.
  * Sea was verified and released in v1.152.0. Restore access after the v2.4.0
  * selection lock; document validation and specialist release still apply.
- * Air and multimodal retain the coverage gaps documented in docs/dg-coverage.md. */
-export const AVAILABLE_MODALITIES: readonly ModalityKey[] = ["road", "rail", "sea", "inland"];
+ * Air preparation is available; operational release requires a qualified modal review.
+ * Combined journeys are planned as individual delivery legs. */
+export const AVAILABLE_MODALITIES: readonly ModalityKey[] = ["preparation", "road", "rail", "sea", "inland", "air"];
 
 export function isModalityKey(value: string | undefined): value is ModalityKey {
-  return !!value && (MODALITIES as readonly string[]).includes(value);
+  return value === "preparation" || !!value && (MODALITIES as readonly string[]).includes(value);
 }
 
 export function isModalityAvailable(value: string | undefined): value is ModalityKey {
@@ -48,15 +49,17 @@ export default function ModalitySelectPage() {
         <div><p className="eyebrow">{t("nav.new")}</p><h2>{t("modality.title")}</h2>
         </div>
       </header>
+      <button className="action-primary" onClick={() => navigate("/wizard/preparation")}>{t("deliveries.chooseModeLater")}</button>
+      <p className="text-sm text-slate-500 dark:text-slate-400">{t("deliveries.preparationHint")}</p>
       <div className="start-layout">
         <section className="mode-grid" aria-label={t("wizard.mode")}>
-          {MODALITIES.map((key) => <button key={key} type="button" disabled={!isModalityAvailable(key)} className={`mode-card mode-card-${key}`} onClick={() => navigate(`/wizard/${key}`)}>
+          {MODALITIES.map((key) => <button key={key} type="button" disabled={!isModalityAvailable(key) && key !== "multimodal"} className={`mode-card mode-card-${key}`} onClick={() => navigate(`/wizard/${key === "multimodal" ? "preparation" : key}`)}>
             <span className="mode-card-visual"><img src={custom[key] || `/art/${key}.webp`} alt="" width="768" height="384" decoding="async" />
-              <span className="mode-card-rule">{({ road: "ADR", rail: "RID", sea: "IMDG", inland: "ADN" } as Record<string,string>)[key]}</span>
+              <span className="mode-card-rule">{({ road: "ADR", rail: "RID", sea: "IMDG", inland: "ADN", air: "IATA DGR" } as Record<string,string>)[key]}</span>
             </span>
             <span className="mode-card-content"><ModalityIcon modality={key} className="mode-card-icon" />
-              <span className="mode-copy"><strong>{t(`modality.${key}`)}</strong>{!isModalityAvailable(key) && <span>{t("modality.inDevelopment")}</span>}</span>
-              {isModalityAvailable(key) && <span className="mode-card-arrow"><ArrowRightIcon className="h-5 w-5" /></span>}
+              <span className="mode-copy"><strong>{t(`modality.${key}`)}</strong>{key === "multimodal" && <span>{t("deliveries.multimodalPreparation")}</span>}</span>
+              {<span className="mode-card-arrow"><ArrowRightIcon className="h-5 w-5" /></span>}
             </span>
           </button>)}
         </section>

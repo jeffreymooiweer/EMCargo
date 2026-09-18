@@ -263,7 +263,7 @@ def test_an_administrator_creates_renames_and_removes(db, three_shipments):
 
         # Removing leaves people and shipments without a department, not gone.
         gone = root.delete("/api/departments/1").json()
-        assert gone == {"ok": True, "users": 1, "shipments": 1, "trips": 0}
+        assert gone == {"ok": True, "users": 1, "shipments": 1, "trips": 0, "deliveries": 0}
         db.expire_all()
         assert db.get(User, 2).department_id is None
         assert three_shipments["sales"].department_id is None

@@ -3553,7 +3553,7 @@
       "paths": [
         "frontend/package.json"
       ],
-      "version": "2.15.1",
+      "version": "2.16.0",
       "source_url": null,
       "copyright_holder": "Original rights holders; see source notices",
       "license_expression": "LicenseRef-EMCargo",
@@ -3561,13 +3561,13 @@
       "redistribution_basis": "Project-authored build/dependency declaration; dependencies keep their own licenses.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package.json": "b32c2d83cce06f38a854f3b6a860fcabe57e9b3e4f8a6e9bdc67fac2a1702817"
+        "frontend/package.json": "29212612594b24dec1016837b67408e2c0ac56479845a310e62f6aef47388f70"
       },
       "distribution_channels": [
         "source"
       ],
       "reviewed_at": "2026-09-17",
-      "reviewer": "Codex technical inventory; version-only patch release"
+      "reviewer": "Codex technical inventory; version-only declaration change for multimodal deliveries"
     },
     {
       "id": "frontend-package-lock-json",
@@ -3575,7 +3575,7 @@
       "paths": [
         "frontend/package-lock.json"
       ],
-      "version": "2.15.1",
+      "version": "2.16.0",
       "source_url": null,
       "copyright_holder": "Jeffrey Mooiweer",
       "license_expression": "LicenseRef-EMCargo",
@@ -3583,7 +3583,7 @@
       "redistribution_basis": "The declaration is project-authored; the resolved packages retain their own licenses and require a generated SBOM.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package-lock.json": "21aa9454de852f765aa11975a46ba2361a0106ca16eb175bbe202c6a897abc56"
+        "frontend/package-lock.json": "17b4a1a6dbc41295c40d15f2200dac5f8aeb30d01abd9cd82beb2160308a1fd2"
       },
       "distribution_channels": [
         "image",
@@ -3591,7 +3591,7 @@
         "source"
       ],
       "reviewed_at": "2026-09-17",
-      "reviewer": "Codex technical inventory; version-only patch release"
+      "reviewer": "Codex technical inventory; version-only declaration change for multimodal deliveries"
     },
     {
       "id": "frontend-public-art-air-webp",

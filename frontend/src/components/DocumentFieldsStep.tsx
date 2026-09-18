@@ -57,6 +57,7 @@ export function resolveSections(doc: DocumentDefinition, registry: DocumentRegis
 }
 
 interface Props {
+  hideActions?: boolean;
   registry: DocumentRegistry;
   documents: DocumentDefinition[];
   values: Record<string, string>;
@@ -89,6 +90,7 @@ export function fieldId(key: string): string {
 }
 
 export default function DocumentFieldsStep({
+  hideActions = false,
   registry,
   documents,
   values,
@@ -447,7 +449,7 @@ export default function DocumentFieldsStep({
       {/* In the wizard these land in the shell's action bar at the foot of the
           screen; on their own — as this component's own tests render it — they
           stay where they are written. */}
-      <WizardActions>
+      {!hideActions && <WizardActions>
         <button type="button" onClick={onBack} className={buttonSecondary}>
           {t("wizard.back")}
         </button>
@@ -463,7 +465,7 @@ export default function DocumentFieldsStep({
         >
           {warned ? t("docfields.continueAnyway") : t("wizard.toExport")}
         </button>
-      </WizardActions>
+      </WizardActions>}
     </div>
   );
 }

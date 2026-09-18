@@ -17,7 +17,7 @@ from app.core.deps import get_current_user
 from app.core.messages import error
 from app.models.trip import Trip
 from app.models.user import User
-from app.schemas.trips import TripDetail, TripIn, TripPage
+from app.schemas.trips import TripDetail, TripPage
 from app.services import audit, departments, trips
 
 router = APIRouter(prefix="/trips", tags=["trips"])
@@ -28,12 +28,6 @@ def _record(trip_id: int, db: Session, viewer: User) -> Trip:
     # Another department's trip is, for this viewer, not there.
     if record is None or not departments.may_see(record, viewer):
         raise HTTPException(status_code=404, detail="Trip not found")
-    return record
-
-
-def _kept(request: Request, db: Session, user: User, record: Trip, action: str) -> Trip:
-    audit.record(db, action, actor=user, target=("trip", record.id),
-                 summary=record.name or "", request=request)
     return record
 
 
@@ -54,31 +48,15 @@ def list_trips(
                     page=page, per_page=per_page)
 
 
-@router.post("", response_model=TripDetail)
-def keep_trip(request: Request, payload: TripIn,
-              user: User = Depends(get_current_user),
-              db: Session = Depends(get_db)):
-    if not payload.consignments:
-        raise error(422, "trips.empty")
-    try:
-        record = trips.keep(db, user, payload)
-    except trips.RecordTooLarge as exc:
-        raise HTTPException(status_code=413, detail=str(exc)) from exc
-    return trips.detail(_kept(request, db, user, record, "trip.kept"))
+@router.post("")
+def keep_trip(user: User = Depends(get_current_user)):
+    raise error(409, "delivery.legacy_readonly")
 
 
-@router.put("/{trip_id}", response_model=TripDetail)
-def update_trip(request: Request, trip_id: int, payload: TripIn,
-                user: User = Depends(get_current_user),
-                db: Session = Depends(get_db)):
-    record = _record(trip_id, db, user)
-    if not payload.consignments:
-        raise error(422, "trips.empty")
-    try:
-        record = trips.keep(db, user, payload, existing=record)
-    except trips.RecordTooLarge as exc:
-        raise HTTPException(status_code=413, detail=str(exc)) from exc
-    return trips.detail(_kept(request, db, user, record, "trip.updated"))
+@router.put("/{trip_id}")
+def update_trip(trip_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    _record(trip_id, db, user)
+    raise error(409, "delivery.legacy_readonly")
 
 
 @router.get("/{trip_id}", response_model=TripDetail)

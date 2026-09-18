@@ -25,6 +25,7 @@ from app.models.dg_review import DgReview
 from app.models.shipment import Shipment
 from app.models.cargo import PackagingTemplate, CargoIdentity, CargoUse
 from app.models.trip import Trip
+from app.models.delivery import Delivery, DeliveryAccount, DeliveryFile, DeliveryGrant, DeliveryLock
 from app.models.user import Equipment, Job, Profile, ReferenceItem, User
 from app.services import audit, history
 from app.services.catalog_sync import sync_catalogs
@@ -47,7 +48,8 @@ SETTINGS_TABLES = (InstanceSetting, UserPreference, PasswordResetToken,
                    AuditEvent, DgReview, EquipmentEvent, EquipmentFile, PackagingTemplate, CargoIdentity, CargoUse)
 #: Same reason: the history's table is created by ``create_all`` on a fresh
 #: database only because its model was imported here.
-HISTORY_TABLES = (Shipment, Address, DgsaReport, Article, Trip)
+HISTORY_TABLES = (Shipment, Address, DgsaReport, Article, Trip, Delivery,
+                  DeliveryAccount, DeliveryFile, DeliveryGrant, DeliveryLock)
 
 
 def ensure_directories() -> None:

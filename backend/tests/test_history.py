@@ -176,9 +176,9 @@ def test_switching_off_with_kept_shipments_is_refused_until_they_are_deleted(db,
         assert settings_store.history_enabled(db) is True
         assert history.count(db) == 1
 
-        assert client.get("/api/settings/instance/history").json() == {"shipments": 1, "trips": 0}
+        assert client.get("/api/settings/instance/history").json() == {"shipments": 1, "trips": 0, "deliveries": 0}
         gone = client.post("/api/settings/instance/history/discard").json()
-        assert gone == {"ok": True, "shipments": 1, "trips": 0}
+        assert gone == {"ok": True, "shipments": 1, "trips": 0, "deliveries": 0}
         assert history.count(db) == 0
         assert client.put("/api/settings/instance",
                           json={**current, "history_enabled": False}).status_code == 200

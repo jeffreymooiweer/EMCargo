@@ -151,8 +151,8 @@ describe("de zendingenpagina", () => {
     expect(screen.getByText(/history\.selectedShort:2/)).toBeInTheDocument();
     // The trip is opened with the selection in the address; the server
     // decides per shipment whether this viewer may read it.
-    expect(screen.getByRole("link", { name: /history\.toTrip:2/ })).toHaveAttribute(
-      "href", "/trips?shipments=7,8");
+    expect(screen.getByRole("link", { name: /history\.toDelivery:2/ })).toHaveAttribute(
+      "href", "/deliveries/new?shipments=7,8");
   });
 
   it("zet het concept waar de gebruiker mee bezig was bovenaan", async () => {
@@ -268,7 +268,7 @@ describe("compact shipment actions", () => {
     await waitFor(() => expect(api.forgetShipment).toHaveBeenCalledOnce());
     expect(api.forgetShipment).toHaveBeenCalledWith(7);
     await waitFor(() => expect(screen.queryByText("CP-2026-100")).toBeNull());
-    expect(screen.queryByRole("link", { name: /history\.toTrip/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /history\.toDelivery/ })).toBeNull();
     expect(await screen.findByText("history.count:1/1")).toBeInTheDocument();
   });
 
@@ -284,7 +284,7 @@ describe("compact shipment actions", () => {
     await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "history.remove" }));
     expect(await screen.findByText("Error: Deletion unavailable")).toBeInTheDocument();
     expect(screen.getAllByText("CP-2026-100")).toHaveLength(2);
-    expect(screen.getByRole("link", { name: /history\.toTrip:1/ })).toHaveAttribute("href", "/trips?shipments=7");
+    expect(screen.getByRole("link", { name: /history\.toDelivery:1/ })).toHaveAttribute("href", "/deliveries/new?shipments=7");
     expect(api.shipment).not.toHaveBeenCalled();
   });
 
@@ -381,3 +381,5 @@ it("shows saved cargo from the canonical export without offering mutations", asy
   expect(screen.getByText("Pipe fittings")).toBeVisible();
   expect(screen.queryByRole("button", { name: "cargo.newUnit" })).not.toBeInTheDocument();
 });
+
+vi.mock("../components/DeliveryActivity", () => ({ default: () => null }));

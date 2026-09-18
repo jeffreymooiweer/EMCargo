@@ -61,10 +61,10 @@ function renderAt(path = "/") {
 }
 
 describe("de modaliteitkeuze", () => {
-  it("offers the four released modes, including sea again", () => {
+  it("offers five preparation modes and an undecided source shipment", () => {
     // v2.4.0 hid the previously released sea flow. The shared allowlist must
     // restore its tile, default preference, mode switcher and direct URLs.
-    expect([...AVAILABLE_MODALITIES]).toEqual(["road", "rail", "sea", "inland"]);
+    expect([...AVAILABLE_MODALITIES]).toEqual(["preparation", "road", "rail", "sea", "inland", "air"]);
     for (const key of AVAILABLE_MODALITIES) {
       expect(isModalityAvailable(key)).toBe(true);
     }
@@ -74,21 +74,17 @@ describe("de modaliteitkeuze", () => {
     }
   });
 
-  it("shows developing modes beside the released modes as disabled buttons", async () => {
+  it("starts multimodal work with an undecided source shipment", async () => {
     preferences.default_modality = undefined;
     renderAt("/?choose=1");
-    for (const key of ["air", "multimodal"]) {
-      expect(screen.getByText(`modality.${key}`)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: new RegExp(`modality.${key}`) })).toBeDisabled();
-    }
-    expect(screen.getAllByText("modality.inDevelopment")).toHaveLength(2);
-    expect(screen.queryByText("wizard")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /modality.multimodal/ }));
+    expect(screen.getByLabelText("Destination")).toHaveTextContent("/wizard/preparation");
   });
 
   it("opent wegvervoer gewoon", async () => {
     preferences.default_modality = undefined;
     renderAt("/?choose=1");
-    const road = screen.getAllByRole("button").find((tile) => !tile.hasAttribute("disabled"))!;
+    const road = screen.getByRole("button", { name: /modality.road/ });
     await userEvent.click(road);
     await waitFor(() => expect(screen.getByText("wizard")).toBeInTheDocument());
   });
@@ -118,9 +114,8 @@ describe("de modaliteitkeuze", () => {
 
   it("volgt een voorkeur voor een vergrendelde modaliteit niet meer", async () => {
     // The route that skips every tile: a preference set while a modality was
-    // open would otherwise keep opening it after the lock went on. Air is the
-    // locked case now — it was open for one demonstration in v1.117.0.
-    preferences.default_modality = "air";
+    // open would otherwise keep opening a combined mode as a single modal declaration.
+    preferences.default_modality = "multimodal";
     renderAt("/");
     await waitFor(() => expect(screen.getAllByRole("button").length).toBeGreaterThan(0));
     expect(screen.queryByText("wizard")).not.toBeInTheDocument();

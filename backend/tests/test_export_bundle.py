@@ -115,8 +115,8 @@ def test_the_bundle_holds_every_document_once(data_dir):
     })
     assert response.status_code == 200, response.text
     names = names_in(response)
-    assert sum(1 for n in names if n.startswith("cmr_")) == 1
-    assert sum(1 for n in names if n.startswith("placarding_sheet_")) == 1
+    assert sum(1 for n in names if n.startswith("DRAFT-cmr_")) == 1
+    assert sum(1 for n in names if n.startswith("DRAFT-placarding_sheet_")) == 1
     for name in names:
         if name.endswith(".pdf"):
             assert read_member(response, name)[:5] == b"%PDF-"
@@ -162,7 +162,7 @@ def test_an_incomplete_document_stays_out_and_is_named(data_dir):
     })
     assert response.status_code == 200, response.text
     names = names_in(response)
-    assert not any(n.startswith("cmr_") for n in names)
+    assert not any(n.startswith("DRAFT-cmr_") for n in names)
     assert b"cmr" in read_member(response, "README.txt")
 
 
@@ -238,8 +238,8 @@ def test_the_mailed_attachment_is_the_bundle_itself(data_dir, mail_server):
     assert filename.endswith(".zip") and mimetype == "application/zip"
     with zipfile.ZipFile(io.BytesIO(content)) as archive:
         names = archive.namelist()
-    assert sum(1 for n in names if n.startswith("cmr_")) == 1
-    assert sum(1 for n in names if n.startswith("placarding_sheet_")) == 1
+    assert sum(1 for n in names if n.startswith("DRAFT-cmr_")) == 1
+    assert sum(1 for n in names if n.startswith("DRAFT-placarding_sheet_")) == 1
 
 
 def test_several_recipients_travel_on_one_message(data_dir, mail_server):

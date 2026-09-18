@@ -207,8 +207,11 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     them find out at the next sign-in."""
     policy = instance_settings(db).two_factor_policy
     active = two_factor.is_active(db, user.id)
+    from app.services.deliveries import execution_only
+    account = UserOut.model_validate(user)
+    account.execution_only = execution_only(db, user)
     return {
-        "user": UserOut.model_validate(user),
+        "user": account,
         "admin_ready": True,
         "two_factor_active": active,
         "two_factor_required": two_factor.required_for(user, policy) and not active,

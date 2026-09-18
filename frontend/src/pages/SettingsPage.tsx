@@ -398,7 +398,7 @@ function AdminSettings({ section }: { section: TabKey }) {
   // Switching the history off destroys what it kept. The server refuses
   // while anything is kept; the screen asks first, with the counts, and
   // deletes on confirmation before saving the switch.
-  const [discard, setDiscard] = useState<{ shipments: number; trips: number } | null>(null);
+  const [discard, setDiscard] = useState<{ shipments: number; trips: number; deliveries?: number } | null>(null);
 
   const load = () => {
     setLoadError("");
@@ -460,7 +460,7 @@ function AdminSettings({ section }: { section: TabKey }) {
     try {
       if (settings.history_enabled && !draft.history_enabled) {
         const counts = await api.historyCounts();
-        if (counts.shipments || counts.trips) {
+        if (counts.shipments || counts.trips || counts.deliveries) {
           setDiscard(counts);
           return;
         }
@@ -641,6 +641,7 @@ function AdminSettings({ section }: { section: TabKey }) {
           body={t("settings.historyDiscardBody", {
             shipments: discard?.shipments ?? 0,
             trips: discard?.trips ?? 0,
+            deliveries: discard?.deliveries ?? 0,
           })}
           confirmLabel={t("settings.historyDiscardConfirm")}
           onConfirm={() => void discardAndSwitchOff()}

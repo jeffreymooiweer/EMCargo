@@ -9,7 +9,10 @@ from app.models.dg_review import DgReview
 from app.models.user import User
 from app.schemas import DocumentBundleRequest, DocumentExportRequest
 from app.schemas.history import ShipmentIn
-from app.services.settings_store import instance_settings
+# Compatibility export for integrations configuring the legacy review workspace.
+from app.services.settings_store import instance_settings as instance_settings
+
+__all__ = ["instance_settings"]
 
 MAX_BYTES = 3 * 1024 * 1024
 
@@ -100,37 +103,24 @@ def approved(db: Session, review_id: str | None, user: User) -> DgReview:
 
 
 def enforce_document(db: Session, user: User, payload: DocumentExportRequest) -> None:
+    """Preparation exports are drafts; source verification still applies."""
     from app.services.dg.source_verification import require_verified_payload
     require_verified_payload(payload.model_dump())
-    if not instance_settings(db).dg_review_enabled or not (has_dg(payload) or payload.dg_review_id):
-        return
-    record = approved(db, payload.dg_review_id, user)
-    saved = ShipmentIn(**json.loads(record.payload_json))
-    allowed = bundle_data(saved.bundle)["documents"] if saved.bundle else []
-    if document_data(payload) not in allowed:
-        raise error(409, "review.changed")
 
 
 def enforce_bundle(db: Session, user: User, payload: DocumentBundleRequest, *, required: bool = False) -> None:
     from app.services.dg.source_verification import require_verified_payload
     require_verified_payload(payload.model_dump())
-    if not instance_settings(db).dg_review_enabled or not (required or has_dg(payload) or payload.dg_review_id):
-        return
-    record = approved(db, payload.dg_review_id, user)
-    saved = ShipmentIn(**json.loads(record.payload_json))
-    if saved.bundle is None or bundle_data(payload) != bundle_data(saved.bundle):
-        raise error(409, "review.changed")
+    for document in payload.documents:
+        require_verified_payload(document.model_dump())
 
 
 def enforce_shipment(db: Session, user: User, payload: ShipmentIn) -> None:
     if not payload.draft:
         from app.services.dg.source_verification import require_verified_payload
         require_verified_payload(payload.model_dump())
-    if payload.draft or not instance_settings(db).dg_review_enabled or not (has_dg(payload) or payload.dg_review_id):
-        return
-    record = approved(db, payload.dg_review_id, user)
-    if fingerprint(payload) != record.fingerprint:
-        raise error(409, "review.changed")
+    # Keeping goods is preparation, not permission to transport them. Execution
+    # release and final documents are approved against the actual delivery leg.
 
 
 def submit(db: Session, user: User, payload: ShipmentIn) -> DgReview:

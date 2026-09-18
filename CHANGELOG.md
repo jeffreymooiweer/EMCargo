@@ -1,5 +1,43 @@
 # Changelog
 
+## [2.16.0] - 2026-09-17
+
+### Added
+
+- Plan deliveries across road, rail, inland waterway, sea and air transport,
+  combining source shipments and consecutive transport legs in one dossier.
+- Reserve exact quantities and whole packing units; select a shared container,
+  record loading and partial receipts, and handle damage, refusals and shortages.
+  Linked returns and redeliveries preserve the original receipt evidence.
+- Separate physical equipment availability from office completion. Empty-unit
+  evidence releases packaging after a shortage; future transport quantities can
+  follow an actual, settled transfer receipt without rewriting executed legs.
+- Assign operators and recipients to specific legs and shipments, with expiring
+  verified external invitations and an isolated recipient portal.
+- Issue immutable, versioned delivery documents after transport checks and any
+  required qualified review. Downloads and email use the same recorded bytes.
+  A temporary single-leg document workflow is available without retained history.
+
+### Changed
+
+- Use Deliveries in navigation, shipment balances and operational reporting.
+  Shipment preparation can leave the preferred transport mode undecided; its
+  documents are drafts until delivery planning and release establish the scope.
+- Keep existing trip assessments readable and provide explicit conversion to a
+  delivery concept. Legacy trip creation and editing are now read-only.
+- Import delivery archives as new concepts, discarding imported approvals,
+  access and execution claims. Existing shipment and cargo formats stay separate.
+- Require explicit specialist review where automated modal coverage is partial;
+  block ambiguous or partial dangerous-goods declaration splits.
+- Add the delivery workflow in Dutch, English, German and French, including
+  responsive execution screens, scoped history and operational dashboard links.
+
+### Verification
+
+- Verify desktop and mobile delivery, partial-receipt, onward-transport and
+  recipient-isolation journeys. Automated checks cover inventory concurrency,
+  access scope, immutable documents, retention and safe archive imports.
+
 ## [2.15.1] - 2026-09-17
 
 ### Fixed
