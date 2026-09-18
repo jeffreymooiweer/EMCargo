@@ -232,8 +232,8 @@ def test_the_pdf_route_and_the_missing_history(db, a_year, monkeypatch):
     monkeypatch.setenv("EMCARGO_HISTORY", "false")
     get_settings.cache_clear()
     with client_as(db, 1) as root:
-        assert root.get("/api/shipments/report/form?year=2026").status_code == 404
-        assert root.put("/api/shipments/report/answers?year=2026", json={"answers": {}}).status_code == 404
+        assert root.get("/api/shipments/report/form?year=2026").status_code == 200
+        assert root.put("/api/shipments/report/answers?year=2026", json={"answers": {}}).status_code == 200
 
 
 # --- the schema step --------------------------------------------------------------

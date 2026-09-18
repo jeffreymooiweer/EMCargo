@@ -12,7 +12,7 @@ import WizardPage from "./WizardPage";
 
 const mocks = vi.hoisted(() => ({
   api: {
-    documentsRegistry: vi.fn(), shipments: vi.fn(), shipment: vi.fn(), runningDraft: vi.fn(),
+    addresses: vi.fn().mockResolvedValue([]), documentsRegistry: vi.fn(), shipments: vi.fn(), shipment: vi.fn(), runningDraft: vi.fn(),
     saveDraft: vi.fn(), calculate: vi.fn(), updateShipment: vi.fn(), keepShipment: vi.fn(), validateDocument: vi.fn(),
   },
   cargoApi: { assess: vi.fn(), reusableUnits: vi.fn() },
@@ -123,10 +123,10 @@ describe("shipment restoration", () => {
     expect(mocks.api.runningDraft).not.toHaveBeenCalled();
   });
 
-  it.each(["multimodal"])("keeps an unreleased %s wizard URL closed", async modality => {
+  it.each(["multimodal"])("opens legacy %s URLs as shipment preparation", async modality => {
     open(`/wizard/${modality}`);
-    expect(await screen.findByText("Transport mode selection")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Goods description")).not.toBeInTheDocument();
+    expect(await screen.findByLabelText("Goods description")).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "wizard.mode" })).not.toBeInTheDocument();
   });
 
   it("keeps an entered total weight when dimensions change", async () => {
@@ -241,15 +241,15 @@ describe("shipment restoration", () => {
     }));
   });
 
-  it("carries edits through a modality change without reading the old server draft again", async () => {
+  it("keeps edits in preparation without offering a transport-mode switch", async () => {
     mocks.api.runningDraft.mockResolvedValue(saved());
     open();
     const input = await screen.findByLabelText("Goods description");
     fireEvent.change(input, { target: { value: "Changed before switching" } });
     fireEvent.change(screen.getByLabelText("wizard.referenceLabel"), { target: { value: "RAIL-2026-001" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "wizard.mode" }), { target: { value: "rail" } });
+
     expect(await screen.findByLabelText("Goods description")).toHaveValue("Changed before switching");
-    expect(screen.getByRole("combobox", { name: "wizard.mode" })).toHaveValue("rail");
+    expect(screen.queryByRole("combobox", { name: "wizard.mode" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("wizard.referenceLabel")).toHaveValue("RAIL-2026-001");
     expect(mocks.api.runningDraft).toHaveBeenCalledTimes(1);
   });
@@ -311,7 +311,7 @@ it('adds a reference to an existing shipment on the export step', async () => {
   const reference = await screen.findByRole('textbox', { name: 'wizard.referenceLabel' });
   expect(reference).toHaveValue('');
   fireEvent.change(reference, { target: { value: 'ORDER-42' } });
-  fireEvent.click(screen.getByRole('button', { name: 'history.update' }));
+  fireEvent.click(screen.getByRole('button', { name: 'routing.finalize' }));
   await waitFor(() => expect(mocks.api.updateShipment).toHaveBeenCalledWith(42, expect.objectContaining({
     values: expect.objectContaining({ shipment_reference: 'ORDER-42' }),
     snapshot: expect.objectContaining({ docValues: expect.objectContaining({ shipment_reference: 'ORDER-42' }) }),
@@ -332,7 +332,7 @@ it('shows and clears a legacy reference without letting it reappear', async () =
   fireEvent.change(reference, { target: { value: '' } });
   await act(async () => { await vi.advanceTimersByTimeAsync(2600); });
   expect(reference).toHaveValue('');
-  expect(mocks.api.saveDraft.mock.lastCall![0].values).toMatchObject({ shipment_reference: '', reference: '' });
+  expect(mocks.api.saveDraft.mock.lastCall![0].values).toMatchObject({ shipment_reference: '' });
 });
 
 
@@ -349,6 +349,7 @@ it("carries assistant DG answers through calculation and into the DG step", asyn
   await waitFor(() => expect(mocks.api.calculate).toHaveBeenCalled());
   expect(mocks.assistantProps!.buildState().dg_entries?.[0].products[0].type_of_package).toBe("3A1");
   fireEvent.click(screen.getByRole("button", { name: "review.continueTo" }));
+  fireEvent.click(await screen.findByRole("button", { name: "review.continue" }));
   const entries = JSON.parse((await screen.findByLabelText("DG answers")).textContent!);
   expect(entries[0].line_id).toBe(1);
   expect(entries[0].products[0]).toMatchObject({ carriage_mode: "packages", type_of_package: "3A1", net_mass_liters_per_package: "25 L" });
@@ -421,14 +422,11 @@ it("explains missing cargo weight without a DG warning or a failed-service warni
     totals: { goods_kg: 50, packaging_kg: null, cargo_gross_kg: null, transport_tare_kg: 0,
       transport_gross_kg: null, occupied_volume_m3: null, complete: false } }));
   open();
-  const reasons = await screen.findAllByRole("button", { name: "errors.cargo.documents_incomplete" });
+  await screen.findByRole("button", { name: "routing.finalize" });
   expect(screen.queryByText("wizardDocs.dgBlocked")).not.toBeInTheDocument();
-  expect(screen.queryByText("panel.blocked")).not.toBeInTheDocument();
-  expect(screen.queryByText("exportFocus.validationFailed")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "wizard.download" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "wizard.download" })).not.toBeInTheDocument();
   expect(mocks.api.validateDocument).not.toHaveBeenCalled();
-  fireEvent.click(reasons[reasons.length - 1]);
-  expect(await screen.findByLabelText("Cargo manifest")).toBeInTheDocument();
+
 });
 
 /** Cargo uses stable draft IDs; calculation row positions and a locally stored
@@ -508,9 +506,9 @@ it("allows an explicit save after an earlier autosave failed", async () => {
   open(); await act(async () => { await vi.advanceTimersByTimeAsync(0); });
   await act(async () => { await vi.advanceTimersByTimeAsync(2700); });
   expect(mocks.api.saveDraft).toHaveBeenCalledTimes(1);
-  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "history.keep" })); });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "routing.finalize" })); });
   expect(mocks.api.updateShipment).toHaveBeenCalledWith(42, expect.objectContaining({ draft: false, expected_cargo_revision: 9 }));
-  expect(screen.getByTestId("history-status")).toHaveTextContent("history.keptAt");
+  expect(screen.getByText("history.keptToast")).toBeInTheDocument();
 });
 
 /** Final save must cancel an autosave timer that has not fired and await an
@@ -525,7 +523,7 @@ it("waits for pending autosave before publication and prevents later draft write
   await act(async () => { await vi.advanceTimersByTimeAsync(2700); });
   expect(mocks.api.saveDraft).toHaveBeenCalledTimes(1);
   fireEvent.change(screen.getByLabelText("wizard.referenceLabel"), { target: { value: "READY-42" } });
-  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "history.keep" })); });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "routing.finalize" })); });
   expect(mocks.api.updateShipment).not.toHaveBeenCalled();
   await act(async () => pending.resolve({ id: 42, cargo_revision: 10, updated_at: "2026-09-17T10:00:00Z" }));
   expect(mocks.api.updateShipment).toHaveBeenCalledWith(42, expect.objectContaining({ draft: false, expected_cargo_revision: 10,
@@ -536,19 +534,16 @@ it("waits for pending autosave before publication and prevents later draft write
 
 /** Switching modality while editing a retained shipment must not turn it into
  * a fresh draft with the same physical unit IDs or lose its revision guard. */
-it("keeps the saved shipment and cargo identity when carrying edits to another modality", async () => {
+it("keeps shipment and cargo identities when saving the document-free review", async () => {
   const shipment = packedShipment("export");
   mocks.api.shipment.mockResolvedValue(shipment);
   mocks.api.calculate.mockResolvedValue(shipment.snapshot.result);
   open("/wizard/road?shipment=42");
-  await screen.findByRole("button", { name: "history.update" });
-  fireEvent.change(screen.getByRole("combobox", { name: "wizard.mode" }), { target: { value: "rail" } });
-  expect(await screen.findByLabelText("Goods description")).toHaveValue("Packed bolts");
+  await screen.findByRole("button", { name: "routing.finalize" });
   fireEvent.change(screen.getByLabelText("wizard.referenceLabel"), { target: { value: "CARRIED-42" } });
-  fireEvent.click(screen.getByRole("button", { name: "review.continueTo" }));
-  fireEvent.click(await screen.findByRole("button", { name: "history.update" }));
+  fireEvent.click(screen.getByRole("button", { name: "routing.finalize" }));
   await waitFor(() => expect(mocks.api.updateShipment).toHaveBeenCalledWith(42, expect.objectContaining({
-    modality: "rail", draft: false, expected_cargo_revision: 9,
+    modality: "", draft: false, expected_cargo_revision: 9, documents: [], bundle: null,
     cargo: expect.objectContaining({ shipment_id: SHIPMENT_CARGO_ID, units: [expect.objectContaining({ id: PACKAGE_ID })] }),
     values: expect.objectContaining({ shipment_reference: "CARRIED-42" }),
   })));

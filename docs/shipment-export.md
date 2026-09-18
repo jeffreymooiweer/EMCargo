@@ -20,18 +20,18 @@ MMT-RDM, an eCMR pilot, a platform connector) builds on this file existing.
 
 ## What is in it
 
-The format identifier is now `emcargo.shipment`, with format version `2.1`.
+The format identifier is now `emcargo.shipment`, with format version `3.0`.
 Integrations must accept this new identifier before consuming new exports.
 
 ```json
 {
   "format": "emcargo.shipment",
-  "format_version": "2.1",
+  "format_version": "3.0",
   "generated_at": "2026-08-23T15:58:51+00:00",
   "generator": { "application": "EMCargo", "version": "1.161.0" },
   "language": "nl",
-  "modality": "road",
-  "regulations": ["ADR"],
+  "modality": "",
+  "regulations": [],
   "consignment": { "consignor_name": "…", "reference": "…" },
   "goods": [ { "description": "…", "quantity": 10 } ],
   "dangerous_goods": [ { "line_id": "1", "products": [ … ] } ],
@@ -140,3 +140,21 @@ The additive `cargo` and `cargo_assessment` fields preserve nested physical unit
 partial goods allocations, stable identifiers and explicit unknown measurements.
 The original `goods` lines remain available. See [Cargo contract v1](cargo-contract.md)
 for quantities, revisions, document mappings and the independent plugin interface.
+
+## Version 3 source routing
+
+`routing` has version `1`, `locations` and `distributions`. A location has a stable
+`id`, `kind` (`pickup` or `delivery`), physical `name`, `address`, `country`,
+`contact`, and a separate legal `party` with those four fields. A distribution has
+`id`, `goods_id`, exact decimal `quantity`, `pickup_id`, `delivery_id`, outer
+`unit_ids`, optional split `dangerous_goods` and `dg_confirmation`. Goods ids refer
+to `cargo_goods_id` or the legacy `line_id`, never the visible row order.
+
+The shipment wizard exports source preparation facts. Documents, carriers,
+execution, signatures and modal release belong to delivery archives. Empty mode
+and regulation values must not be interpreted as a road-transport approval.
+
+The wizard imports versions 1.0, 2.0, 2.1 and 3.0 as new private drafts. Packing
+relationships survive with fresh physical ids; approvals and signatures do not.
+Legacy imports derive only supplied addresses and never invent missing countries.
+The user completes and verifies missing information before finalization.

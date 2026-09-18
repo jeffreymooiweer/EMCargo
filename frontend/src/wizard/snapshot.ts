@@ -18,9 +18,10 @@ import type { CargoManifest } from "../api/cargo";
 import { readCargo } from "../utils/cargo";
 import type { DraftLine } from "../components/ReviewLinesPanel";
 
-export const SNAPSHOT_VERSION = 2;
+export const SNAPSHOT_VERSION = 3;
 
 export interface WizardSnapshot {
+  routing?: import("./routing").Routing;
   version: number;
   cargo?: CargoManifest;
   cargoBaseRevision?: number | null;
@@ -81,6 +82,7 @@ export function readSnapshot(raw: unknown): WizardSnapshot | null {
 
   return {
     version,
+    ...(isRecord(raw.routing) && Array.isArray(raw.routing.locations) && Array.isArray(raw.routing.distributions) ? { routing: raw.routing as unknown as import("./routing").Routing } : {}),
     ...(cargo ? { cargo } : {}),
     cargoBaseRevision: typeof raw.cargoBaseRevision === "number" ? raw.cargoBaseRevision : null,
     modality: typeof raw.modality === "string" ? raw.modality : "",

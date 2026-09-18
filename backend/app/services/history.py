@@ -1,19 +1,4 @@
-"""The shipment history: keeping, listing and letting go.
-
-Everything else in EMCargo forgets a shipment the moment its papers are
-downloaded. This module is the one place that remembers, and it does so only
-while an administrator of the organisation application has *Keep shipments*
-switched on — the routes that call it answer 404 otherwise, and
-:func:`adopt_kept_data` at start-up makes sure a database cannot hold
-shipments the running application refuses to acknowledge.
-
-**Switching the history off destroys data, and says so first.** The settings
-route refuses to switch it off while shipments or trips are in the table; the
-administrator has them deleted first, on the screen, after a confirmation
-that names the counts. Nothing is deleted by a switch alone; a table kept
-while the interface claims it does not exist would be the one outcome worse
-than either choice.
-"""
+"""Retained shipments and private drafts, with explicit administrative deletion."""
 from __future__ import annotations
 
 import json
@@ -121,7 +106,10 @@ def _index(record: Shipment, export: dict[str, Any], payload: ShipmentIn) -> Non
                            or consignment.get("reference") or "")[:120]
     record.consignor_name = str(consignment.get("consignor_name") or "")[:255]
     record.consignee_name = str(consignment.get("consignee_name") or "")[:255]
-    record.modality = (payload.modality or "")[:16]
+    if payload.routing:
+        record.consignor_name = ", ".join(dict.fromkeys(p.party.name for p in payload.routing.locations if p.kind == "pickup"))[:255]
+        record.consignee_name = ", ".join(dict.fromkeys(p.party.name for p in payload.routing.locations if p.kind == "delivery"))[:255]
+    record.modality = ""
     record.language = (payload.language or "nl")[:8]
     record.regulations = ",".join(export.get("regulations") or [])[:64]
     record.goods_count = sum(1 for line in payload.lines if line.get("include", True))
@@ -139,21 +127,27 @@ def keep(db: Session, user: User, payload: ShipmentIn,
     if existing is not None and not existing.is_draft and payload.draft:
         from app.core.messages import error
         raise error(409, "cargo.conflict")
+    original_payload = payload
+    from app.services import shipment_routing
+    if payload.routing is None:
+        payload = payload.model_copy(update={"routing": shipment_routing.legacy({"consignment": payload.values, "goods": payload.lines, "cargo": payload.cargo.model_dump(mode="json") if payload.cargo else None})})
+    if not payload.draft:
+        shipment_routing.validate(payload)
     cargo_changed = cargo_storage.validate_payload(payload, existing, db)
     export = build_shipment_export(
         payload.values, payload.lines, payload.dangerous_goods,
         language=payload.language, profiles=payload.profiles,
-        modality=payload.modality or None, documents=payload.documents or None, cargo=payload.cargo)
+        modality=payload.modality or None, documents=None, cargo=payload.cargo, routing=payload.routing)
     if existing is not None:
         from app.services.deliveries import guard_source, source_fingerprint
         if source_fingerprint(json.loads(existing.export_json or "{}")) != source_fingerprint(export):
             guard_source(db, existing.id)
     snapshot = dict(payload.snapshot)
+    snapshot["routing"] = payload.routing.model_dump(mode="json")
     if payload.cargo is not None:
         snapshot["cargo"] = payload.cargo.model_dump(mode="json")
     snapshot_json = json.dumps(snapshot, ensure_ascii=False)
-    bundle_json = (json.dumps(payload.bundle.model_dump(), ensure_ascii=False)
-                   if payload.bundle and payload.bundle.documents else None)
+    bundle_json = existing.bundle_json if existing is not None else None
     export_json = json.dumps(export, ensure_ascii=False)
     size = sum(len(part.encode("utf-8")) for part in (snapshot_json, bundle_json or "", export_json))
     if size > MAX_RECORD_BYTES:
@@ -178,7 +172,7 @@ def keep(db: Session, user: User, payload: ShipmentIn,
     record.bundle_json = bundle_json
     record.export_json = export_json
     from app.services.work_queue import index_shipment
-    index_shipment(record, payload)
+    index_shipment(record, original_payload)
     if existing is None:
         db.add(record)
     if existing is None and cargo_changed:
@@ -254,6 +248,7 @@ def summary(record: Shipment) -> ShipmentSummary:
         goods_count=record.goods_count,
         has_dangerous_goods=record.has_dangerous_goods,
         has_documents=bool(record.has_documents),
+        work_status=record.work_status or "prepare",
         is_draft=bool(record.is_draft),
         cargo_revision=record.cargo_revision or 0,
         created_by=record.creator.username if record.creator else "",

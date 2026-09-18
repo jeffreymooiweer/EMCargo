@@ -15,6 +15,7 @@ export const GroupageIcon = glyph("M3 3h6v6H3z M15 3h6v6h-6z M9 15h6v6H9z M6 9v3
 export const TripsIcon = glyph("M5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4 M19 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4 M5 7v5a3 3 0 0 0 3 3h8a3 3 0 0 0 0-6h-5 M19 15v2");
 export const GoodsIcon = glyph("M3 11h8v8H3z M13 11h8v8h-8z M8 3h8v6H8z M3 22h18 M7 11v3 M17 11v3 M12 3v2");
 export const LibraryIcon = glyph("M3 3h4v18H3z M10 3h4v18h-4z m7 0 4 1-1 17-4-1z");
+export const PackagingIcon = glyph("M7 3 3 7h2v9h4V7h2z M17 3l-4 4h2v9h4V7h2z M2 19h20v3H2z");
 export const SettingsIcon = glyph("M3 6h4m4 0h10 M3 18h10m4 0h4 M3 12h10m4 0h4 M7 3v6 M13 9v6 M17 15v6");
 export const UserIcon = glyph("M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2");
 export const LogoutIcon = glyph("M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4 M14 8l5 4-5 4 M8 12h11");

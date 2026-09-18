@@ -74,21 +74,6 @@ def save_instance_settings(
     db: Session = Depends(get_db),
 ):
     before = settings_store.instance_settings(db).model_dump()
-    if before.get("history_enabled") and not payload.history_enabled:
-        # Off destroys data, and a switch must not do that on its own: the
-        # administrator deletes the kept shipments first, after seeing the
-        # counts, and only then may the setting go off.
-        counts = history.kept_counts(db)
-        if any(counts.values()):
-            raise HTTPException(
-                status_code=409,
-                detail=f"The history still holds {counts['shipments']} kept shipment(s) "
-                       f", {counts['trips']} kept trip(s) and {counts['deliveries']} delivery dossier(s). Delete them first under "
-                       "Settings, Administration, Keep shipments.")
-        # Drafts are not kept shipments and do not stand in the way, but an
-        # installation that keeps nothing must not hold somebody's half-typed
-        # consignment either.
-        history.discard_drafts(db)
     stored = settings_store.save_instance_settings(db, payload)
     # The keys that changed and nothing of what they changed to: the mail
     # password is in here, and so is everything an outsider would like.

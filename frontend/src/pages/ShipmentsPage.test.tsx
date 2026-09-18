@@ -29,7 +29,7 @@ const kept: ShipmentSummary[] = [
   {
     id: 7, reference: "CP-2026-100", modality: "road", language: "nl", regulations: ["ADR"],
     consignor_name: "Afzender BV", consignee_name: "Ontvanger GmbH", goods_count: 3,
-    has_dangerous_goods: true, has_documents: true, created_by: "ada",
+    has_dangerous_goods: true, has_documents: true, work_status: "ready", created_by: "ada",
     created_at: "2026-09-05T08:00:00Z", updated_at: "2026-09-05T08:00:00Z",
   },
   {
@@ -134,9 +134,17 @@ describe("de zendingenpagina", () => {
   it("zegt van elke regel wat hij is", async () => {
     renderAt("/shipments");
     await screen.findAllByText("CP-2026-100");
-    // One has a kept package and is ready; the other stopped before that.
+    // Preparation readiness comes from the source facts, not document presence.
     expect(screen.getAllByText("history.stateReady")).toHaveLength(2);
     expect(screen.getAllByText("history.stateOpen")).toHaveLength(2);
+  });
+
+  it("marks a document-free prepared shipment as ready", async () => {
+    api.shipments.mockResolvedValue({ items: [{ ...kept[0], has_documents: false, work_status: "ready", modality: "" }], total: 1, page: 1, per_page: 30 });
+    renderAt("/shipments");
+    await screen.findAllByText("CP-2026-100");
+    expect(screen.getAllByText("history.stateReady")).toHaveLength(2);
+    expect(screen.queryByText("modality.")).not.toBeInTheDocument();
   });
 
   it("maakt van een selectie een rit", async () => {
@@ -196,7 +204,7 @@ describe("de zendingenpagina", () => {
     renderAt("/shipments/8");
     expect(await screen.findByRole("heading", { name: "history.noReference" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "history.documents" })).toBeNull();
-    expect(screen.getByText("history.documentsNone")).toBeInTheDocument();
+    expect(screen.getByText("routing.documentsLater")).toBeInTheDocument();
   });
 
   it("geeft alleen een beheerder het afdelingsfilter, en stuurt de keuze mee", async () => {

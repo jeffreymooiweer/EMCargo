@@ -29,6 +29,12 @@ def create(db, user, parent, value, part, event):
             "sources": {sid: copy.deepcopy(value["sources"][sid]) for sid in source_ids},
             "followup": {"parent_id": parent.id, "leg_id": part["id"], "event_id": event["request_id"],
                          "kind": kind, "allocation_map": mapping}}
+    if value.get("stops"):
+        selected_stops = [copy.deepcopy(s) for s in value["stops"] if s["id"] in {part["origin_stop_id"], part["destination_stop_id"]}]
+        if kind == "return":
+            selected_stops.reverse()
+            next_part["origin_stop_id"], next_part["destination_stop_id"] = part["destination_stop_id"], part["origin_stop_id"]
+        body["stops"] = selected_stops
     if value.get("unpacked"):
         body["unpacked"] = True
     child = Delivery(id=str(uuid4()), name=parent.name[:110] + (" ↩" if kind == "return" else " ↻"),

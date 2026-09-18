@@ -3553,7 +3553,7 @@
       "paths": [
         "frontend/package.json"
       ],
-      "version": "2.16.0",
+      "version": "3.0.0",
       "source_url": null,
       "copyright_holder": "Original rights holders; see source notices",
       "license_expression": "LicenseRef-EMCargo",
@@ -3561,13 +3561,13 @@
       "redistribution_basis": "Project-authored build/dependency declaration; dependencies keep their own licenses.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package.json": "29212612594b24dec1016837b67408e2c0ac56479845a310e62f6aef47388f70"
+        "frontend/package.json": "7862c406bb9dfd0140ffbfbc22c692502fdd4a9d82b0203ebed250e037959e27"
       },
       "distribution_channels": [
         "source"
       ],
-      "reviewed_at": "2026-09-17",
-      "reviewer": "Codex technical inventory; version-only declaration change for multimodal deliveries"
+      "reviewed_at": "2026-09-18",
+      "reviewer": "Codex technical inventory; reviewed version-only change for shipment routing"
     },
     {
       "id": "frontend-package-lock-json",
@@ -3575,7 +3575,7 @@
       "paths": [
         "frontend/package-lock.json"
       ],
-      "version": "2.16.0",
+      "version": "3.0.0",
       "source_url": null,
       "copyright_holder": "Jeffrey Mooiweer",
       "license_expression": "LicenseRef-EMCargo",
@@ -3583,15 +3583,15 @@
       "redistribution_basis": "The declaration is project-authored; the resolved packages retain their own licenses and require a generated SBOM.",
       "evidence_reference": "LICENSE",
       "sha256": {
-        "frontend/package-lock.json": "17b4a1a6dbc41295c40d15f2200dac5f8aeb30d01abd9cd82beb2160308a1fd2"
+        "frontend/package-lock.json": "00244496a474b9f64c628922fb2e6e45b80e78271cf0adc342be894fd9a251b7"
       },
       "distribution_channels": [
         "image",
         "native",
         "source"
       ],
-      "reviewed_at": "2026-09-17",
-      "reviewer": "Codex technical inventory; version-only declaration change for multimodal deliveries"
+      "reviewed_at": "2026-09-18",
+      "reviewer": "Codex technical inventory; reviewed version-only change for shipment routing"
     },
     {
       "id": "frontend-public-art-air-webp",

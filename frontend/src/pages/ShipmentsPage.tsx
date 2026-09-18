@@ -1,3 +1,5 @@
+import ShipmentRoutingSummary from "../components/ShipmentRoutingSummary";
+import type { Routing } from "../wizard/routing";
 import DeliveryActivity from "../components/DeliveryActivity";
 import { canOversee } from "../permissions";
 import HistoryStatus from "../components/HistoryStatus";
@@ -305,7 +307,7 @@ function ShipmentList({ language, admin }: { language: string; admin: boolean })
             {draft.reference || t("history.noReference")}
           </span>
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            {t(`modality.${draft.modality}`)} · {when(draft.updated_at, language)}
+            {t(`modality.${draft.modality || "preparation"}`)} · {when(draft.updated_at, language)}
           </span>
           <Link to={wizardLinkFor(draft)} className={`${actionClass} ml-auto`}>
             {t("history.resumeDraft")}
@@ -335,7 +337,7 @@ function ShipmentList({ language, admin }: { language: string; admin: boolean })
             </div>
             <p className="shipment-card-parties">{parties(s)}</p>
             <div className="shipment-card-meta">
-              <span>{t(`modality.${s.modality}`)} · {when(s.created_at, language)}</span>
+              <span>{t(`modality.${s.modality || "preparation"}`)} · {when(s.created_at, language)}</span>
               <span>
                 {s.created_by || ""}{s.department ? ` · ${s.department}` : ""}
               </span>
@@ -399,7 +401,7 @@ function ShipmentList({ language, admin }: { language: string; admin: boolean })
                     </span>
                   </td>
                   <td className="px-3 py-2">{parties(s)}</td>
-                  <td className="px-3 py-2 whitespace-nowrap">{t(`modality.${s.modality}`)}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">{t(`modality.${s.modality || "preparation"}`)}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{when(s.created_at, language)}</td>
                   <td className="px-3 py-2">{s.created_by || "—"}</td>
                   {admin && departments.length > 0 && <td className="px-3 py-2">{s.department || "—"}</td>}
@@ -477,17 +479,12 @@ function RowActions({ shipment, onAgain, onRemove, busy }: {
   );
 }
 
-/** Draft, still to be filled in, or ready. What a row is, in one word.
- *
- *  "Ready" is what produced documents: the bundle was kept, so the papers can
- *  be handed out again. A shipment kept without them is not broken — it is
- *  entry that stopped before the documents — and says so rather than looking
- *  finished. */
+/** Preparation readiness is independent of delivery document issuance. */
 function Status({ shipment }: { shipment: ShipmentSummary }) {
   const { t } = useTranslation();
   const [key, className] = shipment.is_draft
     ? ["history.stateDraft", "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200"]
-    : shipment.has_documents
+    : shipment.work_status === "ready"
       ? ["history.stateReady", "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"]
       : ["history.stateOpen", "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"];
   return (
@@ -622,8 +619,9 @@ function ShipmentView({ id, language }: { id: number; language: string }) {
             <TrashIcon /><span className="shipment-action-label">{t("history.remove")}</span>
           </button>
         </div>
-        {!shipment.has_documents && <p className="text-xs text-slate-500 dark:text-slate-400">{t("history.documentsNone")}</p>}
+        {!shipment.has_documents && <p className="text-xs text-slate-500 dark:text-slate-400">{t("routing.documentsLater")}</p>}
       </div>
+      {shipment.export.routing != null && <ShipmentRoutingSummary routing={shipment.export.routing as Routing} lines={lines} />}
       <DeliveryActivity shipmentId={shipment.id} />
       {cargo && <div className={`${panelClass} p-4 sm:p-6`}><CargoSummary value={cargo} goods={cargoGoods(lines, cargo)} /></div>}
 

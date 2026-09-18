@@ -34,7 +34,7 @@ because those are read while the application is starting and there is no screen 
 | — | Organisation name and address | immediately |
 | `BRAND_NAME` | The name on the door (header, sign-in page, browser tab) | immediately |
 | `SMTP_HOST` and friends | Mail server | immediately |
-| `EMCARGO_HISTORY` (starting value only, see below) | Keep shipments (history) | immediately |
+| `EMCARGO_HISTORY` (deprecated) | Ignored: retention is always enabled | always |
 | — | Audit log retention | at the next start |
 
 The screen also carries per-user preferences — language, theme, the consignor details that
@@ -59,43 +59,13 @@ use its own accounts and data volume without changing the main installation.
 
 ## Shipment history
 
-The history is a setting on the screen: **Settings → Administration → Keep shipments**,
-for administrators. Off by default.
-
-| Variable | What it does | Default |
-|---|---|---|
-| `EMCARGO_HISTORY` | The *starting value* of that setting, for installations that set it before v1.188.0. Read until an administrator saves the Administration screen, ignored from then on. New installations need not set it. | `false` |
-
-`EMCARGO_HISTORY_DISCARD` is gone: the application no longer refuses to start over a
-switched-off history. Switching off happens on the screen, and the screen deletes first
-(below).
-
-Off, a shipment drawn up is a shipment forgotten — the promise every installation made
-until v1.173.0 and still makes by default. On, the export step keeps each shipment when
-its documents are downloaded (or when the user presses **Keep in history**), and a
-**Shipments** page lists them with filters, offers the documents again, opens a shipment
-back in the wizard, and removes one. Who sees which is decided by **departments**
-(v1.174.0), managed on the users page: a user sees their own department's shipments, a
-user without a department sees the unassigned ones, an administrator sees all. An
-organisation that never makes a department keeps the plain rule: everybody sees everything.
-The switch also brings an **address book** on the details step (v1.176.0), shared by
-everyone, **Use as template** on a kept shipment, and the **DGSA annual report**
-(v1.177.0): the safety adviser's yearly figures of ADR 1.8.3.3, counted over the kept
-shipments of one year and downloadable as a workbook, and since v1.179.0 the report
-itself in the shape of the DVSA template, filled in by the adviser, kept per year and
-drawn as a PDF on the installation's paper. The **articles library** (v1.180.0) — your own
-article codes linked to UN number, names and packaging, picked onto a goods line — lives
-beside the history as well.
-
-**Switching it off destroys data, and the screen says so first.** The server refuses to
-save the switch off while kept shipments or trips are in the database; the screen asks,
-names the counts, and on confirmation deletes the kept shipments and trips before saving
-the switch. The address book, the articles library and the adviser's reports stay. A
-switch alone never deletes anything, and nothing is deleted at start-up, ever: a database
-that holds kept shipments while the setting says off — an installation that dropped the
-variable from its environment after upgrading, say — gets the setting switched back on at
-start-up and a line in the log, never a hidden table. What is kept per shipment,
-and what is not, is in [Privacy](privacy.md#the-shipment-history).
+From v3.0 shipments and private drafts are always retained. The former switch and
+`EMCARGO_HISTORY=false` cannot hide or delete records. An upgrade enables retention
+for existing installations without rewriting old documents or execution evidence.
+Use explicit administrative export/deletion actions and maintain database backups.
+Department permissions and private draft ownership remain enforced. Deliveries
+reference exact source distributions and issue documents for selected address pairs.
+See [Privacy](privacy.md#the-shipment-history).
 
 ## Branding
 
@@ -327,7 +297,7 @@ knows to pass the link on by hand.
 **What uses it.** The test message, the forgotten-password link, the invitation, and the export step: with a mail server configured, the
 documents step offers to mail the same archive the download button produces — to the
 carrier, the consignee, or several addresses at once. The archive is deleted the moment the
-message is out; EMCargo keeps no copy of a consignment's papers. One message may carry
+message is out; EMCargo retains issued delivery document bytes. One message may carry
 15 MB of attachments; beyond that the size and the limit are named rather than left to the
 relay to refuse.
 

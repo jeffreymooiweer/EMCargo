@@ -200,6 +200,25 @@ def _012_deliveries(conn: Connection) -> None:
         model.__table__.create(conn, checkfirst=True)
 
 
+def _013_shipment_routing(conn: Connection) -> None:
+    """Enable retention without deleting drafts or rewriting frozen evidence."""
+    import json
+    from app.models.settings import InstanceSetting
+    from sqlalchemy import select
+    for table in ("delivery_grants", "delivery_files"):
+        add_column(conn, table, "allocation_ids_json TEXT NOT NULL DEFAULT '[]'")
+    InstanceSetting.__table__.create(conn, checkfirst=True)
+    for row in conn.execute(select(InstanceSetting.__table__)).mappings():
+        try:
+            value = json.loads(row["data_json"] or "{}")
+        except ValueError:
+            value = {}
+        if not isinstance(value, dict):
+            value = {}
+        value["history_enabled"] = True
+        conn.execute(InstanceSetting.__table__.update().where(InstanceSetting.id == row["id"]).values(data_json=json.dumps(value)))
+
+
 #: In order. Append; never renumber, never remove.
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "shipments", _001_shipments),
@@ -214,6 +233,7 @@ MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (10, "equipment_assets", _010_equipment_assets),
     (11, "cargo", _011_cargo),
     (12, "deliveries", _012_deliveries),
+    (13, "shipment_routing", _013_shipment_routing),
 ]
 
 

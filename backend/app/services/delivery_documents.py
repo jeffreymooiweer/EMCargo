@@ -28,15 +28,16 @@ def bundle(files):
     return output.getvalue()
 
 
-def store(db, record, part, shipments, content, filename, media_type, kind, metadata=None):
+def store(db, record, part, shipments, content, filename, media_type, kind, metadata=None, allocation_ids=None):
     if not content or len(content) > MAX_FILE_BYTES:
         raise error(413, "delivery.too_large")
     from sqlalchemy import func
     used = db.query(func.sum(func.length(DeliveryFile.content))).filter_by(delivery_id=record.id).scalar() or 0
     if used + len(content) > MAX_DELIVERY_BYTES:
         raise error(413, "delivery.too_large")
+    allocation_ids = allocation_ids or [a["id"] for a in d.selected(d.data(record), part["id"]) if a["shipment_id"] in shipments]
     item = DeliveryFile(id=str(uuid4()), delivery_id=record.id, leg_id=part["id"],
-                        shipment_ids_json=json.dumps(sorted(set(shipments))), kind=kind,
+                        shipment_ids_json=json.dumps(sorted(set(shipments))), allocation_ids_json=json.dumps(sorted(allocation_ids)), kind=kind,
                         filename=Path(filename.replace("\\", "/")).name[:160], media_type=media_type,
                         sha256=hashlib.sha256(content).hexdigest(), fingerprint=d.fingerprint(d.data(record), part),
                         metadata_json=d.canonical(metadata or {}), content=content)
@@ -72,7 +73,9 @@ def validate_upload(content, filename):
         raise error(422, "delivery.document") from exc
 
 
-def payload_for(value, part, shipment_id, document_key, language):
+def payload_for(value, part, shipment_id, document_key, language, allocation_ids=None):
+    if allocation_ids is not None:
+        value = {**value, "allocations": [a for a in value["allocations"] if a["id"] in allocation_ids]}
     source = value["sources"].get(str(shipment_id))
     amounts = {}
     for a in d.selected(value, part["id"]):
@@ -95,10 +98,39 @@ def payload_for(value, part, shipment_id, document_key, language):
     from app.services.delivery_cargo import project
     cargo = project(value, part, shipment_id)
     values = copy.deepcopy(export.get("consignment", {}))
-    values.update(part.get("document_values", {}).get(str(shipment_id), {}))
+    routing = export.get("routing")
+    pair = None
+    if allocation_ids is not None and routing:
+        from app.services.delivery_routing import distributions
+        ds = distributions(export)
+        pairs = {(ds[a["source_distribution_id"]]["pickup_id"], ds[a["source_distribution_id"]]["delivery_id"])
+                 for a in d.selected(value, part["id"]) if a["shipment_id"] == shipment_id}
+        if len(pairs) != 1:
+            raise error(422, "delivery.document_scope")
+        pair = next(iter(pairs))
+    # Routed documents have independent inputs for each source address pair.
+    # Shipment-wide inputs remain valid only for legacy, unrouted deliveries.
+    values_key = "route:" + json.dumps([str(shipment_id), *pair], separators=(",", ":"), ensure_ascii=False) if pair else str(shipment_id)
+    if pair or not routing:
+        values.update(part.get("document_values", {}).get(values_key, {}))
     values.update(carrier_name=part["carrier"], loading_point=part["origin"], place_of_receipt=part["origin"],
                   discharge_point=part["destination"], place_of_delivery=part["destination"], vehicle_registration=part["vehicle"],
                   booking_number=part["reference"] or values.get("booking_number", ""))
+    if pair:
+        from app.services.delivery_routing import label
+        pickup, destination = pair
+        returning = value.get("followup", {}).get("kind") == "return"
+        if returning:
+            pickup, destination = destination, pickup
+        for location_id, prefix, location_fields in ((pickup, "consignor", ("loading_point", "place_of_receipt")), (destination, "consignee", ("discharge_point", "place_of_delivery"))):
+            original = next(p for p in export["routing"]["locations"] if p["id"] == location_id)
+            stop = next((s for s in value.get("stops", []) if s.get("shipment_id") == shipment_id and s.get("location_id") == location_id), original)
+            party = original["party"]
+            values.update({f"{prefix}_{k}": party.get(k, "") for k in ("name", "address", "country", "contact")})
+            values.update({k: label(stop) for k in location_fields})
+        if value.get("followup"):
+            values.update(loading_point=part["origin"], place_of_receipt=part["origin"],
+                          discharge_point=part["destination"], place_of_delivery=part["destination"])
     if part.get("planned_start"):
         values["loading_date"] = part["planned_start"][:10]
     from app.services.delivery_dg import selected_entries
@@ -128,7 +160,7 @@ def document_scope(value, leg_id, shipment_id, leg_ids, contract_reference):
     return parts
 
 
-def issue(db, user, record, leg_id, shipment_id, key, language, leg_ids=None, contract_reference=""):
+def issue(db, user, record, leg_id, shipment_id, key, language, leg_ids=None, contract_reference="", allocation_ids=None):
     from app.api.routes.documents import _render_export, _served_as, _card_link_base
     from app.services.documents import get_document, get_registry, validate_document, brand
     from app.services.cargo_documents import validate_for_document
@@ -136,7 +168,11 @@ def issue(db, user, record, leg_id, shipment_id, key, language, leg_ids=None, co
     d.planner(db, user)
     value = d.data(record)
     part = d.leg(value, leg_id)
-    parts = document_scope(value, leg_id, shipment_id, leg_ids, contract_reference)
+    ids = set(allocation_ids or [a["id"] for a in d.selected(value, leg_id) if a["shipment_id"] == shipment_id])
+    if not ids or not ids <= {a["id"] for a in d.selected(value, leg_id) if a["shipment_id"] == shipment_id}:
+        raise error(422, "delivery.document_scope")
+    scoped_value = {**value, "allocations": [a for a in value["allocations"] if a["id"] in ids]}
+    parts = document_scope(scoped_value, leg_id, shipment_id, leg_ids, contract_reference)
     if any(p["status"] not in {"released", "in_progress"} for p in parts):
         raise error(409, "delivery.state")
     d.validate_sources(db, value)
@@ -144,7 +180,7 @@ def issue(db, user, record, leg_id, shipment_id, key, language, leg_ids=None, co
     modality = next((m for m in get_registry()["modalities"] if m["key"] == part["mode"]), {})
     if document is None or key not in modality.get("documents", []):
         raise error(422, "delivery.document")
-    payload = payload_for(value, part, shipment_id, key, language)
+    payload = payload_for(value, part, shipment_id, key, language, ids)
     if len(parts) > 1:
         payload.values.update(discharge_point=parts[-1]["destination"], place_of_delivery=parts[-1]["destination"])
     validate_for_document(payload.cargo, payload.lines, key, payload.values)
@@ -172,7 +208,7 @@ def issue(db, user, record, leg_id, shipment_id, key, language, leg_ids=None, co
                      {"document_key": key, "version": version, "language": language, "warnings": warnings,
                       "issued_by": user.id, "issued_at": d.stamp(), "inputs": payload.model_dump(mode="json"),
                       "editions": assessment["editions"], "review": part.get("review"),
-                      "scope": assessments, "contract_reference": contract_reference})
+                      "scope": assessments, "contract_reference": contract_reference}, sorted(ids))
     finally:
         path.unlink(missing_ok=True)
 

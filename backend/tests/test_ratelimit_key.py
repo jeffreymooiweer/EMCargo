@@ -233,7 +233,6 @@ def test_every_rate_limit_in_the_application_in_one_table():
         "shipment_report_pdf": "20 per 1 minute",
         "mail_bundle": "5 per 1 minute",
         "file_mail": "5 per 1 minute",
-        "documents": "10 per 1 minute",
         "export_un_cards": "10 per 1 minute",
         "read_carrier_confirmation": "20 per 1 minute",
         "assistant_step": "120 per 1 minute",

@@ -24,7 +24,7 @@ def read(content):
         if len(content) > d.MAX_RECORD:
             raise ValueError()
         envelope = json.loads(content)
-        if envelope["format"] != "emcargo.delivery" or envelope["format_version"] != "1.0":
+        if envelope["format"] != "emcargo.delivery" or envelope["format_version"] not in {"1.0", "2.0"}:
             raise ValueError()
         value = envelope["delivery"]
         if not isinstance(value, dict):
@@ -44,7 +44,9 @@ def restore(db, user, content):
         legs = [LegIn.model_validate({**{k: v for k, v in part.items() if k in LegIn.model_fields}, "id": ids[part["id"]]}) for part in value["legs"]]
         allocations = [AllocationIn.model_validate({**{k: v for k, v in allocation.items() if k in AllocationIn.model_fields},
             "id": str(uuid4()), "leg_ids": [ids[lid] for lid in allocation["leg_ids"]], "leg_quantities": {}}) for allocation in value["allocations"]]
-        payload = DeliveryIn(name=value["name"], legs=legs, allocations=allocations)
+        from app.schemas.routing import Stop
+        stops = [Stop.model_validate({k: v for k, v in stop.items() if k in Stop.model_fields}) for stop in value.get("stops", [])]
+        payload = DeliveryIn(name=value["name"], stops=stops, legs=legs, allocations=allocations)
         sources, _ = d.load_sources(db, user, payload)
         for sid, source in sources.items():
             # A local integer id alone cannot identify a shipment from another installation.

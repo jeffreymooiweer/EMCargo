@@ -137,7 +137,7 @@ export default function OverviewPage({ user }: { user?: User }) {
               <p>{item.consignor && item.consignee ? `${item.consignor} → ${item.consignee}` : t(`modality.${item.modality || "preparation"}`)}</p>
               {item.is_draft && <span className="work-private">{t("work.privateDraft")}</span>}</div>
             <div className="work-next"><span className="work-status" data-status={item.completed_at ? "closed" : item.status}>{t(`work.status.${item.completed_at ? "closed" : item.status}`)}</span>
-              {!item.completed_at && item.issues.length > 0 && <p>{t(`work.issue.${item.issues[0]}`, { defaultValue: t("work.issue.reopen") })}</p>}</div>
+              {!item.completed_at && item.issues.length > 0 && <p>{t(item.issues[0].startsWith("routing.") ? `errors.${item.issues[0]}` : `work.issue.${item.issues[0]}`, { defaultValue: t("work.issue.reopen") })}</p>}</div>
             <div className="work-owner"><span className="work-mobile-label">{t("work.owner")}</span>{item.status === "review" || item.status === "waiting" ? t("work.specialistTeam") : item.owner_name || t("work.unassigned")}</div>
             <div className="work-date" data-overdue={item.overdue}><span className="work-mobile-label">{t("work.loadingDate")}</span>
               {item.due_date ? <><time dateTime={item.due_date}>{new Date(`${item.due_date}T12:00:00`).toLocaleDateString(i18n.language, { day: "numeric", month: "short" })}</time>{item.overdue && <small>{t("work.overdue")}</small>}</> : <span>{t("work.noDate")}</span>}</div>

@@ -29,8 +29,6 @@ def loading_date(values: dict) -> str | None:
 
 
 def index_shipment(record: Shipment, payload: ShipmentIn) -> None:
-    from app.services.documents import get_document, validate_document
-
     previous = record.work_fingerprint or ""
     fingerprint = dg_review.fingerprint(payload)
     issues = []
@@ -40,20 +38,10 @@ def index_shipment(record: Shipment, payload: ShipmentIn) -> None:
     elif any(line.get("status") == "error" or line.get("quantity_unconfirmed")
              or line.get("unconfirmed_weight_kg") is not None for line in lines):
         issues.append("goods_check")
-    if not payload.documents:
-        issues.append("documents")
-    else:
-        for key in payload.documents:
-            definition = get_document(key)
-            if definition is None:
-                issues.append("documents")
-                break
-            document_errors, _ = validate_document(
-                definition, payload.values, payload.lines, payload.dangerous_goods, payload.language)
-            if document_errors:
-                issues.append("document_fields")
-                break
-    record.work_status = "prepare" if issues or payload.draft else "ready" if payload.bundle else "documents"
+    from app.services.shipment_routing import issues as routing_issues, legacy
+    prepared = payload if payload.routing is not None else payload.model_copy(update={"routing": legacy({"consignment": payload.values, "goods": payload.lines, "cargo": payload.cargo.model_dump(mode="json") if payload.cargo else None})})
+    issues.extend(routing_issues(prepared))
+    record.work_status = "prepare" if issues or payload.draft else "ready"
     record.work_issues_json = json.dumps(issues)
     record.work_due_date = loading_date(payload.values)
     record.work_review_id = payload.dg_review_id or (payload.bundle.dg_review_id if payload.bundle else None)
@@ -77,9 +65,10 @@ def backfill(conn) -> None:
             document = documents[0] if documents and isinstance(documents[0], dict) else {}
             values = exported.get("consignment") or snapshot.get("docValues") or document.get("values") or {}
             raw = {
+                "routing": exported.get("routing"),
                 "modality": record.modality, "language": record.language,
                 "profiles": exported.get("regulations") or bundle.get("profiles") or [], "values": values,
-                "lines": (snapshot.get("result") or {}).get("lines") or document.get("lines") or [],
+                "lines": exported.get("goods") or (snapshot.get("result") or {}).get("lines") or document.get("lines") or [],
                 "dangerous_goods": snapshot.get("dgEntries") or bundle.get("dangerous_goods") or document.get("dangerous_goods") or [],
                 "documents": snapshot.get("selectedDocs") or [],
                 "snapshot": snapshot, "draft": bool(record.is_draft),
@@ -240,12 +229,6 @@ def change(db: Session, viewer: User, record: Shipment, *, version: int,
         if completed:
             if record.is_draft or record.work_status != "ready":
                 raise error(409, "work.not_ready")
-            from app.schemas import DocumentBundleRequest
-            from app.services.history import bundle_of
-            bundle = bundle_of(record)
-            if not bundle:
-                raise error(409, "work.not_ready")
-            dg_review.enforce_bundle(db, viewer, DocumentBundleRequest(**bundle), required=record.has_dangerous_goods)
         updates[Shipment.work_completed_at] = datetime.now(timezone.utc) if completed else None
     changed = db.query(Shipment).filter(Shipment.id == record.id, Shipment.work_version == version).update(
         updates, synchronize_session=False)

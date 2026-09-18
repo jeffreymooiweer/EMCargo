@@ -36,7 +36,7 @@ def goods(identity=1, quantity=100, weight=10, **kwargs):
 
 
 def payload(cargo, **kwargs):
-    return ShipmentIn(lines=[goods()], cargo=cargo, snapshot={"version": 1, "cargo": cargo}, **kwargs)
+    return ShipmentIn(values={"consignor_name": "Sender", "consignor_address": "Test road 1", "consignor_country": "NL", "consignee_name": "Receiver", "consignee_address": "Test road 2", "consignee_country": "NL"}, lines=[goods()], cargo=cargo, snapshot={"version": 1, "cargo": cargo}, **kwargs)
 
 
 def test_mixed_nested_packages_count_each_mass_once_and_leave_remainder():

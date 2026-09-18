@@ -208,7 +208,7 @@ class InstanceSettings(BaseModel):
     #: *off* with kept shipments in the table is refused until the
     #: administrator has them deleted first, so a table is never kept while
     #: the interface claims it does not exist.
-    history_enabled: bool = False
+    history_enabled: bool = True
     dg_review_enabled: bool = True
     super_user_dgsa_enabled: bool = False
 
@@ -349,7 +349,7 @@ class PublicSettings(BaseModel):
     organisation_address: str
     #: Whether this installation keeps its shipments. The export step offers
     #: to keep one and the menu shows the shipments page only when it does.
-    history_enabled: bool = False
+    history_enabled: bool = True
     dg_review_enabled: bool = True
     super_user_dgsa_enabled: bool = False
     #: Whether the export step may offer to mail the documents. Only that a

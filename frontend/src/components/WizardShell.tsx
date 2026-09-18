@@ -150,7 +150,7 @@ export default function WizardShell({
             <p className="wizard-progress-copy">{t("wizard.progressStep", { current: index + 1, total: steps.length })} — {steps[index]?.label}</p>
             <WizardProgress steps={steps} currentStep={currentStep} visited={visited} onGoTo={onGoTo} />
           </div>
-          <div className="wizard-mode-block">
+          {modalities.length > 0 && <div className="wizard-mode-block">
             <label className="wizard-mode flex items-center gap-3 rounded-lg border border-slate-300 px-3 dark:border-slate-700">
               <ModalityIcon modality={modality} className="h-6 w-6 shrink-0 text-slate-400" />
               <select value={modality} onChange={(event) => onModality(event.target.value)} aria-label={t("wizard.mode")} className="min-h-[48px] min-w-0 flex-1 bg-transparent text-sm font-semibold">
@@ -158,7 +158,7 @@ export default function WizardShell({
               </select>
             </label>
             <Link to="/?choose=1" className="mt-1 block text-right text-xs text-slate-500 hover:underline dark:text-slate-400">{t("wizard.changeModality")}</Link>
-          </div>
+          </div>}
         </header>
 
         {panel && <details className="wizard-mobile-summary"><summary>{t("studio.summary")}</summary><div>{panel}</div></details>}

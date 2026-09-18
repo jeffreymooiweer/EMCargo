@@ -894,7 +894,7 @@
     },
     "work": {
       "owner_invalid": "Choisissez un collègue actif ayant accès à cet envoi.",
-      "not_ready": "Finalisez d’abord les documents et la validation DG requise.",
+      "not_ready": "Complétez les marchandises, les adresses et le contrôle DG requis.",
       "changed": "Cette tâche a changé. Actualisez la liste avant de réessayer."
     },
     "intake": {
@@ -972,6 +972,16 @@
       "import": "Ce dossier ne peut pas être importé. Utilisez la version 1.0 avec des expéditions sources locales correspondantes.",
       "legacy_readonly": "Les anciens trajets sont en lecture seule. Convertissez le trajet en brouillon de livraison pour poursuivre la planification.",
       "document_scope": "Sélectionnez des parties consécutives avec le même mode et les mêmes marchandises, puis indiquez la référence du contrat."
+    },
+    "routing": {
+      "addresses": "Complétez les adresses de collecte et de livraison, pays et parties responsables.",
+      "references": "Vérifiez les références des marchandises, lieux et répartitions.",
+      "goods": "Complétez et confirmez les marchandises avant de finaliser.",
+      "quantities": "Répartissez les quantités exactes entre les adresses de collecte et de livraison.",
+      "packing": "Conservez chaque unité d’emballage fermée sur une seule paire d’adresses.",
+      "dg": "Résolvez l’identification et la classification des marchandises dangereuses avant de finaliser.",
+      "dg_split": "Confirmez à nouveau les quantités de marchandises dangereuses et emballages de chaque répartition.",
+      "override": "Indiquez un motif pour modifier l’adresse d’origine."
     }
   },
   "instructions": {
@@ -2777,5 +2787,46 @@
     "onwardQuantity": "Quantité de l’étape {{number}}",
     "onwardHint": "Après résolution d’un manque, la quantité d’une étape suivante en brouillon peut être réduite à la quantité réellement reçue. Les étapes exécutées restent inchangées. Les emballages fermés et les déclarations de marchandises dangereuses ne peuvent pas être fractionnés implicitement.",
     "scopedIntro": "Consultez les livraisons qui vous sont attribuées, enregistrez la réception et consultez les justificatifs."
+  },
+  "routing": {
+    "intro": "Indiquez quelles marchandises vont de chaque lieu de collecte à chaque destinataire.",
+    "addresses": "Adresses et répartition",
+    "pickup": "Adresse de collecte",
+    "delivery": "Adresse de livraison",
+    "choose": "Choisir une adresse",
+    "addressBook": "Depuis le carnet d’adresses",
+    "name": "Nom / organisation",
+    "address": "Adresse",
+    "country": "Pays",
+    "contact": "Contact",
+    "legalParty": "Partie responsable (différente du lieu)",
+    "remove": "Supprimer",
+    "distribution": "Répartition des marchandises",
+    "distributed": "{{total}} sur {{quantity}} {{unit}} répartis",
+    "quantity": "Quantité",
+    "dgSplit": "Confirmez les quantités réelles de marchandises dangereuses et les emballages pour cette paire d’adresses. Les quantités ne sont pas calculées automatiquement.",
+    "declare": "Préciser cette répartition",
+    "confirm": "Vérifié et confirmé",
+    "confirmed": "Confirmation enregistrée",
+    "documentsLater": "Les documents de transport sont établis dans la livraison, selon les marchandises et l’itinéraire prévus.",
+    "finalize": "Finaliser l’expédition",
+    "export": "Télécharger les données d’expédition",
+    "retention": "Les expéditions et brouillons sont toujours conservés. Leur suppression exige l’action administrative explicite ci-dessous.",
+    "stops": "Étapes et itinéraire",
+    "override": "Motif du changement d’adresse",
+    "original": "Adresse d’origine",
+    "up": "Monter",
+    "down": "Descendre",
+    "routeHint": "L’ordre initial prévoit les collectes puis les livraisons. Vérifiez l’itinéraire et choisissez le mode de chaque tronçon.",
+    "dgFields": {
+      "quantity_packages": "Nombre de colis",
+      "type_of_package": "Type d’emballage",
+      "net_mass_liters_per_package": "Net par colis (kg/l)",
+      "gross_mass_per_package": "Brut par colis (kg)",
+      "adr_total_quantity": "Quantité totale de marchandises dangereuses",
+      "net_explosive_mass": "Masse nette explosive (kg)"
+    },
+    "import": "Importer une expédition ou un brouillon",
+    "preparation": "Préparation de l’expédition"
   }
 }

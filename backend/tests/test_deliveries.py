@@ -483,8 +483,8 @@ def test_contract_document_covers_consecutive_legs_and_tracks_every_revision(db)
     assert metadata["inputs"]["values"]["place_of_receipt"] == "A"
     assert metadata["inputs"]["values"]["place_of_delivery"] == "C"
     assert set(metadata["scope"]) == {"leg", "next"}
-    assert not d.file_visible(file, {"leg": {1}})
-    assert d.file_visible(file, {"leg": {1}, "next": {1}})
+    assert not d.file_visible(file, {"leg": {"goods"}}, d.data(row))
+    assert d.file_visible(file, {"leg": {"goods"}, "next": {"goods"}}, d.data(row))
     assert d.file_info(file, d.data(row))["current"]
     d.action(db, db.get(User, 1), row, "next", ActionIn(version=row.version, action="reopen", reason="Changed final destination"))
     assert not d.file_info(file, d.data(row))["current"]
@@ -664,7 +664,7 @@ def test_real_session_cannot_escape_an_execution_only_assignment(db):
         assert client.get("/api/cargo/units").status_code == 403
         assert client.get("/api/deliveries/v1/operations").status_code == 403
         assert client.get("/api/deliveries/v1/sources/2").status_code == 403
-        assert client.post("/api/temporary-deliveries/v1/assessment", json={}).status_code == 403
+        assert client.post("/api/temporary-deliveries/v1/assessment", json={}).status_code == 404
         # Revocation takes effect even for a valid existing browser session.
         grant = db.query(DeliveryGrant).filter_by(user_id=recipient.id).one()
         grant.revoked_at = d.now()

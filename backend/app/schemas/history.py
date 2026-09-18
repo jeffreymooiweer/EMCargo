@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.schemas import DocumentBundleRequest
 from app.schemas.cargo import CargoManifest
+from app.schemas.routing import ShipmentRouting
 
 
 class ShipmentIn(BaseModel):
@@ -19,6 +20,7 @@ class ShipmentIn(BaseModel):
     read here; the bundle is kept for "the documents again".
     """
 
+    routing: ShipmentRouting | None = None
     cargo: CargoManifest | None = None
     expected_cargo_revision: int | None = Field(default=None, ge=0)
     dg_review_id: str | None = Field(default=None, max_length=36)
@@ -54,6 +56,7 @@ class ShipmentSummary(BaseModel):
     goods_count: int
     has_dangerous_goods: bool
     has_documents: bool
+    work_status: str = "prepare"
     #: Entry still in progress rather than a kept shipment.
     is_draft: bool = False
     cargo_revision: int = 0

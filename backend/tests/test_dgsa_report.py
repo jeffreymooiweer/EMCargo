@@ -129,8 +129,8 @@ def test_the_administrator_counts_the_whole_year_and_keeps_units_apart(db, a_yea
     departments = {d["department"]: d["shipments"] for d in report["by_department"]}
     assert departments == {"Sales": 2, "Without a department": 2}
     assert report["by_regulation"] == [{"regulation": "ADR", "shipments": 4}]
-    assert [m["modality"] for m in report["by_modality"]] == ["road"]
-    assert report["by_modality"][0]["label"] == "Road transport"
+    assert [m["modality"] for m in report["by_modality"]] == [""]
+    assert report["by_modality"][0]["label"] == "(unknown)"
     # The 1.1.3.6 outcome per shipment, as the export kept it: two exempt
     # (800 kg × 3 = 2400 is above; 12 kg + 800 kg...) — read the statuses
     # rather than recompute them.
@@ -192,9 +192,9 @@ def test_the_routes_and_the_workbook(db, a_year):
         assert all(row[1] in (None, "") for row in duties[1:])
 
 
-def test_without_the_history_there_is_no_report(db, monkeypatch):
+def test_legacy_opt_out_keeps_reports_available(db, monkeypatch):
     monkeypatch.setenv("EMCARGO_HISTORY", "false")
     get_settings.cache_clear()
     with client_as(db, 1) as root:
-        assert root.get("/api/shipments/report?year=2026").status_code == 404
-        assert root.get("/api/shipments/report/years").status_code == 404
+        assert root.get("/api/shipments/report?year=2026").status_code == 200
+        assert root.get("/api/shipments/report/years").status_code == 200

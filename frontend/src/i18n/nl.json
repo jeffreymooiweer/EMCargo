@@ -894,7 +894,7 @@
     },
     "work": {
       "owner_invalid": "Kies een actieve collega die toegang heeft tot deze zending.",
-      "not_ready": "Rond eerst de documenten en de vereiste DG-vrijgave af.",
+      "not_ready": "Rond de goederen, adressen en vereiste DG-controle af.",
       "changed": "Deze taak is gewijzigd. Vernieuw de lijst voordat u het opnieuw probeert."
     },
     "intake": {
@@ -972,6 +972,16 @@
       "import": "Dit leveringsdossier kan niet worden geïmporteerd. Gebruik versie 1.0 met overeenkomende lokale bronzendingen.",
       "legacy_readonly": "Oude ritten zijn alleen-lezen. Zet de rit om naar een conceptlevering om verder te plannen.",
       "document_scope": "Kies aansluitende transportdelen met dezelfde modaliteit en goederen en vul de referentie van de vervoersovereenkomst in."
+    },
+    "routing": {
+      "addresses": "Vul de ophaal- en afleveradressen, landen en verantwoordelijke partijen volledig in.",
+      "references": "Controleer de koppelingen tussen goederen, adressen en verdelingen.",
+      "goods": "Vul de goederen volledig in en bevestig ze voor afronding.",
+      "quantities": "Verdeel de exacte goederenhoeveelheden over de ophaal- en afleveradressen.",
+      "packing": "Houd elke gesloten verpakkingseenheid bij één ophaal- en afleveradres.",
+      "dg": "Rond de herkenning en classificatie van gevaarlijke stoffen af voordat u de zending afrondt.",
+      "dg_split": "Bevestig de DG-hoeveelheden en verpakking opnieuw voor iedere verdeling.",
+      "override": "Geef een reden voor de wijziging van het oorspronkelijke adres."
     }
   },
   "instructions": {
@@ -2777,5 +2787,46 @@
     "onwardQuantity": "Hoeveelheid transportdeel {{number}}",
     "onwardHint": "Na een afgehandeld tekort mag u de hoeveelheid van een volgend conceptdeel aanpassen aan de werkelijk ontvangen hoeveelheid. Uitgevoerde delen blijven ongewijzigd. Gesloten verpakkingen en DG-aangiften mogen niet stilzwijgend worden gesplitst.",
     "scopedIntro": "Bekijk uw toegewezen leveringen, registreer ontvangst en raadpleeg het bewijs."
+  },
+  "routing": {
+    "intro": "Leg vast welke goederen vanaf welke locatie naar welke ontvanger gaan.",
+    "addresses": "Adressen en verdeling",
+    "pickup": "Ophaaladres",
+    "delivery": "Afleveradres",
+    "choose": "Kies een adres",
+    "addressBook": "Uit adresboek",
+    "name": "Naam / organisatie",
+    "address": "Adres",
+    "country": "Land",
+    "contact": "Contactpersoon",
+    "legalParty": "Verantwoordelijke partij (afwijkend van locatie)",
+    "remove": "Verwijderen",
+    "distribution": "Goederenverdeling",
+    "distributed": "{{total}} van {{quantity}} {{unit}} verdeeld",
+    "quantity": "Hoeveelheid",
+    "dgSplit": "Bevestig de werkelijke gevaarlijke stoffen en verpakking voor dit adrespaar. Hoeveelheden worden niet automatisch omgerekend.",
+    "declare": "Deelverdeling specificeren",
+    "confirm": "Gecontroleerd en bevestigd",
+    "confirmed": "Bevestiging vastgelegd",
+    "documentsLater": "Vervoersdocumenten worden bij de levering opgesteld, op basis van de geplande goederen en route.",
+    "finalize": "Zending afronden",
+    "export": "Zendinggegevens downloaden",
+    "retention": "Zendingen en concepten worden altijd bewaard. Verwijderen kan alleen via de expliciete beheeractie hieronder.",
+    "stops": "Stops en route",
+    "override": "Reden adreswijziging",
+    "original": "Oorspronkelijk adres",
+    "up": "Omhoog",
+    "down": "Omlaag",
+    "routeHint": "De volgorde begint met ophalen en daarna afleveren. Controleer de route en kies per traject de modaliteit.",
+    "dgFields": {
+      "quantity_packages": "Aantal verpakkingen",
+      "type_of_package": "Verpakkingstype",
+      "net_mass_liters_per_package": "Netto per verpakking (kg/l)",
+      "gross_mass_per_package": "Bruto per verpakking (kg)",
+      "adr_total_quantity": "Totale DG-hoeveelheid",
+      "net_explosive_mass": "Netto explosieve massa (kg)"
+    },
+    "import": "Zending of concept importeren",
+    "preparation": "Zending voorbereiden"
   }
 }

@@ -84,3 +84,9 @@ describe("een validatiefout van FastAPI leesbaar maken", () => {
     }
   });
 });
+
+
+it("shows document field errors from the delivery issuance response", () => {
+  expect(describeDetail({ errors: ["Required field missing: Date", "Required field missing: Place"] }))
+    .toBe("Required field missing: Date\nRequired field missing: Place");
+});

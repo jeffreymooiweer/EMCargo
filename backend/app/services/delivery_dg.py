@@ -9,6 +9,22 @@ from app.core.messages import error
 def selected_entries(value, part, shipment_id):
     from app.services import deliveries as d
     export = value["sources"][str(shipment_id)]["export"]
+    if export.get("routing"):
+        from app.services.delivery_routing import distributions
+        ds = distributions(export)
+        result = []
+        for a in d.selected(value, part["id"]):
+            if a["shipment_id"] != shipment_id:
+                continue
+            distribution = ds.get(a.get("source_distribution_id"))
+            if not distribution:
+                raise error(422, "routing.references")
+            goods = d.source_goods(export)[a["goods_id"]]
+            entries = distribution.get("dangerous_goods") or [e for e in export.get("dangerous_goods", []) if str(e.get("line_id")) == str(goods.get("line_id"))]
+            if entries and d.decimal(a["quantity"]) != d.decimal(distribution["quantity"]):
+                raise error(422, "routing.dg_split")
+            result.extend(copy.deepcopy(entries))
+        return result
     entries = export.get("dangerous_goods") or []
     goods = d.source_goods(export)
     quantities = defaultdict(Decimal)

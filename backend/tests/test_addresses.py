@@ -52,10 +52,10 @@ def application(db, monkeypatch, history: bool) -> TestClient:
 ENTRY = {"name": "Ontvanger GmbH", "address": "Hafenstrasse 4\n47119 Duisburg", "contact": "Herr Weber"}
 
 
-def test_no_address_book_without_the_history(db, monkeypatch):
+def test_legacy_opt_out_keeps_address_book_available(db, monkeypatch):
     with application(db, monkeypatch, history=False) as client:
-        assert client.get("/api/addresses").status_code == 404
-        assert client.post("/api/addresses", json=ENTRY).status_code == 404
+        assert client.get("/api/addresses").status_code == 200
+        assert client.post("/api/addresses", json=ENTRY).status_code == 200
 
 
 def test_add_list_search_change_and_remove(db, monkeypatch):

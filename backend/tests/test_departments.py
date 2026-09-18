@@ -194,7 +194,7 @@ def test_author_can_finish_a_draft_after_moving_departments(db, new_department, 
 
     with client_as(db, 2) as author:
         path = f"/api/shipments/{record_id}"
-        assert author.get(path).json()["snapshot"] == shipment()["snapshot"]
+        assert {k: v for k, v in author.get(path).json()["snapshot"].items() if k != "routing"} == shipment()["snapshot"]
         assert author.get(f"{path}/export.json").status_code == 200
         completed = author.put(path, json=shipment())
         assert completed.status_code == 200, completed.text

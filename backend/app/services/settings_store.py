@@ -61,7 +61,7 @@ def environment_defaults() -> InstanceSettings:
         session_timeout_minutes=settings.access_token_expire_minutes,
         # The legacy EMCARGO_HISTORY variable is the starting value only;
         # the screen decides from the first save on.
-        history_enabled=bool(settings.emcargo_history),
+        history_enabled=True,
         public_url=_public_url(settings.public_url),
         brand_name=settings.brand_name.strip()[:80],
         # A host in the environment is a deliberate act, so it switches
@@ -151,7 +151,7 @@ def _with_password_flag(settings: InstanceSettings) -> InstanceSettings:
     """``mail_password_set`` is derived, never stored and never trusted from
     input: it says whether the password field holds anything at all."""
     return settings.model_copy(
-        update={"mail_password_set": bool(settings.mail_password)})
+        update={"mail_password_set": bool(settings.mail_password), "history_enabled": True})
 
 
 def save_instance_settings(db: Session, values: InstanceSettings) -> InstanceSettings:
@@ -165,6 +165,7 @@ def save_instance_settings(db: Session, values: InstanceSettings) -> InstanceSet
         # port would silently clear the password and break sending.
         values = values.model_copy(
             update={"mail_password": instance_settings(db).mail_password})
+    values = values.model_copy(update={"history_enabled": True})
     row.data_json = values.model_dump_json()
     db.commit()
     return instance_settings(db)
@@ -224,6 +225,7 @@ def save_user_preferences(db: Session, user_id: int, values: UserPreferences) ->
     if row is None:
         row = UserPreference(user_id=user_id)
         db.add(row)
+    values = values.model_copy(update={"history_enabled": True})
     row.data_json = values.model_dump_json()
     db.commit()
     return user_preferences(db, user_id)

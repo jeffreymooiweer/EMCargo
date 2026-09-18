@@ -1,9 +1,12 @@
+import type { Routing, Party, Location, Distribution } from "../wizard/routing";
 import { apiRequest, describeDetail } from "./client";
 
 export const modes = ["road", "rail", "inland", "sea", "air"] as const;
 export type Mode = typeof modes[number];
 export type State = "draft" | "planned" | "released" | "in_progress" | "partial" | "completed" | "closed" | "cancelled";
+export interface Stop extends Party { id: string; kind: "pickup" | "delivery" | "transfer"; shipment_id?: number; location_id?: string; override_reason: string; original?: Location; changes?: { actor: number; at: string; reason: string }[] }
 export interface Leg {
+  origin_stop_id?: string | null; destination_stop_id?: string | null;
   id: string; mode: Mode; origin: string; destination: string; carrier: string; vehicle: string;
   reference: string; load_unit_id?: string | null; planned_start: string | null; planned_end: string | null;
   max_mass_tonnes: string | null; equipment_ids: number[]; status?: State;
@@ -11,15 +14,16 @@ export interface Leg {
   review?: { actor: number; at: string; reason: string; fingerprint: string; document_ids: string[] };
   assessment?: Assessment;
 }
-export interface Allocation { id: string; shipment_id: number; goods_id: string; quantity: string; leg_ids: string[]; unit_ids?: string[] | null; leg_quantities?: Record<string, string> }
+export interface Allocation { receivable_leg_ids?: string[]; source_distribution_id?: string | null; id: string; shipment_id: number; goods_id: string; quantity: string; leg_ids: string[]; unit_ids?: string[] | null; leg_quantities?: Record<string, string> }
 export interface PackingUnit { id: string; code: string; name: string; goods: Record<string, string>; available?: boolean }
 export interface Goods { delivery_goods_id?: string; cargo_goods_id?: string; line_id?: string; id?: string; description?: string; quantity?: number; unit?: string }
-export interface Source { packing_units?: PackingUnit[]; reference: string; export?: { goods: Goods[]; consignment?: Record<string, string> }; goods?: Goods[] }
+export interface Source { routing?: Routing; packing_units?: PackingUnit[]; reference: string; export?: { routing?: Routing; goods: Goods[]; consignment?: Record<string, string> }; goods?: Goods[] }
 export interface DeliveryFile { id: string; leg_id: string; filename: string; kind: string; current: boolean; metadata: Record<string, unknown> }
 export interface ReceiptLine { allocation_id: string; quantity: string; damaged: string; refused: string }
 export interface DeliveryEvent { unit_ids?: string[]; followup_id?: string; followup_complete?: boolean; resolution?: string; corrected_kind?: string; file_ids?: string[]; request_id: string; leg_id: string; kind: string; recipient: string; occurred_at: string; reason: string; lines: ReceiptLine[] }
 export interface Assessment { blocked: boolean; manual_required: boolean; coverage: string; has_dg: boolean; checks: Record<string, unknown>; trip: Record<string, unknown> }
 export interface Delivery {
+  stops?: Stop[];
   id: string; name: string; version: number; status: State; legs: Leg[]; allocations: Allocation[];
   sources: Record<string, Source>; events: DeliveryEvent[]; files: DeliveryFile[];
   unpack_legs?: string[];
@@ -29,10 +33,10 @@ export interface Delivery {
   receipt_totals?: Record<string, Record<string, Omit<ReceiptLine, "allocation_id">>>;
   followup?: { parent_id: string; kind: string };
   can_plan: boolean; can_review: boolean;
-  assignments: { id: string; role: string; leg_id: string; shipment_ids: number[] }[];
+  assignments: { id: string; role: string; leg_id: string; shipment_ids: number[]; allocation_ids?: string[] }[];
   history?: { at: string; actor: number; action: string }[];
 }
-export interface DeliveryInput { name: string; version?: number; legs: Leg[]; allocations: Allocation[] }
+export interface DeliveryInput { stops?: Stop[]; name: string; version?: number; legs: Leg[]; allocations: Allocation[] }
 export interface Balances { goods: { id: string; description: string; unit: string; quantity: string; reserved: string; available: string; received: string; returned: string }[]; deliveries: { id: string; name: string; status: State }[] }
 export interface Operations { states: Record<string, number>; rows: { delivery_id: string; delivery: string; shipment: string; goods: string; unit: string; movement: string; quantity: string; damaged: string; refused: string }[] }
 export interface Grant { id: string; user_id: number; leg_id: string; role: string; shipment_ids: number[]; expires_at: string; revoked: boolean }
@@ -51,7 +55,7 @@ export const deliveries = {
   get: (id: string) => apiRequest<Delivery>(`${base}/${id}`),
   create: (input: DeliveryInput) => post<Delivery>("", input),
   save: (id: string, input: DeliveryInput) => post<Delivery>(`/${id}`, input, "PUT"),
-  source: (id: number) => apiRequest<{ id: number; reference: string; goods: Goods[]; packing_units?: PackingUnit[]; consignment: Record<string, unknown> }>(`${base}/sources/${id}`),
+  source: (id: number) => apiRequest<{ routing: Routing; distributions: Distribution[]; id: number; reference: string; goods: Goods[]; packing_units?: PackingUnit[]; consignment: Record<string, unknown> }>(`${base}/sources/${id}`),
   action: (id: string, leg: string, version: number, action: string, reason: string, language = "en") => post<Delivery>(`/${id}/legs/${leg}/action`, { version, action, reason, language: language.slice(0, 2) }),
   assessment: (id: string, leg: string, language = "en") => apiRequest<Assessment>(`${base}/${id}/legs/${leg}/assessment?language=${encodeURIComponent(language.slice(0, 2))}`),
   review: (id: string, leg: string, version: number, reason: string, document_ids: string[], language = "en") => post<Delivery>(`/${id}/legs/${leg}/review`, { version, reason, document_ids, language: language.slice(0, 2) }),
@@ -72,9 +76,9 @@ export const deliveries = {
   convert: (id: number) => post<Delivery>(`/from-trip/${id}`, {}),
   account: (id: number) => apiRequest<{ roles: string[]; modes: Mode[] }>(`${base}/accounts/${id}`),
   saveAccount: (id: number, roles: string[], modes: Mode[]) => post(`${"/accounts/"}${id}`, { roles, modes }, "PUT"),
-  upload: async (id: string, leg: string, version: number, kind: string, shipmentIds: number[], file: File): Promise<Delivery> => {
+  upload: async (id: string, leg: string, version: number, kind: string, shipmentIds: number[], file: File, allocationIds: string[] = []): Promise<Delivery> => {
     const body = new FormData();
-    body.append("version", String(version)); body.append("kind", kind); body.append("shipment_ids", JSON.stringify(shipmentIds)); body.append("file", file);
+    body.append("allocation_ids", JSON.stringify(allocationIds)); body.append("version", String(version)); body.append("kind", kind); body.append("shipment_ids", JSON.stringify(shipmentIds)); body.append("file", file);
     const response = await fetch(`/api${base}/${id}/legs/${leg}/files`, { method: "POST", credentials: "include", body });
     if (!response.ok) { const result = await response.json(); throw new Error(describeDetail(result.detail)); }
     return response.json();
@@ -84,6 +88,7 @@ export const deliveries = {
 export const newLeg = (): Leg => ({ id: crypto.randomUUID(), mode: "road", origin: "", destination: "", carrier: "", vehicle: "", reference: "", planned_start: null, planned_end: null, max_mass_tonnes: null, equipment_ids: [], status: "draft" });
 export function inputOf(record: DeliveryInput): DeliveryInput {
   return { name: record.name, version: record.version, allocations: record.allocations,
-    legs: record.legs.map(({ id, mode, origin, destination, carrier, vehicle, reference, planned_start, planned_end, max_mass_tonnes, equipment_ids, document_values, load_unit_id }) =>
-      ({ id, mode, origin, destination, carrier, vehicle, reference, planned_start, planned_end, max_mass_tonnes, equipment_ids, load_unit_id: load_unit_id || null, document_values: document_values || {} })) };
+    stops: record.stops?.map(({ id, kind, shipment_id, location_id, name, address, country, contact, override_reason }) => ({ id, kind, shipment_id, location_id, name, address, country, contact, override_reason })),
+    legs: record.legs.map(({ id, origin_stop_id, destination_stop_id, mode, origin, destination, carrier, vehicle, reference, planned_start, planned_end, max_mass_tonnes, equipment_ids, document_values, load_unit_id }) =>
+      ({ id, origin_stop_id, destination_stop_id, mode, origin, destination, carrier, vehicle, reference, planned_start, planned_end, max_mass_tonnes, equipment_ids, load_unit_id: load_unit_id || null, document_values: document_values || {} })) };
 }
