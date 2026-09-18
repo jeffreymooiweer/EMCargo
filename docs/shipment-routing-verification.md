@@ -36,3 +36,11 @@ The browser check covers this ordinary-goods workflow. DG split confirmations,
 review invalidation, migration preservation, reservations and recipient isolation
 were covered by automated tests. No production data was changed or release
 published during this implementation.
+
+## GitHub release check
+
+The first PR run (35344639481) passed frontend and rights checks. The backend
+job hit its 15-minute wall-clock limit after reaching 90% with no reported test
+failures. It was cancelled before a final result, so image builds, merge and
+release did not run. The backend job now allows 30 minutes including setup and
+reports its 20 slowest tests; all original test and publication gates remain.
