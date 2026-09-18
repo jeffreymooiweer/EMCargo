@@ -11,7 +11,7 @@ import UpdateToast from "./UpdateToast";
 import TwoFactorNudge, { clearTwoFactorNudge } from "./TwoFactorNudge";
 import WhatsNewModal from "./WhatsNewModal";
 import { useToast } from "../toast/ToastProvider";
-import { ShieldIcon, ChevronDownIcon, CloseIcon, CollapseIcon, HistoryIcon, GoodsIcon, HomeIcon, LibraryIcon, MenuIcon, PlusIcon, RoadIcon, SettingsIcon, ShipmentsIcon, TripsIcon, UserIcon } from "./icons";
+import { ShieldIcon, ChevronDownIcon, CloseIcon, CollapseIcon, HistoryIcon, GoodsIcon, HomeIcon, LibraryIcon, PackagingIcon, MenuIcon, PlusIcon, RoadIcon, SettingsIcon, ShipmentsIcon, TripsIcon, UserIcon } from "./icons";
 
 interface Props { user: User; onLogout: () => void }
 
@@ -104,13 +104,13 @@ export default function Layout({ user, onLogout }: Props) {
       {link("/dg-reviews", t("dgReview.title"), ShieldIcon, compact)}
       {compact ? <>
         {link("/articles", t("nav.articles"), GoodsIcon, true)}
-        {link("/packaging", t("nav.packaging"), LibraryIcon, true)}
+        {link("/packaging", t("nav.packaging"), PackagingIcon, true)}
         {manager && link("/materieel", t("nav.materieel"), RoadIcon, true)}
       </> : <details className="emcargo-nav-group" open={location.pathname.startsWith("/articles") || location.pathname.startsWith("/materieel") || location.pathname.startsWith("/packaging") || undefined}>
         <summary className="emcargo-nav-link"><LibraryIcon className="h-[22px] w-[22px]" /><span>{t("nav.library")}</span><ChevronDownIcon className="ml-auto h-3.5 w-3.5" /></summary>
         <div className="emcargo-subnav">
           {link("/articles", t("nav.articles"), GoodsIcon, false)}
-          {link("/packaging", t("nav.packaging"), LibraryIcon, false)}
+          {link("/packaging", t("nav.packaging"), PackagingIcon, false)}
           {manager && link("/materieel", t("nav.materieel"), RoadIcon, false)}
         </div>
       </details>}

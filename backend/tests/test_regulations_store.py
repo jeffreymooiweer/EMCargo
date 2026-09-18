@@ -94,7 +94,7 @@ def test_het_gereedschap_meldt_de_stand(tmp_path):
     """`status` must run and speak, whatever the store holds — it is the
     command a future session starts with."""
     result = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "regulations_store.py"), "status"],
+        [sys.executable, "-X", "utf8", str(ROOT / "scripts" / "regulations_store.py"), "status"],
         capture_output=True, text=True,
         env={"PATH": "/usr/bin:/bin", "EMCARGO_REGULATIONS_DIR": str(tmp_path)},
     )

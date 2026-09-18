@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.0.0] - 2026-09-18
+
+### Changed
+
+- Prepare shipments around goods, packing, pickup/delivery addresses and exact
+  distribution per goods line. Document preparation moves to the delivery.
+- Recognize dangerous goods before choosing a transport mode. Split declarations
+  require explicit quantity/packing confirmation and retain source classification.
+- Populate delivery stops from shipment addresses and route each allocation to its
+  own receiver. Address deviations retain a reason, original facts and audit trail.
+- Scope recipient access, documents and evidence to individual allocations, even
+  when several receivers share one goods line.
+- Keep shipments and private drafts by default and permanently enable retention;
+  retire transient delivery endpoints while preserving old records and documents.
+- Export shipment format 3.0 and delivery format 2.0; import older files as new
+  drafts without inheriting execution approval or physical packing identities.
+- Show the packaging library with two upward arrows above a base bar.
+
+
 ## [2.16.0] - 2026-09-17
 
 ### Added

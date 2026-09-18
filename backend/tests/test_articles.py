@@ -54,10 +54,10 @@ PAINT = {"code": "PAINT-25", "name": "Alkyd paint, 25 L jerrican", "un_number": 
          "type_of_package": "jerrican", "net_per_package": "25 L"}
 
 
-def test_no_library_without_the_history(db, monkeypatch):
+def test_legacy_opt_out_keeps_library_available(db, monkeypatch):
     with application(db, monkeypatch, history=False) as client:
-        assert client.get("/api/articles").status_code == 404
-        assert client.post("/api/articles", json=PAINT).status_code == 404
+        assert client.get("/api/articles").status_code == 200
+        assert client.post("/api/articles", json=PAINT).status_code == 200
 
 
 def test_add_find_change_and_remove(db, monkeypatch):

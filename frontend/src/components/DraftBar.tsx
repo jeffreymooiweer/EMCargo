@@ -96,6 +96,12 @@ export default function DraftBar({
         {status === "failed" && t("draft.failed")}
         {status === "idle" && t("draft.kept")}
       </span>
+      {onOpenFile && <label className={linkClass}>
+        {t("routing.import")}
+        <input type="file" accept="application/json,.json" aria-label={t("routing.import")} className="sr-only" onChange={e => {
+          const file = e.target.files?.[0]; e.target.value = ""; if (file) onOpenFile(file);
+        }} />
+      </label>}
       {onDiscard && (
         <button type="button" onClick={onDiscard} className={linkClass}>
           {t("draft.discard")}

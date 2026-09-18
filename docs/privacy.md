@@ -17,14 +17,14 @@ Everything persistent lives in the `/data` volume:
 | Your settings | Language, theme, the details you asked to have filled in for you, and which version's release notes you have already seen |
 | The installation's settings | What an administrator set for everyone |
 | The installation's branding | A name, a logo and tile pictures an administrator uploaded, in `/data/branding` |
-| Kept shipments — **only** with the history switched on | The shipments the organisation chose to keep; see [The shipment history](#the-shipment-history) |
-| The address book — **only** with the history switched on | Parties (name, address, contact) somebody pressed **Save** on in the details step, shared by everyone on the installation |
-| The articles library — **only** with the history switched on | Your own article codes with the UN number, names, packing group and packaging you gave them, shared by everyone on the installation |
-| Submitted DG reviews | The explicitly submitted version, including document inputs and any signature; independent of optional history, visible to its submitter, specialists and admins until removed |
-| The safety adviser's annual reports — **only** with the history switched on | The answers an adviser saved on the DGSA report form, one record per year and scope; the figures are recounted from the kept shipments each time |
+| Kept shipments | The shipments the organisation chose to keep; see [The shipment history](#the-shipment-history) |
+| The address book | Parties (name, address, contact) somebody pressed **Save** on in the details step, shared by everyone on the installation |
+| The articles library | Your own article codes with the UN number, names, packing group and packaging you gave them, shared by everyone on the installation |
+| Submitted DG reviews | The explicitly submitted version, including goods and routing facts; visible to its submitter, specialists and admins until removed |
+| The safety adviser's annual reports | The answers an adviser saved on the DGSA report form, one record per year and scope; the figures are recounted from the kept shipments each time |
 | The audit log — organisation application only | Who did what and when, as metadata: the action, the account, a reference or a document key, the address the request came from. Never the contents of a shipment; see [The audit log](#the-audit-log) |
 
-That is the whole list.
+Delivery dossiers also retain stop snapshots, reasoned address changes, allocation-scoped assignments, execution events and immutable issued documents or uploaded evidence.
 
 Settings are stored per account, so they follow you to a second device rather than staying
 behind in one browser. They hold what you chose to put there: your consignor name and
@@ -36,21 +36,10 @@ The document signature is included in exports and any mail the user sends.
 
 ## What is deliberately not stored
 
-- **No completed shipment history unless enabled.** Explicitly submitted DG
-  reviews are a separate exception: they retain the submitted version until the
-  submitter or admin deletes it, whether history is on or off.
-- **Drafts are autosaved only while history is enabled.** Without history, an
-  unsubmitted draft must be downloaded to continue later.
-- **No document archive.** Exports are written to a temporary file, streamed to your
-  browser and deleted immediately afterwards.
-- **No operational equipment data in the repository or the Docker image.** The equipment
-  library starts empty; an administrator fills it by importing a template.
-- **No trips**, unless an administrator switched the history on. The groupage screen
-  assembles several consignments into one load, judges them together and forgets them;
-  reloading the page clears it. An organisation application with the history on offers
-  to keep the assessed trip beside its shipments — see
-  [The shipment history](#the-shipment-history) — and only when somebody presses the
-  button.
+- No operational equipment data ships in the repository or Docker image.
+- No automatic external publication takes place. Issued delivery documents are
+  archived in the local database; temporary renderer files are removed after use.
+- Drafts are private to their author. Finalized shipments follow department access.
 
 The operator manages access, backups and retention for all stored data, including
 review submissions. Finishing a job does not delete its retained records.
@@ -149,21 +138,20 @@ sign-in page are also reachable before signing in. Business API endpoints and
 API documentation require a valid session.
 
 Upgrading preserves existing accounts and data. No scheduled database reset is
-implemented. Shipment retention is still the administrator's explicit choice.
+implemented. Shipments are retained until an authorised explicit deletion.
 
 ## The shipment history
 
-Off by default. An organisation that would rather not retype the same five customers,
-or that wants to hand out last month's papers again, has an administrator switch it on
-under **Settings → Administration → Keep shipments**. This is what that changes, and only
-this:
+Shipment retention is mandatory from v3.0. The former history toggle and
+`EMCARGO_HISTORY` variable cannot disable it. Upgrades preserve existing drafts,
+shipments, reviews, delivery events and issued bytes; they never delete them or
+silently rewrite old delivery snapshots.
 
-**What is kept.** Each shipment whose documents were downloaded, or that a user chose to
-keep from the export step: the wizard's state as it stood (the goods lines, the declared
-dangerous goods, the document fields, the signature if one was drawn for it), the request
-that produced its documents, and the structured export with the derived findings and the
-editions they were computed against. The documents themselves are **not** archived; they
-are rendered again from the kept request when asked for.
+**What is kept.** The wizard autosaves goods, packing, pickup and delivery locations,
+responsible parties, exact quantity distributions and DG declarations as a private
+draft. Finalizing makes it a shipment. Transport planning and document issuance
+belong to the delivery. Issued document bytes stay unchanged even if a later
+revision supersedes them. There is no automatic shipment deletion schedule.
 
 **Who sees it.** Admins, Super Users and DG Specialists see every kept shipment. Other users see the
 shipments of their own **department**, and a user without a department sees the ones
@@ -173,31 +161,20 @@ shipment carries the department of whoever kept it, at the moment it was kept; s
 moving departments does not take last year's shipments along. A shipment another
 department kept is, for you, not there: the server answers as if it did not exist.
 
-**How it goes away.** A user removes a shipment from the shipments page, after a
-confirmation. An administrator switches the whole history off on the same screen that
-switched it on — and while kept shipments or trips are still in the table the server
-**refuses** the switch: the screen names the counts and, on confirmation, deletes them
-first, then saves the switch. A switch alone never deletes anything, and a table is never
-kept while the interface claims it does not exist — that would be the one outcome worse
-than either choice. Should a database hold kept shipments while the setting says off (an
-installation that dropped the old deploy-time variable after upgrading), start-up switches
-the setting back on and says so in the log rather than hiding them.
+**How it goes away.** Existing explicit deletion and export actions remain.
+An active delivery can prevent deleting or modifying its source shipment.
+The administrative clear action names the affected records before confirmation;
+changing a setting never deletes drafts. DG review removal has its own controls.
 
-**Trips.** With the switch on, the groupage page offers to keep an assessed trip: the
-consignments as they sat on the vehicle (their names, their dangerous goods entries, and
-which kept shipment each came from when it did), the permitted maximum mass of the
-transport unit, and the check's answer as it was given, with the editions it was computed
-against. Nothing is kept until somebody presses **Keep trip**. Trips follow the same
-department rule as shipments, are listed on their own page, reopen on the groupage page,
-and are removed there or from their record. Switching the history off counts them along
-with the shipments and deletes them in the same confirmed step.
+**External access.** Delivery assignments cover particular goods allocations and
+transport parts. Recipients cannot see sibling receivers' goods, stop details,
+documents, signatures or events merely because they share a shipment. Legacy
+shipment-wide grants are not extended to newly routed shipments.
 
-**Drafts and review submissions.** The history feature autosaves a private draft
-while it is being edited. DG submissions are explicitly saved separately and are
-not completed-history entries. Disabling or clearing history does not erase those
-submissions or their signatures. See [DG review](dg-review.md) for removal and
-release revocation. With history off, its own API routes return 404; the review
-queue remains available to authorised accounts.
+**Legacy records.** Existing trips and saved document requests remain readable.
+An adapter reuses known source addresses when planning; missing facts must be
+entered before a new route can be finalized. Historical evidence is not reissued
+by the migration.
 
 ## The audit log
 

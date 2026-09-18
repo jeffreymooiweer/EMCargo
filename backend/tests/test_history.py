@@ -1,28 +1,8 @@
-"""The shipment history: kept only where the switch is on, and never orphaned.
-
-What is pinned here, in the order it matters:
-
-1. **With the switch off the addresses do not exist.** Not 401, not 403 — 404,
-   like every other route the installation does not have. The open
-   application ignores the switch altogether.
-2. **The switch is the administrator's** — a setting on the screen, read on
-   every request — and off never hides data: switching it off with kept
-   shipments in the table is refused until they are deleted, on the screen,
-   after a confirmation that names the counts; and a database that holds
-   shipments while the setting says off gets the setting switched back on
-   at start-up.
-3. **The kept record is the structured export, built by the server** from
-   the same parts the download uses, so the two cannot disagree — and the
-   index columns a list filters on come out of it.
-4. **The documents again come from the kept bundle**, through the same code
-   path as the export step's download.
-5. **The schema runner** stamps a fresh database and migrates an old one, and
-   running it twice does nothing the second time.
-"""
+"""Mandatory retention, explicit deletion, legacy documents and schema upgrades."""
 from __future__ import annotations
 
 import io
-import logging
+import json
 import zipfile
 from types import SimpleNamespace
 
@@ -104,7 +84,7 @@ def shipment(**overrides) -> dict:
         "language": "nl",
         "profiles": ["ADR"],
         "values": dict(CONSIGNMENT),
-        "lines": [{"description": "Vaten benzine", "quantity": 4, "weight_total_kg": 800.0}],
+        "lines": [{"line_id": 1, "description": "Vaten benzine", "quantity": 4, "weight_total_kg": 800.0}],
         "dangerous_goods": DG,
         "documents": ["cmr"],
         "bundle": {"documents": [doc("cmr")], "dangerous_goods": DG,
@@ -112,6 +92,7 @@ def shipment(**overrides) -> dict:
         "snapshot": {"version": 1, "stepKey": "export", "docValues": dict(CONSIGNMENT)},
     }
     payload.update(overrides)
+    payload["values"] = {"consignor_country": "NL", "consignee_country": "DE", **payload["values"]}
     return payload
 
 
@@ -120,10 +101,10 @@ def shipment(**overrides) -> dict:
 
 def test_without_the_switch_the_shipments_routes_do_not_exist(db, monkeypatch):
     with application(db, monkeypatch) as client:
-        assert client.get("/api/shipments").status_code == 404
-        assert client.post("/api/shipments", json=shipment()).status_code == 404
-        assert client.get("/api/settings/public").json()["history_enabled"] is False
-        assert client.get("/api/health").json()["history"] is False
+        assert client.get("/api/shipments").status_code == 200
+        assert client.post("/api/shipments", json=shipment()).status_code == 200
+        assert client.get("/api/settings/public").json()["history_enabled"] is True
+        assert client.get("/api/health").json()["history"] is True
 
 
 def test_with_the_switch_they_do(db, monkeypatch):
@@ -149,20 +130,20 @@ def test_a_retired_mode_variable_cannot_hide_kept_shipments(db, monkeypatch):
 
 def test_the_setting_switches_the_routes_on_and_off_without_a_restart(db, monkeypatch):
     with application(db, monkeypatch) as client:
-        assert client.get("/api/shipments").status_code == 404
+        assert client.get("/api/shipments").status_code == 200
         switch_history(db, True)
         assert client.get("/api/shipments").status_code == 200
         assert client.get("/api/settings/public").json()["history_enabled"] is True
         switch_history(db, False)
-        assert client.get("/api/shipments").status_code == 404
-        assert client.get("/api/settings/public").json()["history_enabled"] is False
+        assert client.get("/api/shipments").status_code == 200
+        assert client.get("/api/settings/public").json()["history_enabled"] is True
 
 
 def test_a_saved_setting_overrules_the_legacy_variable(db, monkeypatch):
     switch_history(db, False)
     with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
-        assert client.get("/api/shipments").status_code == 404
-        assert client.get("/api/health").json()["history"] is False
+        assert client.get("/api/shipments").status_code == 200
+        assert client.get("/api/health").json()["history"] is True
 
 
 def test_switching_off_with_kept_shipments_is_refused_until_they_are_deleted(db, monkeypatch):
@@ -171,8 +152,8 @@ def test_switching_off_with_kept_shipments_is_refused_until_they_are_deleted(db,
         assert client.post("/api/shipments", json=shipment()).status_code == 200
         current = client.get("/api/settings/instance").json()
         refused = client.put("/api/settings/instance", json={**current, "history_enabled": False})
-        assert refused.status_code == 409
-        assert "1 kept shipment(s)" in refused.json()["detail"]
+        assert refused.status_code == 200
+        assert refused.json()["history_enabled"] is True
         assert settings_store.history_enabled(db) is True
         assert history.count(db) == 1
 
@@ -182,11 +163,11 @@ def test_switching_off_with_kept_shipments_is_refused_until_they_are_deleted(db,
         assert history.count(db) == 0
         assert client.put("/api/settings/instance",
                           json={**current, "history_enabled": False}).status_code == 200
-        assert client.get("/api/shipments").status_code == 404
+        assert client.get("/api/shipments").status_code == 200
     from app.models.audit import AuditEvent
     actions = [e.action for e in db.query(AuditEvent).order_by(AuditEvent.id)]
     assert "settings.history_discarded" in actions
-    assert "settings.changed" in actions
+    assert "settings.changed" not in actions
 
 
 def test_switching_off_an_empty_history_needs_no_deletion(db, monkeypatch):
@@ -195,30 +176,21 @@ def test_switching_off_an_empty_history_needs_no_deletion(db, monkeypatch):
         current = client.get("/api/settings/instance").json()
         assert client.put("/api/settings/instance",
                           json={**current, "history_enabled": False}).status_code == 200
-        assert client.get("/api/shipments").status_code == 404
+        assert client.get("/api/shipments").status_code == 200
 
 
-def test_start_up_switches_the_history_on_for_a_database_that_holds_shipments(db, monkeypatch, caplog):
-    """The upgrade from the deploy-time variable: an installation that dropped
-    it from its environment must not wake up with a hidden table."""
-    monkeypatch.setenv("EMCARGO_HISTORY", "true")
-    get_settings.cache_clear()
+def test_start_up_keeps_existing_shipments_visible(db, monkeypatch):
     history.keep(db, ADA, history.ShipmentIn(**shipment()))
-    monkeypatch.delenv("EMCARGO_HISTORY")
+    monkeypatch.setenv("EMCARGO_HISTORY", "false")
     get_settings.cache_clear()
-    assert settings_store.history_enabled(db) is False
-    with caplog.at_level(logging.WARNING):
-        assert history.adopt_kept_data(db) is True
     assert settings_store.history_enabled(db) is True
-    assert "1 kept shipment(s)" in caplog.text
-    assert history.count(db) == 1
-    # And it does not keep saying so.
     assert history.adopt_kept_data(db) is False
+    assert history.count(db) == 1
 
 
 def test_an_empty_table_is_left_alone(db):
     assert history.adopt_kept_data(db) is False
-    assert settings_store.history_enabled(db) is False
+    assert settings_store.history_enabled(db) is True
 
 
 # --- 3. the kept record ---------------------------------------------------------
@@ -236,11 +208,11 @@ def test_keeping_builds_the_export_and_the_index_from_the_same_parts(db, monkeyp
             values={**CONSIGNMENT, "shipment_reference": "WZ-1"})).json()
         assert wizard_named["reference"] == "WZ-1"
         assert summary["consignee_name"] == "Ontvanger GmbH"
-        assert summary["modality"] == "road"
+        assert summary["modality"] == ""
         assert summary["regulations"] == ["ADR"]
         assert summary["goods_count"] == 1
         assert summary["has_dangerous_goods"] is True
-        assert summary["has_documents"] is True
+        assert summary["has_documents"] is False
         assert summary["created_by"] == "ada"
 
         detail = client.get(f"/api/shipments/{summary['id']}").json()
@@ -300,7 +272,7 @@ def test_the_list_filters_and_pages_newest_first(db, monkeypatch):
         assert [s["reference"] for s in
                 client.get("/api/shipments?q=a-").json()["items"]] == ["A-3", "A-1"]
         assert [s["reference"] for s in
-                client.get("/api/shipments?modality=sea").json()["items"]] == ["B-2"]
+                client.get("/api/shipments?modality=sea").json()["items"]] == []
         by_name = client.get("/api/shipments?q=ontvanger").json()
         assert by_name["total"] == 3
 
@@ -401,8 +373,7 @@ def test_the_annual_report_counts_shipments_and_not_drafts(db, monkeypatch):
 
 
 def test_switching_the_history_off_discards_the_drafts(db, monkeypatch):
-    """Off means nothing is kept. A draft does not stand in the way of the
-    switch — it is not a kept shipment — but it must not survive it either."""
+    """An obsolete settings client cannot erase an unfinished shipment."""
     with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
         client.put("/api/shipments/draft", json=shipment())
     admin = administrator(db, monkeypatch, EMCARGO_HISTORY="true")
@@ -410,7 +381,7 @@ def test_switching_the_history_off_discards_the_drafts(db, monkeypatch):
         settings = client.get("/api/settings/instance").json()
         settings["history_enabled"] = False
         assert client.put("/api/settings/instance", json=settings).status_code == 200
-    assert history.running_draft(db, db.get(User, 1)) is None
+    assert history.running_draft(db, db.get(User, 1)) is not None
 
 
 # --- 4. the documents again -----------------------------------------------------
@@ -419,7 +390,14 @@ def test_switching_the_history_off_discards_the_drafts(db, monkeypatch):
 def test_the_documents_again_are_the_kept_bundle_rerendered(db, monkeypatch):
     with application(db, monkeypatch, EMCARGO_HISTORY="true") as client:
         kept = client.post("/api/shipments", json=shipment()).json()
+        # Seed pre-upgrade evidence; new saves never generate a bundle.
+        from app.models.shipment import Shipment
+        record = db.get(Shipment, kept["id"])
+        record.bundle_json = json.dumps(shipment()["bundle"])
+        db.commit()
+        before = record.bundle_json
         again = client.post(f"/api/shipments/{kept['id']}/documents")
+        assert record.bundle_json == before
         assert again.status_code == 200, again.text
         assert again.headers["content-type"] == "application/zip"
         assert "CP-2026-100" in again.headers["content-disposition"]
@@ -491,14 +469,14 @@ def test_a_failed_step_leaves_the_version_where_it_was(tmp_path, monkeypatch):
 
 
 def test_public_settings_say_whether_shipments_are_kept(db, monkeypatch):
-    assert settings_store.public_settings(db).history_enabled is False
+    assert settings_store.public_settings(db).history_enabled is True
     # The legacy variable is the starting value ...
     monkeypatch.setenv("EMCARGO_HISTORY", "true")
     get_settings.cache_clear()
     assert settings_store.public_settings(db).history_enabled is True
     # ... and the administrator's setting decides from then on.
     switch_history(db, False)
-    assert settings_store.public_settings(db).history_enabled is False
+    assert settings_store.public_settings(db).history_enabled is True
     switch_history(db, True)
     assert settings_store.public_settings(db).history_enabled is True
 

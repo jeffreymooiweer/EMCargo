@@ -189,7 +189,7 @@ def test_shipments_and_documents_leave_lines_without_the_goods(db):
         shipment_id = kept.json()["id"]
         assert client.put(f"/api/shipments/{shipment_id}", json=shipment()).status_code == 200
         assert client.get(f"/api/shipments/{shipment_id}/export.json").status_code == 200
-        assert client.post(f"/api/shipments/{shipment_id}/documents").status_code == 200
+        assert client.post(f"/api/shipments/{shipment_id}/documents").status_code == 404
         assert client.post("/api/documents/export", json=doc("cmr")).status_code == 200
         assert client.post("/api/documents/export/bundle", json={
             "documents": [doc("cmr")],
@@ -197,13 +197,13 @@ def test_shipments_and_documents_leave_lines_without_the_goods(db):
         assert client.delete(f"/api/shipments/{shipment_id}").status_code == 200
     events = rows(db)
     assert [e.action for e in events] == [
-        "shipment.kept", "shipment.updated", "shipment.export", "shipment.documents",
+        "shipment.kept", "shipment.updated", "shipment.export",
         "documents.exported", "documents.bundle", "shipment.forgotten"]
-    for e in events[:4]:
+    for e in events[:3]:
         assert e.target_type == "shipment" and e.target_id == str(shipment_id)
         assert e.summary == "CP-2026-100"
-    assert events[4].summary == "cmr" and events[5].summary == "cmr"
-    assert events[6].summary == "CP-2026-100"
+    assert events[3].summary == "cmr" and events[4].summary == "cmr"
+    assert events[5].summary == "CP-2026-100"
     # Nothing a consignment says is in the table: not a party, not a good.
     everything = " ".join(f"{e.summary} {e.target_id}" for e in events)
     for word in (CONSIGNMENT["consignor_name"], CONSIGNMENT["consignee_name"],

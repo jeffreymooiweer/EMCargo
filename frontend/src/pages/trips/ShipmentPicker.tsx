@@ -37,7 +37,7 @@ export default function ShipmentPicker({ selected, busyIds, onAdd, onClose }: {
         const busy = busyIds.has(shipment.id);
         return <li key={shipment.id}><button type="button" disabled={added || busy} onClick={() => onAdd(shipment)} aria-label={`${t(added ? "tripWorkspace.added" : "tripWorkspace.add")} ${shipment.reference || `#${shipment.id}`}`}>
           <span className={`trip-picker-check ${added ? "is-added" : ""}`}>{added ? <CheckIcon /> : <PlusIcon />}</span>
-          <span className="trip-picker-copy"><strong>{shipment.reference || `#${shipment.id}`}</strong><span>{[shipment.consignor_name, shipment.consignee_name].filter(Boolean).join(" → ") || t(`modality.${shipment.modality}`)}</span></span>
+          <span className="trip-picker-copy"><strong>{shipment.reference || `#${shipment.id}`}</strong><span>{[shipment.consignor_name, shipment.consignee_name].filter(Boolean).join(" → ") || t(`modality.${shipment.modality || "preparation"}`)}</span></span>
           <span className="trip-picker-tag">{busy ? t("tripWorkspace.adding") : added ? t("tripWorkspace.added") : shipment.has_dangerous_goods ? "DG" : ""}</span>
         </button></li>;
       })}</ul>}

@@ -104,7 +104,7 @@ def test_specialist_actions_survive_history_off_and_admin_cannot_approve(setup):
     client = as_role("user")
     review_id = client.post("/api/dg-reviews", json=shipment()).json()["id"]
     assert queue(client)["items"][0]["status"] == "waiting"
-    assert queue(client)["history_enabled"] is False
+    assert queue(client)["history_enabled"] is True
     assert queue(as_role("super_user"))["total"] == 0
     assert queue(as_role("admin"))["items"][0]["status"] == "waiting"
     assert queue(as_role("dg_specialist"), mine=True)["items"][0]["status"] == "review"

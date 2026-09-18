@@ -56,7 +56,7 @@ from app.version import get_version
 #: reader that understood the previous version would misread this one; bump the
 #: minor when something is added that an old reader can safely ignore.
 FORMAT = "emcargo.shipment"
-FORMAT_VERSION = "2.1"
+FORMAT_VERSION = "3.0"
 
 
 def _clean(value: Any) -> Any:
@@ -88,6 +88,7 @@ def build_shipment_export(
     modality: str | None = None,
     documents: list[str] | None = None,
     cargo=None,
+    routing=None,
 ) -> dict[str, Any]:
     """The shipment as a dictionary, ready to be written or returned.
 
@@ -110,6 +111,8 @@ def build_shipment_export(
         "consignment": _clean(dict(values or {})),
         "goods": _clean(list(lines or [])),
     }
+    if routing is not None:
+        export["routing"] = routing.model_dump(mode="json")
     if cargo is not None:
         from app.services.cargo import assess
         assessment = assess(cargo, lines)

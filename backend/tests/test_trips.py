@@ -101,10 +101,10 @@ def trip(**overrides) -> dict:
 # --- 1. only with the switch ------------------------------------------------------
 
 
-def test_without_the_switch_the_trips_routes_do_not_exist(db, monkeypatch):
+def test_legacy_opt_out_keeps_trips_available(db, monkeypatch):
     with application(db, monkeypatch, EMCARGO_HISTORY="false") as client:
-        assert client.get("/api/trips").status_code == 404
-        assert client.post("/api/trips", json=trip()).status_code == 404
+        assert client.get("/api/trips").status_code == 200
+        assert client.post("/api/trips", json=trip()).status_code == 409
         # The calculation itself is still there for everybody.
         assert client.post("/api/dg/trip", json={
             "consignments": trip()["consignments"], "profiles": ["ADR"]}).status_code == 200
@@ -201,7 +201,7 @@ def test_trips_are_counted_when_the_history_is_switched_off(db, monkeypatch):
     # Start-up with the setting off and a trip in the table switches it on.
     monkeypatch.setenv("EMCARGO_HISTORY", "false")
     get_settings.cache_clear()
-    assert history.adopt_kept_data(db) is True
+    assert history.adopt_kept_data(db) is False
     assert trips.count(db) == 1
 
 

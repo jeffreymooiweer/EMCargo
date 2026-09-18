@@ -73,14 +73,14 @@ def test_cargo_view_keeps_drafts_private_even_from_admin_and_same_department(db,
     assert client_as(db, viewer_id).get(path).status_code == 404
 
 
-def test_retention_off_hides_saved_cargo_but_assessment_remains_stateless(db):
+def test_legacy_opt_out_keeps_cargo_visible_and_assessment_stateless(db):
     record, request = keep_cargo(db)
     # Settings/purge behaviour has its own coverage; force the resulting gate
     # here to prove this new endpoint observes it on every request.
     switch_history(db, False)
     before = (db.query(CargoIdentity).count(), db.query(CargoUse).count())
     client = client_as(db, 2)
-    assert client.get(f"/api/shipments/{record.id}/cargo/v1").status_code == 404
+    assert client.get(f"/api/shipments/{record.id}/cargo/v1").status_code == 200
     assert client.get("/api/cargo/units").json() == []
     response = client.post("/api/cargo/v1/assess", json={
         "cargo": request.cargo.model_dump(mode="json"), "lines": [goods()],

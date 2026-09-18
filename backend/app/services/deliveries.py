@@ -140,7 +140,7 @@ def source_goods(export):
 
 
 def source_fingerprint(export):
-    return digest({k: export.get(k) for k in ("consignment", "goods", "cargo", "dangerous_goods")})
+    return digest({**{k: export.get(k) for k in ("consignment", "goods", "cargo", "dangerous_goods")}, **({"routing": export["routing"]} if export.get("routing") is not None else {})})
 
 
 def selected(value, leg_id):
@@ -172,7 +172,7 @@ def unit_in_transit(db, unit_id):
 
 
 def fingerprint(value, part):
-    return digest({"unpacked": bool(value.get("unpacked")), "leg": {k: v for k, v in part.items() if k not in {"status", "review", "assessment", "completed_at"}},
+    return digest({**({"stops": value["stops"]} if value.get("stops") else {}), "unpacked": bool(value.get("unpacked")), "leg": {k: v for k, v in part.items() if k not in {"status", "review", "assessment", "completed_at"}},
                    "allocations": selected(value, part["id"]),
                    "sources": {str(a["shipment_id"]): value["sources"][str(a["shipment_id"])]
                                for a in selected(value, part["id"])}})
@@ -204,6 +204,8 @@ def validate_sources(db, value):
 
 
 def validate_quantities(value):
+    from app.services.delivery_routing import validate as validate_routing
+    validate_routing(value)
     from app.services.cargo import DISCRETE
     totals = defaultdict(Decimal)
     paths = {p["id"]: p for p in value["legs"]}
@@ -242,6 +244,8 @@ def reserve(db, record, value):
     for current in [value] + [data(r) for r in other_records]:
         for a in active_allocations(current):
             totals[(a["shipment_id"], a["goods_id"])] += reserved_quantity(current, a)
+    from app.services.delivery_routing import reserve as reserve_distributions
+    reserve_distributions([value] + [data(r) for r in other_records], value)
     from app.services.delivery_cargo import reserve_units
     reserve_units([value] + [data(r) for r in other_records])
     for a in active_allocations(value):
@@ -283,6 +287,8 @@ def create(db, user, payload: DeliveryIn):
     sources, department = load_sources(db, user, payload)
     value = payload.model_dump(mode="json", exclude={"version", "name"})
     value.update(sources=sources, events=[], history=[])
+    from app.services.delivery_routing import hydrate as hydrate_stops
+    hydrate_stops(value, None, user)
     from app.services.delivery_load_units import hydrate
     hydrate(db, value)
     for part in value["legs"]:
@@ -304,6 +310,8 @@ def edit(db, user, record, payload: DeliveryIn):
         raise error(422, "delivery.department")
     value = payload.model_dump(mode="json", exclude={"version", "name"})
     value.update(sources=sources, events=previous["events"], history=previous["history"])
+    from app.services.delivery_routing import hydrate as hydrate_stops
+    hydrate_stops(value, previous, user)
     from app.services.delivery_load_units import hydrate
     hydrate(db, value)
     for key in ("decisions", "legacy_trip_id", "legacy_consignments"):
@@ -520,8 +528,8 @@ def allowed_allocations(db, user, record, value, leg_id, role):
     allowed = set()
     for grant in grants(db, user, record):
         if grant.leg_id == leg_id and grant.role == role:
-            shipments = json.loads(grant.shipment_ids_json)
-            allowed.update(a["id"] for a in selected(value, leg_id) if a["shipment_id"] in shipments)
+            from app.services.delivery_routing import grant_ids
+            allowed.update(grant_ids(grant, value))
     return allowed
 
 
@@ -530,6 +538,10 @@ def event(db, user, record, leg_id, payload: EventIn):
     part = leg(value, leg_id)
     role = "operator" if payload.kind in {"load", "unpack"} else "recipient"
     allowed = allowed_allocations(db, user, record, value, leg_id, role)
+    if payload.kind not in {"load", "unpack"}:
+        transfers = {a["id"] for a in selected(value, leg_id) if a["leg_ids"][-1] != leg_id}
+        allowed -= transfers
+        allowed |= transfers & allowed_allocations(db, user, record, value, leg_id, "operator")
     if not {line.allocation_id for line in payload.lines} <= allowed:
         raise error(403, "delivery.permission")
     if payload.kind in {"correction", "resolution"}:
@@ -616,7 +628,7 @@ def event(db, user, record, leg_id, payload: EventIn):
     shipment_ids = {a["shipment_id"] for a in selected(value, leg_id) if a["id"] in {line.allocation_id for line in payload.lines}}
     for file_id in payload.file_ids:
         evidence = db.get(DeliveryFile, file_id)
-        if not evidence or evidence.delivery_id != record.id or evidence.leg_id != leg_id or evidence.kind != "proof" or not set(json.loads(evidence.shipment_ids_json)) <= shipment_ids:
+        if not evidence or evidence.delivery_id != record.id or evidence.leg_id != leg_id or evidence.kind != "proof" or not set(json.loads(evidence.shipment_ids_json)) <= shipment_ids or (evidence.allocation_ids_json and not set(json.loads(evidence.allocation_ids_json)) <= {line.allocation_id for line in payload.lines}):
             raise error(403, "delivery.permission")
     value["events"].append(body)
     totals = receipt_totals(value, leg_id)
@@ -647,7 +659,7 @@ def event(db, user, record, leg_id, payload: EventIn):
         except ValueError as exc:
             raise error(422, "delivery.document") from exc
         evidence = store(db, record, part, shipment_ids, signature, "receipt-signature.png", "image/png", "proof",
-                         {"event_id": payload.request_id})
+                         {"event_id": payload.request_id}, [line.allocation_id for line in payload.lines])
         body["file_ids"] = [*payload.file_ids, evidence.id]
     return save(db, record, value, user, payload.kind)
 
@@ -687,26 +699,48 @@ def view(db, user, record):
     permitted = grants(db, user, record) if not full else []
     allowed = {g.leg_id: set() for g in permitted}
     for grant in permitted:
-        allowed[grant.leg_id].update(json.loads(grant.shipment_ids_json))
+        from app.services.delivery_routing import grant_ids
+        allowed[grant.leg_id].update(grant_ids(grant, original))
     if not full:
         value = {key: value[key] for key in ("legs", "allocations", "events", "sources")}
         value["legs"] = [l for l in value["legs"] if l["id"] in allowed]
         for part in value["legs"]:
             part.pop("review", None)
             part.pop("assessment", None)
-            part["document_values"] = {sid: values for sid, values in part.get("document_values", {}).items()
-                                       if sid in {str(s) for s in allowed[part["id"]]}}
-        value["allocations"] = [a for a in value["allocations"] if any(a["shipment_id"] in allowed.get(l, set()) for l in a["leg_ids"])]
+            part["document_values"] = {}
+        value["allocations"] = [a for a in value["allocations"] if any(a["id"] in allowed.get(l, set()) for l in a["leg_ids"])]
         visible_ids = {lid: {a["id"] for a in value["allocations"]
-                             if lid in a["leg_ids"] and a["shipment_id"] in sids}
+                             if lid in a["leg_ids"] and a["id"] in sids}
                        for lid, sids in allowed.items()}
         for a in value["allocations"]:
-            a["leg_ids"] = [l for l in a["leg_ids"] if a["shipment_id"] in allowed.get(l, set())]
+            final_leg = a["leg_ids"][-1]
+            a["receivable_leg_ids"] = [lid for lid in a["leg_ids"]
+                if a["id"] in allowed_allocations(db, user, record, original, lid, "recipient" if lid == final_leg else "operator")]
+            a["leg_ids"] = [l for l in a["leg_ids"] if a["id"] in allowed.get(l, set())]
             a["quantity"] = a.get("leg_quantities", {}).get(a["leg_ids"][0], a["quantity"])
             a["leg_quantities"] = {lid: quantity for lid, quantity in a.get("leg_quantities", {}).items() if lid in a["leg_ids"]}
         value["events"] = [{**{k: v for k, v in e.items() if k not in {"request_hash", "actor", "followup_id", "followup_complete"}},
                             "lines": [line for line in e["lines"] if line["allocation_id"] in visible_ids.get(e["leg_id"], set())]}
                            for e in value["events"] if any(line["allocation_id"] in visible_ids.get(e["leg_id"], set()) for line in e["lines"])]
+        # Shared execution remarks and signatures can name another receiver.
+        source_events = {e["request_id"]: e for e in original["events"]}
+        for event in value["events"]:
+            if len(event["lines"]) != len(source_events[event["request_id"]]["lines"]):
+                for key in ("signature_image", "signature", "reason", "recipient", "file_ids"):
+                    event.pop(key, None)
+        own_points = set()
+        for a in value["allocations"]:
+            from app.services.delivery_routing import distributions
+            distribution = distributions(original["sources"][str(a["shipment_id"])] ["export"]).get(a.get("source_distribution_id"))
+            if distribution:
+                own_points.update((a["shipment_id"], distribution[k]) for k in ("pickup_id", "delivery_id"))
+        safe_stops = [s for s in original.get("stops", []) if s["kind"] == "transfer" or (s.get("shipment_id"), s.get("location_id")) in own_points]
+        value["stops"] = [{k: v for k, v in stop.items() if k not in {"original", "changes", "override_reason"}} for stop in safe_stops]
+        safe_ids = {s["id"] for s in safe_stops}
+        for part in value["legs"]:
+            if original.get("stops"):
+                if part.get("origin_stop_id") not in safe_ids: part["origin"] = ""
+                if part.get("destination_stop_id") not in safe_ids: part["destination"] = ""
         value.pop("history", None)
         value.pop("decisions", None)
         ids = {str(a["shipment_id"]) for a in value["allocations"]}
@@ -715,11 +749,11 @@ def view(db, user, record):
             for gid, g in source_goods(s["export"]).items() if any(str(a["shipment_id"]) == sid and a["goods_id"] == gid for a in value["allocations"])]}
             for sid, s in value["sources"].items() if sid in ids}
     files = db.query(DeliveryFile).filter_by(delivery_id=record.id).all()
-    value["files"] = [file_info(f, data(record), files) for f in files if full or file_visible(f, allowed)]
+    value["files"] = [file_info(f, data(record), files) for f in files if full or file_visible(f, allowed, original)]
     value.update(id=record.id, name=record.name, version=record.version, status=aggregate(value),
                  department_id=record.department_id if full else None, can_plan=full and "planner" in tasks(db, user)[0],
                  can_review=full and "assessor" in tasks(db, user)[0],
-                 assignments=[{"id": g.id, "role": g.role, "leg_id": g.leg_id, "shipment_ids": json.loads(g.shipment_ids_json)} for g in permitted])
+                 assignments=[{"id": g.id, "role": g.role, "leg_id": g.leg_id, "shipment_ids": json.loads(g.shipment_ids_json), "allocation_ids": sorted(grant_ids(g, original))} for g in permitted])
     value["receipt_totals"] = {l["id"]: {a: {k: str(v) for k, v in amounts.items()} for a, amounts in receipt_totals(value, l["id"]).items()} for l in value["legs"]}
     value["packing_units"] = {sid: [{**g, "goods": {gid: str(q) for gid, q in g["goods"].items()}} for g in roots(s["export"]).values()] for sid, s in original["sources"].items()} if full and not original.get("unpacked") else {}
     value["unpack_legs"] = [p["id"] for p in original["legs"] if original.get("followup") and not original.get("unpacked") and p["status"] == "draft" and {a["id"] for a in selected(original, p["id"])} <= allowed_allocations(db, user, record, original, p["id"], "operator")]
@@ -734,16 +768,23 @@ def view(db, user, record):
         value["cargo_units"][part["id"]] = [{"id": uid, "code": units[uid]["code"], "name": units[uid]["name"], "released": released(original, source_part, uid)}
             for uid in sorted(occupied_units(original, source_part)) if {a["id"] for a in contents(original, source_part, uid)} <= permitted_ids]
     if not full:
+        visible_files = {f["id"] for f in value["files"]}
         for event in value["events"]:
+            event["file_ids"] = [fid for fid in event.get("file_ids", []) if fid in visible_files]
             if "unit_ids" in event:
                 event["unit_ids"] = [uid for uid in event["unit_ids"] if any(u["id"] == uid for u in value["cargo_units"].get(event["leg_id"], []))]
     return value
 
 
-def file_visible(file, allowed):
+def file_visible(file, allowed, value):
     shipments = set(json.loads(file.shipment_ids_json))
+    allocations = set(json.loads(file.allocation_ids_json or "[]"))
+    if not allocations:
+        if any(value["sources"][str(s)]["export"].get("routing") for s in shipments if str(s) in value["sources"]):
+            return False
+        allocations = {a["id"] for a in selected(value, file.leg_id) if a["shipment_id"] in shipments}
     scope = json.loads(file.metadata_json).get("scope") or {file.leg_id: {}}
-    return bool(shipments) and all(shipments <= allowed.get(lid, set()) for lid in scope)
+    return bool(allocations) and all(allocations <= allowed.get(lid, set()) for lid in scope)
 
 
 def file_info(file, value, siblings=()):
@@ -760,6 +801,7 @@ def file_info(file, value, siblings=()):
     elif file.kind == "issued":
         current = current and not any(other.kind == "issued" and other.leg_id == file.leg_id
             and other.shipment_ids_json == file.shipment_ids_json
+            and other.allocation_ids_json == file.allocation_ids_json
             and json.loads(other.metadata_json).get("document_key") == metadata.get("document_key")
             and set(json.loads(other.metadata_json).get("scope", {file.leg_id: {}})) == set(metadata.get("scope", {file.leg_id: {}}))
             and json.loads(other.metadata_json).get("version", 0) > metadata.get("version", 0)

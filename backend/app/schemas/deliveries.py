@@ -5,6 +5,8 @@ from typing import Annotated, Literal
 from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.schemas.routing import Stop
+
 Mode = Literal["road", "rail", "inland", "sea", "air"]
 TaskRole = Literal["shipment", "planner", "operator", "recipient", "assessor"]
 
@@ -16,6 +18,8 @@ class StrictModel(BaseModel):
 class LegIn(StrictModel):
     id: str = Field(default_factory=lambda: str(uuid4()), min_length=1, max_length=36)
     mode: Mode = "road"
+    origin_stop_id: str | None = Field(default=None, max_length=36)
+    destination_stop_id: str | None = Field(default=None, max_length=36)
     origin: str = Field(default="", max_length=500)
     destination: str = Field(default="", max_length=500)
     carrier: str = Field(default="", max_length=255)
@@ -40,6 +44,7 @@ class LegIn(StrictModel):
 
 class AllocationIn(StrictModel):
     id: str = Field(default_factory=lambda: str(uuid4()), min_length=1, max_length=36)
+    source_distribution_id: str | None = Field(default=None, max_length=36)
     shipment_id: int = Field(gt=0)
     goods_id: str = Field(min_length=1, max_length=120)
     quantity: Decimal = Field(gt=0, max_digits=20, decimal_places=6, allow_inf_nan=False)
@@ -51,6 +56,7 @@ class AllocationIn(StrictModel):
 class DeliveryIn(StrictModel):
     name: str = Field(min_length=1, max_length=120)
     version: int | None = Field(default=None, ge=1)
+    stops: list[Stop] = Field(default_factory=list, max_length=2000)
     legs: list[LegIn] = Field(default_factory=list, max_length=100)
     allocations: list[AllocationIn] = Field(default_factory=list, max_length=2000)
 
@@ -124,6 +130,7 @@ class GrantIn(StrictModel):
     email: str = Field(default="", max_length=254)
     role: Literal["operator", "recipient"]
     leg_id: str = Field(min_length=1, max_length=36)
+    allocation_ids: list[str] = Field(default_factory=list, max_length=2000)
     shipment_ids: list[int] = Field(default_factory=list, max_length=2000)
     expires_at: datetime
 

@@ -29,12 +29,14 @@ function show(path = "/deliveries/delivery", account = user) {
 }
 beforeEach(() => {
   vi.clearAllMocks(); calls.get.mockResolvedValue(record()); api.shipments.mockResolvedValue({ items: [] });
-  calls.source.mockResolvedValue({ reference: "S7", goods: [{ delivery_goods_id: "0", quantity: 10, description: "Steel bolts" }] });
+  calls.source.mockResolvedValue({ reference: "S7", goods: [{ delivery_goods_id: "0", quantity: 10, description: "Steel bolts" }],
+    routing: { version: 1, locations: [{ id: "p", kind: "pickup", name: "Warehouse", address: "A", country: "NL", contact: "" }, { id: "r", kind: "delivery", name: "Receiver", address: "B", country: "NL", contact: "" }], distributions: [{ id: "dist", goods_id: "0", quantity: "10", pickup_id: "p", delivery_id: "r", unit_ids: [] }] },
+    distributions: [{ id: "dist", goods_id: "0", quantity: "10", available: "3", pickup_id: "p", delivery_id: "r", unit_ids: [] }] });
   calls.balances.mockResolvedValue({ goods: [{ id: "0", quantity: "10", available: "3" }], deliveries: [] });
 });
 it("uses the remaining source quantity and preserves a zero goods identifier", async () => {
   show("/deliveries/new?shipments=7");
-  expect(await screen.findByLabelText("deliveries.quantity S7 · Steel bolts")).toHaveValue("3");
+  expect(await screen.findByLabelText("deliveries.quantity S7 · Steel bolts → Receiver")).toHaveValue("3");
 });
 it("keeps failed receipt values and the same request id for a safe retry", async () => {
   calls.event.mockRejectedValue(new Error("Connection interrupted")); show();
@@ -76,13 +78,12 @@ it("links a pending follow-up from the original receipt history", async () => {
   expect(screen.getByText(/deliveries.followupPending/)).toBeInTheDocument();
 });
 
-it("updates exact quantities when a complete packing unit is deselected", async () => {
-  calls.source.mockResolvedValue({ reference: "S7", goods: [{ delivery_goods_id: "0", quantity: 10, description: "Steel bolts" }],
-    packing_units: [{ id: "box1", code: "BOX1", name: "Box 1", goods: { "0": "5" } }, { id: "box2", code: "BOX2", name: "Box 2", goods: { "0": "5" } }] });
-  calls.balances.mockResolvedValue({ goods: [{ id: "0", available: "10" }] });
+it("takes the source distribution route automatically and protects its leg selection", async () => {
   show("/deliveries/new?shipments=7");
-  await userEvent.click(await screen.findByRole("checkbox", { name: "BOX2 · Box 2" }));
-  expect(screen.getByLabelText("deliveries.quantity S7 · Steel bolts")).toHaveValue("5");
+  expect(await screen.findByLabelText("deliveries.quantity S7 · Steel bolts → Receiver")).toHaveValue("3");
+  expect(screen.getByLabelText("deliveries.origin")).toHaveValue("Warehouse, A, NL");
+  expect(screen.getByLabelText("deliveries.destination")).toHaveValue("Receiver, B, NL");
+  expect(screen.getByRole("checkbox", { name: "1. deliveries.modes.road" })).toBeDisabled();
 });
 
 it("keeps derived return quantities fixed while permitting transport planning", async () => {
@@ -91,4 +92,14 @@ it("keeps derived return quantities fixed while permitting transport planning", 
   expect(await screen.findByLabelText("deliveries.quantity S7 · Steel bolts")).toBeDisabled();
   expect(screen.getByLabelText("deliveries.origin")).toBeEnabled();
   expect(screen.queryByRole("button", { name: /deliveries.addLeg/ })).not.toBeInTheDocument();
+});
+
+
+it("offers intermediate receipt to an operator with a filtered itinerary", async () => {
+  const scoped = record(); scoped.can_plan = false;
+  scoped.assignments = [{ id: "grant", role: "operator", leg_id: "leg", shipment_ids: [7], allocation_ids: ["allocation"] }];
+  scoped.allocations[0].receivable_leg_ids = ["leg"];
+  calls.get.mockResolvedValue(scoped); show(undefined, { id: 3, role: "operator" } as User);
+  expect(await screen.findByRole("button", { name: "deliveries.receipt" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "deliveries.load" })).toBeInTheDocument();
 });

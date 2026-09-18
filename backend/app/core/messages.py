@@ -50,6 +50,15 @@ class ApiError(HTTPException):
 #: Kept here rather than at the raise sites so that the set of codes is
 #: countable — a translation guard cannot check what it cannot enumerate.
 MESSAGES: dict[str, str] = {
+    "routing.addresses": "Complete the pickup and delivery addresses, countries and responsible parties.",
+    "routing.references": "Check the goods, location and distribution references.",
+    "routing.goods": "Complete and confirm the goods before finalizing the shipment.",
+    "routing.quantities": "Distribute the exact goods quantities across the pickup and delivery addresses.",
+    "routing.packing": "Keep each closed packing unit together on one pickup and delivery address pair.",
+    "routing.dg": "Resolve the dangerous goods identification and classification before finalizing.",
+    "routing.dg_split": "Confirm the dangerous goods quantities and packaging for every distribution again.",
+    "routing.override": "Enter a reason for changing the original shipment address.",
+
     "delivery.document_scope": "Select consecutive transport parts with the same modality and goods, and enter the transport contract reference.",
     "delivery.import": "This delivery archive cannot be imported. Use a version 1.0 archive with matching local source shipments.",
     "delivery.legacy_readonly": "Legacy trips are read-only. Convert a trip to a delivery concept to continue planning.",
@@ -146,7 +155,7 @@ MESSAGES: dict[str, str] = {
     "intake.ocr_failed": "Text recognition failed. Try a sharper, upright image.",
     "intake.model_failed": "The local model could not prepare a proposal. The source and your current shipment have been preserved.",
     "work.owner_invalid": "Choose an active colleague who can access this shipment.",
-    "work.not_ready": "Finish the documents and required DG release before completing this office task.",
+    "work.not_ready": "Complete the goods, addresses and required DG review before completing this office task.",
     "work.changed": "This task has changed. Refresh the list before trying again.",
     "auth.current_password_incorrect": "Your current password is incorrect.",
     "un_cards.no_release": "No UN card set has been published yet. Check for a new set later or import a ZIP file.",

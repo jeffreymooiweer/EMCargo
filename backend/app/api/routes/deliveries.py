@@ -43,7 +43,9 @@ def source(shipment_id: int, user: User = Depends(get_current_user), db: Session
     occupied = {uid for record in db.query(Delivery).all() for value in [d.data(record)]
                 if not value.get("followup") for a in d.active_allocations(value)
                 if a["shipment_id"] == shipment_id for uid in chosen(a, groups)}
-    return {"id": row.id, "reference": row.reference, "department_id": row.department_id,
+    from app.services.delivery_routing import balances as distribution_balances
+    from app.services.shipment_routing import legacy
+    return {"routing": legacy(export).model_dump(mode="json"), "distributions": distribution_balances(db, shipment_id, export), "id": row.id, "reference": row.reference, "department_id": row.department_id,
             "goods": [{**g, "delivery_goods_id": gid} for gid, g in d.source_goods(export).items()],
             "packing_units": [{**group, "goods": {gid: str(qty) for gid, qty in group["goods"].items()}, "available": uid not in occupied} for uid, group in groups.items()],
             "consignment": export.get("consignment", {})}
@@ -171,6 +173,7 @@ def event(delivery_id: str, leg_id: str, payload: EventIn, user: User = Depends(
 class IssueIn(BaseModel):
     version: int = Field(ge=1)
     shipment_id: int = Field(gt=0)
+    allocation_ids: list[str] = Field(default_factory=list, max_length=2000)
     document_key: str = Field(max_length=80)
     language: str = Field(default="nl", pattern="^(nl|en|de|fr)$")
     leg_ids: list[str] = Field(default_factory=list, max_length=100)
@@ -183,13 +186,13 @@ def issue(delivery_id: str, leg_id: str, payload: IssueIn, user: User = Depends(
     if not d.internal(db, user, record):
         raise error(403, "delivery.permission")
     d.check_version(record, payload.version)
-    documents.issue(db, user, record, leg_id, payload.shipment_id, payload.document_key, payload.language, payload.leg_ids, payload.contract_reference.strip())
+    documents.issue(db, user, record, leg_id, payload.shipment_id, payload.document_key, payload.language, payload.leg_ids, payload.contract_reference.strip(), payload.allocation_ids)
     return d.save(db, record, d.data(record), user, "document_issued")
 
 
 @router.post("/{delivery_id}/legs/{leg_id}/files")
 async def upload(delivery_id: str, leg_id: str, version: int = Form(...), kind: str = Form(...),
-                 shipment_ids: str = Form(...), file: UploadFile = File(...),
+                 shipment_ids: str = Form(...), file: UploadFile = File(...), allocation_ids: str = Form("[]"),
                  user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     record = d.get(db, user, delivery_id, write=True)
     d.check_version(record, version)
@@ -203,19 +206,29 @@ async def upload(delivery_id: str, leg_id: str, version: int = Form(...), kind: 
         raise error(422, "delivery.document")
     if not set(sids) <= {a["shipment_id"] for a in d.selected(value, leg_id)}:
         raise error(422, "delivery.document")
+    try:
+        aids = json.loads(allocation_ids)
+        if not isinstance(aids, list) or any(not isinstance(a, str) for a in aids):
+            raise ValueError()
+    except (ValueError, TypeError):
+        raise error(422, "delivery.document")
+    selected_ids = {a["id"] for a in d.selected(value, leg_id) if a["shipment_id"] in sids}
+    aids = set(aids) if aids else selected_ids
+    if not aids or not aids <= selected_ids:
+        raise error(422, "delivery.document")
     if kind == "external":
         d.planner(db, user)
         if not d.internal(db, user, record) or part["status"] not in {"draft", "planned"}:
             raise error(409, "delivery.state")
     elif kind == "proof":
         allowed = d.allowed_allocations(db, user, record, value, leg_id, "recipient") | d.allowed_allocations(db, user, record, value, leg_id, "operator")
-        if not set(sids) <= {a["shipment_id"] for a in value["allocations"] if a["id"] in allowed} or part["status"] not in {"released", "in_progress", "completed"}:
+        if not aids <= allowed or part["status"] not in {"released", "in_progress", "completed"}:
             raise error(403, "delivery.permission")
     else:
         raise error(422, "delivery.document")
     content = await file.read(documents.MAX_FILE_BYTES + 1)
     content, media, name = documents.validate_upload(content, file.filename or "attachment")
-    documents.store(db, record, part, sids, content, name, media, kind, {"uploaded_by": user.id, "uploaded_at": d.stamp()})
+    documents.store(db, record, part, sids, content, name, media, kind, {"uploaded_by": user.id, "uploaded_at": d.stamp()}, sorted(aids))
     return d.save(db, record, value, user, "file_uploaded")
 
 
@@ -299,7 +312,7 @@ def export(delivery_id: str, user: User = Depends(get_current_user), db: Session
         for metadata in value["files"]:
             metadata["metadata"] = json.loads(db.get(DeliveryFile, metadata["id"]).metadata_json)
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("delivery.json", d.canonical({"format": "emcargo.delivery", "format_version": "1.0", "delivery": value}))
+        archive.writestr("delivery.json", d.canonical({"format": "emcargo.delivery", "format_version": "2.0", "delivery": value}))
         for metadata in value["files"]:
             file = visible_file(db, user, record, metadata["id"])
             archive.writestr(f"documents/{file.id}/{file.filename}", file.content)
@@ -310,7 +323,7 @@ def export(delivery_id: str, user: User = Depends(get_current_user), db: Session
 def grants(delivery_id: str, manager: User = Depends(require_manager), db: Session = Depends(get_db)):
     record = d.get(db, manager, delivery_id)
     return [{"id": g.id, "user_id": g.user_id, "leg_id": g.leg_id, "role": g.role,
-             "shipment_ids": json.loads(g.shipment_ids_json), "expires_at": g.expires_at,
+             "shipment_ids": json.loads(g.shipment_ids_json), "allocation_ids": json.loads(g.allocation_ids_json or "[]"), "expires_at": g.expires_at,
              "revoked": g.revoked_at is not None} for g in db.query(DeliveryGrant).filter_by(delivery_id=record.id).all()]
 
 
@@ -326,9 +339,19 @@ def grant(delivery_id: str, payload: GrantIn, request: Request, manager: User = 
     part = d.leg(value, payload.leg_id)
     if not payload.expires_at.tzinfo or payload.expires_at <= d.now() or payload.expires_at > d.now() + timedelta(days=90):
         raise error(422, "delivery.time")
-    sids = {a["shipment_id"] for a in d.selected(value, part["id"])}
-    if not payload.shipment_ids or not set(payload.shipment_ids) <= sids:
+    selected = d.selected(value, part["id"])
+    ids = set(payload.allocation_ids)
+    if not ids:
+        # Legacy callers may select a whole shipment only when it has no
+        # address distributions; v3 access must be explicit.
+        if any(value["sources"][str(s)]["export"].get("routing") for s in payload.shipment_ids if str(s) in value["sources"]):
+            raise error(422, "delivery.source")
+        ids = {a["id"] for a in selected if a["shipment_id"] in payload.shipment_ids}
+    if not ids or not ids <= {a["id"] for a in selected}:
         raise error(422, "delivery.source")
+    if payload.role == "recipient" and any(a["leg_ids"][-1] != part["id"] for a in selected if a["id"] in ids):
+        raise error(422, "delivery.source")
+    shipment_ids = sorted({a["shipment_id"] for a in selected if a["id"] in ids})
     current = instance_settings(db)
     target = db.get(User, payload.user_id) if payload.user_id else None
     new_account = False
@@ -355,7 +378,7 @@ def grant(delivery_id: str, payload: GrantIn, request: Request, manager: User = 
         if expires_at <= d.now():
             raise error(422, "delivery.time")
     row = DeliveryGrant(id=str(uuid4()), delivery_id=record.id, user_id=target.id,
-                        leg_id=part["id"], role=payload.role, shipment_ids_json=json.dumps(payload.shipment_ids), expires_at=expires_at)
+                        leg_id=part["id"], role=payload.role, shipment_ids_json=json.dumps(shipment_ids), allocation_ids_json=json.dumps(sorted(ids)), expires_at=expires_at)
     db.add(row)
     db.commit()
     if new_account or (not payload.user_id and target.role == "external"):

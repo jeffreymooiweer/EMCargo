@@ -106,6 +106,9 @@ function isApiMessage(value: unknown): value is ApiMessage {
 export function describeDetail(detail: unknown): string {
   if (typeof detail === "string" && detail) return detail;
   if (isApiMessage(detail)) return translateMessage(detail);
+  if (detail && typeof detail === "object" && "errors" in detail && Array.isArray(detail.errors)) {
+    return describeDetail(detail.errors);
+  }
   if (Array.isArray(detail)) {
     const lines = detail
       .map((item) => {
@@ -943,6 +946,7 @@ export interface ShipmentSummary {
   has_dangerous_goods: boolean;
   /** Whether a bundle was kept, so the documents can be handed out again. */
   has_documents: boolean;
+  work_status?: string;
   /** Entry still in progress rather than a kept shipment. */
   is_draft?: boolean;
   created_by: string;
@@ -1001,6 +1005,7 @@ export interface WorkPage {
  *  structured export from the parts itself, so the kept record is produced
  *  by the same code as the downloadable one. */
 export interface ShipmentIn {
+  routing?: import("../wizard/routing").Routing;
   cargo?: CargoManifest;
   expected_cargo_revision?: number | null;
   dg_review_id?: string;

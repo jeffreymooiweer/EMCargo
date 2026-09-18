@@ -33,41 +33,11 @@ def client_for(db, monkeypatch, uid=1):
     return TestClient(app)
 
 
-def test_issue_without_history_leaves_no_cargo_review_or_document_rows(db, monkeypatch):
+def test_stateless_endpoints_retired_without_removing_retained_data(db, monkeypatch):
+    """An old history-off installation must not create new transient dossiers."""
     before = {model: db.query(model).count() for model in (Shipment, Delivery, DeliveryFile, DgReview)}
     with client_for(db, monkeypatch) as client:
-        body = request()
-        assert client.post("/api/temporary-deliveries/v1/assessment", json=body).status_code == 200
-        issued = client.post("/api/temporary-deliveries/v1/documents", json=body)
-        assert issued.status_code == 200, issued.text
-        with zipfile.ZipFile(io.BytesIO(issued.content)) as archive:
-            assert archive.read("packing_list.pdf").startswith(b"%PDF")
-            metadata = json.loads(archive.read("delivery.json"))
-            assert metadata["files"][0]["inputs"]["values"]["carrier_name"] == "Carrier"
-    assert {model: db.query(model).count() for model in before} == before
-
-
-def test_temporary_review_token_cannot_approve_changed_inputs_or_another_user(db, monkeypatch):
-    body = request("sea")
-    body["reason"] = "Checked the planned carrier and modal requirements"
-    with client_for(db, monkeypatch) as client:
-        assert client.post("/api/temporary-deliveries/v1/documents", json=body).status_code == 409
-        reviewed = client.post("/api/temporary-deliveries/v1/review", json=body)
-        assert reviewed.status_code == 200, reviewed.text
-        body["review_token"] = reviewed.json()["token"]
-        assert client.post("/api/temporary-deliveries/v1/documents", json=body).status_code == 200
-        body["leg"]["destination"] = "Changed port"
-        assert client.post("/api/temporary-deliveries/v1/documents", json=body).status_code == 409
-        body["leg"]["destination"] = "B"
-    with client_for(db, monkeypatch, 2) as other:
-        assert other.post("/api/temporary-deliveries/v1/documents", json=body).status_code == 409
-
-
-def test_stateless_validation_refuses_unknown_mass_and_fractional_pieces(db, monkeypatch):
-    with client_for(db, monkeypatch) as client:
-        body = request()
-        body["shipment"]["lines"][0]["weight_total_kg"] = None
-        assert client.post("/api/temporary-deliveries/v1/documents", json=body).status_code == 422
-        body = request()
-        body["shipment"]["lines"][0]["quantity"] = 0.5
-        assert client.post("/api/temporary-deliveries/v1/documents", json=body).status_code == 422
+        for endpoint in ("assessment", "documents", "review"):
+            assert client.post(f"/api/temporary-deliveries/v1/{endpoint}", json=request()).status_code == 404
+        assert client.get("/api/settings/public").json()["history_enabled"] is True
+    assert before == {model: db.query(model).count() for model in before}

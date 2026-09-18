@@ -458,13 +458,6 @@ function AdminSettings({ section }: { section: TabKey }) {
     if (saving || !dirty) return;
     setSaving(true);
     try {
-      if (settings.history_enabled && !draft.history_enabled) {
-        const counts = await api.historyCounts();
-        if (counts.shipments || counts.trips || counts.deliveries) {
-          setDiscard(counts);
-          return;
-        }
-      }
       await store();
     } catch (e) {
       toast.error(String(e));
@@ -629,12 +622,8 @@ function AdminSettings({ section }: { section: TabKey }) {
           {t("settings.adminFeatures")}
         </h4>
 
-        <Toggle
-          label={t("settings.historyEnabled")}
-          checked={draft.history_enabled}
-          onChange={(value) => set("history_enabled", value)}
-        />
-        {!draft.history_enabled && <p role="status" className="text-sm text-slate-500 dark:text-slate-400">{t("settings.dgReviewsRetained")}</p>}
+        <p>{t("routing.retention")}</p>
+        <button type="button" className="action-secondary" onClick={() => void api.historyCounts().then(setDiscard).catch(e => toast.error(String(e)))}>{t("settings.historyDiscardConfirm")}</button>
         <ConfirmDialog
           open={discard !== null}
           title={t("settings.historyDiscardTitle")}

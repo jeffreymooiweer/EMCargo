@@ -894,7 +894,7 @@
     },
     "work": {
       "owner_invalid": "Wählen Sie einen aktiven Kollegen mit Zugriff auf diese Sendung.",
-      "not_ready": "Schließen Sie zuerst die Dokumente und die erforderliche DG-Freigabe ab.",
+      "not_ready": "Vervollständigen Sie zuerst Waren, Adressen und die erforderliche Gefahrgutprüfung.",
       "changed": "Diese Aufgabe wurde geändert. Aktualisieren Sie die Liste vor einem neuen Versuch."
     },
     "intake": {
@@ -972,6 +972,16 @@
       "import": "Dieses Lieferarchiv kann nicht importiert werden. Verwenden Sie Version 1.0 mit übereinstimmenden lokalen Quellsendungen.",
       "legacy_readonly": "Alte Fahrten sind schreibgeschützt. Wandeln Sie die Fahrt in einen Lieferentwurf um, um weiterzuplanen.",
       "document_scope": "Wählen Sie aufeinanderfolgende Transportteile mit derselben Modalität und denselben Gütern und geben Sie die Vertragsreferenz ein."
+    },
+    "routing": {
+      "addresses": "Vervollständigen Sie Abhol- und Lieferadressen, Länder und verantwortliche Parteien.",
+      "references": "Prüfen Sie die Zuordnung von Gütern, Adressen und Verteilungen.",
+      "goods": "Vervollständigen und bestätigen Sie die Güter vor dem Abschluss.",
+      "quantities": "Verteilen Sie die genauen Gütermengen auf die Abhol- und Lieferadressen.",
+      "packing": "Belassen Sie jede geschlossene Verpackungseinheit bei einem Abhol- und Lieferadresspaar.",
+      "dg": "Klären Sie die Gefahrguterkennung und -klassifizierung vor dem Abschluss.",
+      "dg_split": "Bestätigen Sie Gefahrgutmengen und Verpackung für jede Verteilung erneut.",
+      "override": "Geben Sie einen Grund für die Änderung der ursprünglichen Adresse an."
     }
   },
   "instructions": {
@@ -2777,5 +2787,46 @@
     "onwardQuantity": "Menge im Transportabschnitt {{number}}",
     "onwardHint": "Nach Klärung einer Fehlmenge kann die Menge eines folgenden Entwurfsabschnitts auf die tatsächlich empfangene Menge reduziert werden. Ausgeführte Abschnitte bleiben unverändert. Geschlossene Verpackungen und Gefahrguterklärungen dürfen nicht stillschweigend aufgeteilt werden.",
     "scopedIntro": "Sehen Sie Ihre zugewiesenen Lieferungen ein, erfassen Sie den Empfang und prüfen Sie die Nachweise."
+  },
+  "routing": {
+    "intro": "Legen Sie fest, welche Güter von welchem Abholort zu welchem Empfänger gehen.",
+    "addresses": "Adressen und Verteilung",
+    "pickup": "Abholadresse",
+    "delivery": "Lieferadresse",
+    "choose": "Adresse wählen",
+    "addressBook": "Aus dem Adressbuch",
+    "name": "Name / Organisation",
+    "address": "Adresse",
+    "country": "Land",
+    "contact": "Kontakt",
+    "legalParty": "Verantwortliche Partei (abweichend vom Standort)",
+    "remove": "Entfernen",
+    "distribution": "Güterverteilung",
+    "distributed": "{{total}} von {{quantity}} {{unit}} verteilt",
+    "quantity": "Menge",
+    "dgSplit": "Bestätigen Sie die tatsächlichen Gefahrgutmengen und Verpackungen für dieses Adresspaar. Mengen werden nicht automatisch umgerechnet.",
+    "declare": "Teilmenge angeben",
+    "confirm": "Geprüft und bestätigt",
+    "confirmed": "Bestätigung gespeichert",
+    "documentsLater": "Transportdokumente werden bei der Lieferung anhand der geplanten Güter und Route erstellt.",
+    "finalize": "Sendung abschließen",
+    "export": "Sendungsdaten herunterladen",
+    "retention": "Sendungen und Entwürfe werden immer gespeichert. Löschen erfolgt ausschließlich über die folgende Verwaltungsaktion.",
+    "stops": "Stopps und Route",
+    "override": "Grund der Adressänderung",
+    "original": "Ursprüngliche Adresse",
+    "up": "Nach oben",
+    "down": "Nach unten",
+    "routeHint": "Zunächst werden Abholungen und danach Lieferungen eingeplant. Prüfen Sie die Route und wählen Sie je Abschnitt das Verkehrsmittel.",
+    "dgFields": {
+      "quantity_packages": "Anzahl Verpackungen",
+      "type_of_package": "Verpackungsart",
+      "net_mass_liters_per_package": "Netto je Verpackung (kg/l)",
+      "gross_mass_per_package": "Brutto je Verpackung (kg)",
+      "adr_total_quantity": "Gesamte Gefahrgutmenge",
+      "net_explosive_mass": "Nettoexplosivstoffmasse (kg)"
+    },
+    "import": "Sendung oder Entwurf importieren",
+    "preparation": "Sendung vorbereiten"
   }
 }

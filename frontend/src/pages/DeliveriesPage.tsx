@@ -1,3 +1,5 @@
+import DeliveryStops from "../components/DeliveryStops";
+import { routeStops, stopLabel } from "../utils/deliveryRouting";
 import { cargoApi, type CargoUnit } from "../api/cargo";
 import DeliveryActivity from "../components/DeliveryActivity";
 import { useEffect, useRef, useState } from "react";
@@ -14,13 +16,16 @@ import "./deliveries.css";
 type Draft = DeliveryInput & { sources: Record<string, Source> };
 const localDate = (value: string | null) => value ? new Date(new Date(value).getTime() - new Date(value).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "";
 const iso = (value: string) => value ? new Date(value).toISOString() : null;
-const initial = (): Draft => ({ name: "", legs: [newLeg()], allocations: [], sources: {} });
+const initial = (): Draft => ({ name: "", stops: [], legs: [newLeg()], allocations: [], sources: {} });
 
 function allocationLabel(sources: Record<string, Source>, allocation: Allocation) {
   const source = sources[String(allocation.shipment_id)];
   const goods = source?.goods || source?.export?.goods || [];
   const line = goods.find((g, i) => String(g.id ?? g.cargo_goods_id ?? g.line_id ?? `line-${i}`) === allocation.goods_id);
-  return `${source?.reference || `#${allocation.shipment_id}`} · ${line?.description || allocation.goods_id}`;
+  const routing = source?.routing || source?.export?.routing;
+  const distribution = routing?.distributions.find(d => d.id === allocation.source_distribution_id);
+  const recipient = routing?.locations.find(p => p.id === distribution?.delivery_id)?.name;
+  return `${source?.reference || `#${allocation.shipment_id}`} · ${line?.description || allocation.goods_id}${recipient ? ` → ${recipient}` : ""}`;
 }
 
 export default function DeliveriesPage({ user }: { user: User }) {
@@ -55,7 +60,7 @@ export default function DeliveriesPage({ user }: { user: User }) {
   const [tab, setTab] = useState("planning");
   const tabs = ["planning", "checks", "execution", "documents", "access", "history"];
   const keys: Record<string, string> = { planning: "goods", checks: "checks", execution: "execution", documents: "documents", access: "access", history: "history" };
-  const accept = (value: Delivery) => { if (routeId.current && routeId.current !== "new" && value.id !== routeId.current) return; setRecord(value); setDraft({ ...inputOf(value), legs: value.legs, sources: Object.fromEntries(Object.entries(value.sources).map(([sid, source]) => [sid, { ...source, packing_units: value.packing_units?.[sid] }])) }); };
+  const accept = (value: Delivery) => { if (routeId.current && routeId.current !== "new" && value.id !== routeId.current) return; setRecord(value); setDraft({ ...inputOf(value), legs: value.legs, stops: value.stops, sources: Object.fromEntries(Object.entries(value.sources).map(([sid, source]) => [sid, { ...source, packing_units: value.packing_units?.[sid] }])) }); };
   async function run(work: () => Promise<void>) {
     if (busy) return;
     const current = generation.current;
@@ -67,13 +72,16 @@ export default function DeliveriesPage({ user }: { user: User }) {
     const next = structuredClone(target);
     for (const sid of ids) {
       if (next.sources[String(sid)]) continue;
-      const [source, balance] = await Promise.all([deliveries.source(sid), deliveries.balances(sid)]);
-      const available = new Map(balance.goods.map(g => [g.id, g.available]));
-      next.sources[String(sid)] = { reference: source.reference, packing_units: source.packing_units, goods: source.goods.map(g => ({ ...g, id: g.delivery_goods_id })) };
-      next.allocations.push(...source.goods.filter(g => Number(available.get(g.delivery_goods_id!) || "0") > 0).map(g => ({ id: crypto.randomUUID(), shipment_id: sid, goods_id: g.delivery_goods_id!, quantity: available.get(g.delivery_goods_id!)!, leg_ids: next.legs[0] ? [next.legs[0].id] : [], unit_ids: source.packing_units?.filter(u => u.available !== false && g.delivery_goods_id! in u.goods).map(u => u.id) })));
+      const source = await deliveries.source(sid);
+      next.sources[String(sid)] = { routing: source.routing, reference: source.reference, packing_units: source.packing_units, goods: source.goods.map(g => ({ ...g, id: g.delivery_goods_id })) };
+      const distributed = source.distributions.filter(a => Number(a.available || 0) > 0);
+      if (!distributed.length) throw new Error(t("errors.routing.addresses"));
+      next.allocations.push(...distributed.map(a => ({ id: crypto.randomUUID(), shipment_id: sid, source_distribution_id: a.id, goods_id: a.goods_id, quantity: a.available!, leg_ids: [], unit_ids: a.unit_ids.filter(id => source.packing_units?.find(unit => unit.id === id)?.available !== false) })));
+      const required = new Set(distributed.flatMap(a => [a.pickup_id, a.delivery_id]));
+      next.stops = [...(next.stops || []), ...source.routing.locations.filter(p => required.has(p.id)).map(p => ({ ...p, id: crypto.randomUUID(), shipment_id: sid, location_id: p.id, original: p, override_reason: "" }))];
       if (!next.name) next.name = source.reference;
     }
-    return next;
+    return routeStops(next, (next.stops || []).sort((a, b) => (a.kind === "pickup" ? 0 : 1) - (b.kind === "pickup" ? 0 : 1)));
   }
   useEffect(() => {
     const current = ++generation.current;
@@ -103,17 +111,18 @@ export default function DeliveriesPage({ user }: { user: User }) {
     setDraft(previous => {
       const allocations = [...previous.allocations];
       for (const [gid, quantity] of Object.entries(group.goods)) {
-        const index = allocations.findIndex(a => String(a.shipment_id) === sid && a.goods_id === gid);
+        const distribution = (previous.sources[sid].routing || previous.sources[sid].export?.routing)?.distributions.find(d => d.goods_id === gid && d.unit_ids.includes(uid));
+        const index = allocations.findIndex(a => String(a.shipment_id) === sid && a.goods_id === gid && (!distribution || a.source_distribution_id === distribution.id));
         const old = allocations[index];
         const ids = old?.unit_ids ?? groups.filter(u => gid in u.goods).map(u => u.id);
         const included = old && ids.includes(uid);
         if (!!included === checked) continue;
         const amount = (old ? micro(old.quantity) : 0n) + (checked ? micro(quantity) : -micro(quantity));
         if (amount <= 0n) { if (index >= 0) allocations.splice(index, 1); continue; }
-        const allocation = { ...(old || { id: crypto.randomUUID(), shipment_id: Number(sid), goods_id: gid, leg_ids: previous.legs[0] ? [previous.legs[0].id] : [] }), quantity: decimal(amount), unit_ids: checked ? [...(old ? ids : []), uid] : ids.filter(id => id !== uid) };
+        const allocation = { ...(old || { id: crypto.randomUUID(), shipment_id: Number(sid), goods_id: gid, ...(distribution ? { source_distribution_id: distribution.id } : {}), leg_ids: previous.legs[0] ? [previous.legs[0].id] : [] }), quantity: decimal(amount), unit_ids: checked ? [...(old ? ids : []), uid] : ids.filter(id => id !== uid) };
         if (index < 0) allocations.push(allocation); else allocations[index] = allocation;
       }
-      return { ...previous, allocations };
+      return previous.stops?.length ? routeStops({ ...previous, allocations }, previous.stops) : { ...previous, allocations };
     });
   }
   const goodsLabel = (a: Allocation) => allocationLabel(draft.sources, a);
@@ -152,16 +161,17 @@ export default function DeliveriesPage({ user }: { user: User }) {
       {tab === "planning" && <section className="surface delivery-panel">
         <form onSubmit={e => { e.preventDefault(); run(async () => { const saved = creating ? await deliveries.create(inputOf(draft)) : await deliveries.save(record!.id, inputOf(draft)); accept(saved); setNotice(t("deliveries.saved")); if (creating) navigate(`/deliveries/${saved.id}`, { replace: true }); }); }}>
           <label>{t("deliveries.name")}<input required maxLength={120} value={draft.name} disabled={busy || !editable} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label>
+          {!!draft.stops?.length && <DeliveryStops stops={draft.stops} onChange={stops => setDraft(routeStops(draft, stops))} disabled={busy || !allocationEditable || draft.legs.some(p => p.status !== "draft")} />}
           <div className="delivery-leg-grid">{draft.legs.map((part, index) => <fieldset key={part.id} disabled={busy || !editable || !!part.status && part.status !== "draft"} className="delivery-leg-card"><legend>{t("deliveries.leg")} {index + 1}</legend>
             <label>{t("deliveries.mode")}<select value={part.mode} onChange={e => changeLeg(part.id, { mode: e.target.value as Leg["mode"] })}>{modes.map(mode => <option key={mode} value={mode}>{t(`deliveries.modes.${mode}`)}</option>)}</select></label>
-            {(["origin", "destination", "carrier", "vehicle", "reference"] as const).map(key => <label key={key}>{t(`deliveries.${key}`)}<input value={part[key]} maxLength={key === "origin" || key === "destination" ? 500 : 120} onChange={e => changeLeg(part.id, { [key]: e.target.value })} /></label>)}
+            {(["origin", "destination", "carrier", "vehicle", "reference"] as const).map(key => <label key={key}>{t(`deliveries.${key}`)}<input readOnly={!!draft.stops?.length && (key === "origin" || key === "destination")} value={part[key]} maxLength={key === "origin" || key === "destination" ? 500 : 120} onChange={e => changeLeg(part.id, { [key]: e.target.value })} /></label>)}
             <label>{t("deliveries.sharedLoadUnit")}<select value={part.load_unit_id || ""} onChange={e => changeLeg(part.id, { load_unit_id: e.target.value || null })}><option value="">—</option>{loadUnits.map(unit => <option key={unit.id} value={unit.id}>{unit.code} · {unit.name}</option>)}</select></label>
             <label>{t("deliveries.start")}<input type="datetime-local" value={localDate(part.planned_start)} onChange={e => changeLeg(part.id, { planned_start: iso(e.target.value) })} /></label>
             <label>{t("deliveries.maxMass")}<input type="number" min="0.000001" step="any" value={part.max_mass_tonnes || ""} onChange={e => changeLeg(part.id, { max_mass_tonnes: e.target.value || null })} /></label>
             <label>{t("deliveries.end")}<input type="datetime-local" value={localDate(part.planned_end)} onChange={e => changeLeg(part.id, { planned_end: iso(e.target.value) })} /></label>
-            <button type="button" className="action-secondary" disabled={!allocationEditable} onClick={() => setDraft({ ...draft, legs: draft.legs.filter(l => l.id !== part.id), allocations: draft.allocations.map(a => ({ ...a, leg_ids: a.leg_ids.filter(l => l !== part.id) })) })}>{t("deliveries.remove")}</button>
+            <button type="button" className="action-secondary" disabled={!allocationEditable || !!draft.stops?.length} onClick={() => setDraft({ ...draft, legs: draft.legs.filter(l => l.id !== part.id), allocations: draft.allocations.map(a => ({ ...a, leg_ids: a.leg_ids.filter(l => l !== part.id) })) })}>{t("deliveries.remove")}</button>
           </fieldset>)}</div>
-          {allocationEditable && <button type="button" className="action-secondary" disabled={busy} onClick={() => setDraft({ ...draft, legs: [...draft.legs, newLeg()] })}>+ {t("deliveries.addLeg")}</button>}
+          {allocationEditable && !draft.stops?.length && <button type="button" className="action-secondary" disabled={busy} onClick={() => setDraft({ ...draft, legs: [...draft.legs, newLeg()] })}>+ {t("deliveries.addLeg")}</button>}
           <h3>{t("deliveries.goods")}</h3><p>{t("deliveries.sourceHint")}</p>{draft.legs.length > 1 && <p>{t("deliveries.onwardHint")}</p>}
           {allocationEditable && <div className="delivery-source-picker"><label>{t("deliveries.shipmentId")}<input value={sourceQuery} onChange={e => setSourceQuery(e.target.value)} /></label><label>{t("deliveries.select")}<select value={shipmentId} onChange={e => setShipmentId(e.target.value)}><option value="">—</option>{shipments.filter(s => !draft.sources[String(s.id)]).map(s => <option key={s.id} value={s.id}>#{s.id} {s.reference} · {s.consignee_name}</option>)}</select></label><button type="button" className="action-secondary" disabled={busy || !shipmentId} onClick={() => run(async () => { setDraft(await attach(draft, [Number(shipmentId)])); setShipmentId(""); })}>+ {t("deliveries.addShipment")}</button></div>}
           {record?.followup && <p className="delivery-callout">{t("deliveries.followupPlanningHint")}</p>}
@@ -169,7 +179,7 @@ export default function DeliveriesPage({ user }: { user: User }) {
             <legend>{source.reference} · {t("deliveries.packingUnits")}</legend><p>{t("deliveries.packingUnitsHint")}</p>
             {source.packing_units.map(unit => <label className="delivery-file-choice" key={unit.id}><input type="checkbox" disabled={unit.available === false} checked={draft.allocations.some(a => String(a.shipment_id) === sid && (a.unit_ids ? a.unit_ids.includes(unit.id) : a.goods_id in unit.goods))} onChange={e => toggleUnit(sid, unit.id, e.target.checked)} />{unit.code} · {unit.name}</label>)}
           </fieldset>)}
-          <div className="delivery-cargo">{draft.allocations.map(a => <div key={a.id} className="delivery-allocation"><strong>{goodsLabel(a)}</strong><label>{t("deliveries.quantity")}<input aria-label={`${t("deliveries.quantity")} ${goodsLabel(a)}`} inputMode="decimal" value={a.quantity} disabled={busy || !allocationEditable || a.leg_ids.some(l => draft.legs.find(p => p.id === l)?.status !== "draft")} onChange={e => changeAllocation(a.id, { quantity: e.target.value })} /></label><div className="delivery-itinerary">{draft.legs.map((part, i) => <label key={part.id}><input type="checkbox" checked={a.leg_ids.includes(part.id)} disabled={busy || !allocationEditable || a.leg_ids.some(lid => draft.legs.find(p => p.id === lid)?.status !== "draft")} onChange={e => changeAllocation(a.id, { leg_ids: e.target.checked ? draft.legs.map(l => l.id).filter(lid => a.leg_ids.includes(lid) || lid === part.id) : a.leg_ids.filter(l => l !== part.id), leg_quantities: {} })} />{i + 1}. {t(`deliveries.modes.${part.mode}`)}</label>)}</div>{a.leg_ids.slice(1).map((lid, index) => <label className="delivery-leg-quantity" key={lid}>{t("deliveries.onwardQuantity", { number: index + 2 })}<input inputMode="decimal" value={a.leg_quantities?.[lid] ?? a.quantity} disabled={busy || !allocationEditable || draft.legs.find(p => p.id === lid)?.status !== "draft"} onChange={e => changeAllocation(a.id, { leg_quantities: { ...a.leg_quantities, [lid]: e.target.value } })} /></label>)}<button type="button" className="action-secondary" disabled={busy || !allocationEditable || a.leg_ids.some(l => draft.legs.find(p => p.id === l)?.status !== "draft")} onClick={() => setDraft({ ...draft, allocations: draft.allocations.filter(item => item.id !== a.id) })}>{t("deliveries.remove")}</button></div>)}</div>
+          <div className="delivery-cargo">{draft.allocations.map(a => <div key={a.id} className="delivery-allocation"><strong>{goodsLabel(a)}</strong><label>{t("deliveries.quantity")}<input aria-label={`${t("deliveries.quantity")} ${goodsLabel(a)}`} inputMode="decimal" value={a.quantity} disabled={busy || !allocationEditable || a.leg_ids.some(l => draft.legs.find(p => p.id === l)?.status !== "draft")} onChange={e => changeAllocation(a.id, { quantity: e.target.value })} /></label><div className="delivery-itinerary">{draft.legs.map((part, i) => <label key={part.id}><input type="checkbox" checked={a.leg_ids.includes(part.id)} disabled={busy || !!draft.stops?.length || !allocationEditable || a.leg_ids.some(lid => draft.legs.find(p => p.id === lid)?.status !== "draft")} onChange={e => changeAllocation(a.id, { leg_ids: e.target.checked ? draft.legs.map(l => l.id).filter(lid => a.leg_ids.includes(lid) || lid === part.id) : a.leg_ids.filter(l => l !== part.id), leg_quantities: {} })} />{i + 1}. {t(`deliveries.modes.${part.mode}`)}</label>)}</div>{a.leg_ids.slice(1).map((lid, index) => <label className="delivery-leg-quantity" key={lid}>{t("deliveries.onwardQuantity", { number: index + 2 })}<input inputMode="decimal" value={a.leg_quantities?.[lid] ?? a.quantity} disabled={busy || !allocationEditable || draft.legs.find(p => p.id === lid)?.status !== "draft"} onChange={e => changeAllocation(a.id, { leg_quantities: { ...a.leg_quantities, [lid]: e.target.value } })} /></label>)}<button type="button" className="action-secondary" disabled={busy || !allocationEditable || a.leg_ids.some(l => draft.legs.find(p => p.id === l)?.status !== "draft")} onClick={() => setDraft({ ...draft, allocations: draft.allocations.filter(item => item.id !== a.id) })}>{t("deliveries.remove")}</button></div>)}</div>
           {editable && <button className="action-primary" disabled={busy || !draft.name}>{busy ? t("deliveries.saving") : t("deliveries.save")}</button>}
         </form>
       </section>}
@@ -199,6 +209,7 @@ function DeliveryWork({ record, tab, user, busy: externalBusy, documentDirty, se
   const [accounts, setAccounts] = useState<User[]>([]);
   const [scopeIds, setScopeIds] = useState<string[]>([]);
   const [contractReference, setContractReference] = useState("");
+  const [documentAllocations, setDocumentAllocations] = useState<string[]>([]);
   const [docKey, setDocKey] = useState("cmr");
   const [docOptions, setDocOptions] = useState<{ key: string; label: Record<string, string> }[]>([]);
   const [shipmentId, setShipmentId] = useState("");
@@ -206,7 +217,7 @@ function DeliveryWork({ record, tab, user, busy: externalBusy, documentDirty, se
   const [fileKind, setFileKind] = useState("proof");
   const [email, setEmail] = useState("");
   const [userId, setUserId] = useState("");
-  const [grantShipments, setGrantShipments] = useState<number[]>([]);
+  const [grantShipments, setGrantShipments] = useState<string[]>([]);
   const [grantRole, setGrantRole] = useState("operator");
   const [expires, setExpires] = useState(localDate(new Date(Date.now() + 7 * 86400000).toISOString()));
   const [grants, setGrants] = useState<Grant[]>([]);
@@ -216,16 +227,23 @@ function DeliveryWork({ record, tab, user, busy: externalBusy, documentDirty, se
   const requestKind = useRef("");
   const allocations = record.allocations.filter(a => a.leg_ids.includes(legId)).map(a => ({ ...a, quantity: a.leg_quantities?.[legId] ?? a.quantity }));
   const shipmentIds = [...new Set(allocations.map(a => a.shipment_id))];
+  const documentRouting = record.sources[shipmentId]?.export?.routing;
+  const selectedPairs = new Set(allocations.filter(a => documentAllocations.includes(a.id)).map(a => {
+    const distribution = documentRouting?.distributions.find(d => d.id === a.source_distribution_id);
+    return distribution ? JSON.stringify([distribution.pickup_id, distribution.delivery_id]) : "";
+  }));
+  const documentScopeValid = !documentRouting || selectedPairs.size === 1;
+  useEffect(() => { setDocumentAllocations([]); }, [shipmentId, legId]);
   useEffect(() => { setResult(null); setLines({}); setUnloadIds([]); setGrantShipments([]); setScopeIds([]); setShipmentId(previous => shipmentIds.includes(Number(previous)) ? previous : ""); setFileIds([]); setReviewDocs([]); setProofIds([]); setSignature(null); requestId.current = crypto.randomUUID(); }, [legId, record.version]);
   useEffect(() => { if (tab === "documents" && record.can_plan) api.documentsRegistry().then(registry => setDocOptions(registry.documents.filter(doc => registry.modalities.find(mode => mode.key === part?.mode)?.documents.includes(doc.key)) as unknown as typeof docOptions)).catch(() => setDocOptions([])); }, [tab, record.can_plan, part?.mode]);
   useEffect(() => { if (tab === "access" && canManage(user)) run(async () => { setGrants(await deliveries.grants(record.id)); setAccounts(await api.listUsers()); }); }, [tab]);
   useEffect(() => { if (docOptions.length && !docOptions.some(d => d.key === docKey)) setDocKey(docOptions[0].key); }, [docOptions]);
   const formLine = (a: Allocation): ReceiptLine => lines[a.id] || { allocation_id: a.id, quantity: "", damaged: "0", refused: "0" };
-  const can = (role: string) => record.can_plan || record.assignments.some(a => a.role === role && a.leg_id === legId);
+  const can = (role: string) => record.can_plan || record.assignments.some(a => a.leg_id === legId && (a.role === role || role === "recipient" && a.role === "operator" && allocations.some(item => item.receivable_leg_ids?.includes(legId) ?? item.leg_ids[item.leg_ids.length - 1] !== legId)));
   function submitEvent(kind: string) {
     if (requestKind.current !== kind) { requestId.current = crypto.randomUUID(); requestKind.current = kind; }
     run(async () => {
-      const selected = allocations.map(formLine).filter(l => l.quantity !== "");
+      const selected = allocations.filter(a => record.can_plan || kind === "load" || !a.receivable_leg_ids || a.receivable_leg_ids.includes(legId)).map(formLine).filter(l => l.quantity !== "");
       accept(await deliveries.event(record.id, legId, { version: record.version, request_id: requestId.current, kind, signature_image: signature, file_ids: proofIds, recipient, occurred_at: iso(occurred), lines: selected, reason, corrects: kind === "correction" ? corrects : null, resolution: kind === "resolution" ? resolution : null }));
       requestId.current = crypto.randomUUID(); notify(t("deliveries.saved"));
     });
@@ -273,17 +291,18 @@ function DeliveryWork({ record, tab, user, busy: externalBusy, documentDirty, se
       {record.can_plan && <details><summary>{t("deliveries.correction")} / {t("deliveries.resolution")}</summary><label>{t("deliveries.select")}<select value={corrects} onChange={e => setCorrects(e.target.value)}><option value="">—</option>{record.events.filter(e => e.leg_id === legId && !["resolution", "unload", "unpack"].includes(e.kind)).map(e => <option key={e.request_id} value={e.request_id}>{t(`deliveries.${e.kind}`)} · {new Date(e.occurred_at).toLocaleString()} · {e.recipient}</option>)}</select></label><button className="action-secondary" disabled={busy || !corrects || !reason || !recipient} onClick={() => submitEvent("correction")}>{t("deliveries.correction")}</button><label>{t("deliveries.resolution")}<select value={resolution} onChange={e => setResolution(e.target.value)}>{["accept", "redelivery", "return"].map(value => <option key={value} value={value}>{t(`deliveries.${value}`)}</option>)}</select></label><button className="action-secondary" disabled={busy || !reason || !recipient} onClick={() => submitEvent("resolution")}>{t("deliveries.resolution")}</button></details>}
     </>}
     {tab === "documents" && <><label>{t("deliveries.shipmentId")}<select value={shipmentId} onChange={e => { if (discardDetails()) setShipmentId(e.target.value); }}><option value="">—</option>{shipmentIds.map(sid => <option key={sid} value={sid}>{record.sources[String(sid)]?.reference || sid}</option>)}</select></label>
-      {record.can_plan && <div className="delivery-form-grid"><label>{t("deliveries.documentKey")}<select value={docKey} onChange={e => { if (discardDetails()) setDocKey(e.target.value); }}>{docOptions.map(doc => <option key={doc.key} value={doc.key}>{doc.label?.[i18n.language] || doc.key}</option>)}</select></label><button className="action-primary" disabled={busy || !shipmentId || !["released", "in_progress"].includes(part.status || "")} onClick={() => run(async () => accept(await deliveries.issue(record.id, legId, { version: record.version, shipment_id: Number(shipmentId), document_key: docKey, leg_ids: [legId, ...scopeIds], contract_reference: contractReference, language: i18n.language.slice(0, 2) }))) }>{t("deliveries.issue")}</button></div>}
+      {record.can_plan && <div className="delivery-form-grid"><label>{t("deliveries.documentKey")}<select value={docKey} onChange={e => { if (discardDetails()) setDocKey(e.target.value); }}>{docOptions.map(doc => <option key={doc.key} value={doc.key}>{doc.label?.[i18n.language] || doc.key}</option>)}</select></label><button className="action-primary" disabled={busy || !shipmentId || !documentScopeValid || !["released", "in_progress"].includes(part.status || "")} onClick={() => run(async () => accept(await deliveries.issue(record.id, legId, { version: record.version, shipment_id: Number(shipmentId), document_key: docKey, allocation_ids: documentAllocations, leg_ids: [legId, ...scopeIds], contract_reference: contractReference, language: i18n.language.slice(0, 2) }))) }>{t("deliveries.issue")}</button></div>}
       {record.can_plan && shipmentId && <fieldset className="delivery-leg-card"><legend>{t("deliveries.documentScope")}</legend><p>{t("deliveries.documentScopeHint")}</p>
         {record.legs.filter(l => l.id !== legId && l.mode === part.mode && allocations.some(a => a.shipment_id === Number(shipmentId) && a.leg_ids.indexOf(l.id) > a.leg_ids.indexOf(legId))).map((l) => <label className="delivery-file-choice" key={l.id}><input type="checkbox" checked={scopeIds.includes(l.id)} onChange={e => setScopeIds(ids => e.target.checked ? [...ids, l.id] : ids.filter(id => id !== l.id))} />{l.origin} → {l.destination}</label>)}
         {scopeIds.length > 0 && <label>{t("deliveries.contractReference")}<input value={contractReference} maxLength={120} onChange={e => setContractReference(e.target.value)} /></label>}
       </fieldset>}
-      {record.can_plan && shipmentId && <DeliveryDocumentDetails key={`${legId}-${shipmentId}-${docKey}`} record={record} part={part} shipmentId={shipmentId} documentKey={docKey} busy={externalBusy} accept={accept} run={run} onDirtyChange={setDocumentDirty} />}
-      <div className="delivery-form-grid"><label>{t("deliveries.upload")}<select value={fileKind} onChange={e => setFileKind(e.target.value)}><option value="proof">{t("deliveries.proof")}</option>{record.can_plan && <option value="external">{t("deliveries.external")}</option>}</select><input type="file" accept="application/pdf,image/jpeg,image/png" onChange={e => setFile(e.target.files?.[0] || null)} /></label><button className="action-secondary" disabled={busy || !file || !shipmentId} onClick={() => run(async () => { accept(await deliveries.upload(record.id, legId, record.version, fileKind, [Number(shipmentId)], file!)); setFile(null); })}>{t("deliveries.upload")}</button></div>
+      {shipmentId && <fieldset><legend>{t("routing.distribution")}</legend>{allocations.filter(a => a.shipment_id === Number(shipmentId)).map(a => <label key={a.id} className="delivery-file-choice"><input type="checkbox" checked={documentAllocations.includes(a.id)} onChange={e => { if (discardDetails()) setDocumentAllocations(ids => e.target.checked ? [...ids, a.id] : ids.filter(id => id !== a.id)); }} />{allocationLabel(record.sources, a)} · {a.quantity}</label>)}</fieldset>}
+      {record.can_plan && shipmentId && documentScopeValid && <DeliveryDocumentDetails key={`${legId}-${shipmentId}-${docKey}`} record={record} part={part} shipmentId={shipmentId} documentKey={docKey} allocationIds={documentAllocations} busy={externalBusy} accept={accept} run={run} onDirtyChange={setDocumentDirty} />}
+      <div className="delivery-form-grid"><label>{t("deliveries.upload")}<select value={fileKind} onChange={e => setFileKind(e.target.value)}><option value="proof">{t("deliveries.proof")}</option>{record.can_plan && <option value="external">{t("deliveries.external")}</option>}</select><input type="file" accept="application/pdf,image/jpeg,image/png" onChange={e => setFile(e.target.files?.[0] || null)} /></label><button className="action-secondary" disabled={busy || !file || !shipmentId} onClick={() => run(async () => { accept(await deliveries.upload(record.id, legId, record.version, fileKind, [Number(shipmentId)], file!, documentAllocations)); setFile(null); })}>{t("deliveries.upload")}</button></div>
       <ul className="delivery-files">{record.files.filter(f => f.leg_id === legId).map(f => <li key={f.id}>{f.current && <input type="checkbox" aria-label={`${t("deliveries.select")} ${f.filename}`} checked={fileIds.includes(f.id)} onChange={e => setFileIds(ids => e.target.checked ? [...ids, f.id] : ids.filter(id => id !== f.id))} />}<a href={`/api/deliveries/v1/${record.id}/files/${f.id}`}>{f.filename}</a><span>{t(f.current ? "deliveries.current" : "deliveries.superseded")}</span></li>)}</ul>
     </>}
     {tab === "documents" && <div className="delivery-form-grid"><button type="button" className="action-secondary" disabled={busy || !fileIds.length} onClick={() => run(async () => { await deliveries.bundle(record.id, record.version, fileIds); })}>{t("deliveries.bundle")}</button>{record.can_plan && <><label>{t("deliveries.email")}<input type="email" value={mailTo} onChange={e => setMailTo(e.target.value)} /></label><label>{t("deliveries.mailMessage")}<textarea value={mailMessage} maxLength={4000} onChange={e => setMailMessage(e.target.value)} /></label><button type="button" className="action-primary" disabled={busy || !fileIds.length || !mailTo} onClick={() => run(async () => { await deliveries.mail(record.id, { version: record.version, file_ids: fileIds, to: [mailTo], message: mailMessage, language: i18n.language.slice(0, 2) }); notify(t("deliveries.mailSent")); })}>{t("deliveries.mail")}</button></>}</div>}
-    {tab === "access" && canManage(user) && <><div className="delivery-form-grid"><label>{t("deliveries.userId")}<select value={userId} onChange={e => setUserId(e.target.value)}><option value="">—</option>{accounts.filter(account => account.active !== false).map(account => <option key={account.id} value={account.id}>{account.username} · {account.email}</option>)}</select></label><label>{t("deliveries.email")}<input type="email" disabled={!!userId} value={email} onChange={e => setEmail(e.target.value)} /></label><label>{t("users.role")}<select value={grantRole} onChange={e => setGrantRole(e.target.value)}>{["operator", "recipient"].map(role => <option key={role} value={role}>{t(`deliveries.roles.${role}`)}</option>)}</select></label><label>{t("deliveries.expires")}<input type="datetime-local" value={expires} onChange={e => setExpires(e.target.value)} /></label><fieldset><legend>{t("deliveries.goods")}</legend>{shipmentIds.map(sid => <label className="delivery-file-choice" key={sid}><input type="checkbox" checked={grantShipments.includes(sid)} onChange={e => setGrantShipments(ids => e.target.checked ? [...ids, sid] : ids.filter(id => id !== sid))} />{record.sources[String(sid)]?.reference || sid}</label>)}</fieldset></div><button className="action-primary" disabled={busy || !grantShipments.length || (!email && !userId)} onClick={() => run(async () => { await deliveries.invite(record.id, { user_id: userId ? Number(userId) : null, email, role: grantRole, leg_id: legId, shipment_ids: grantShipments, expires_at: iso(expires) }); setGrants(await deliveries.grants(record.id)); notify(t("deliveries.assignmentSaved")); })}>{t("deliveries.invite")}</button><ul className="delivery-files">{grants.filter(g => !g.revoked).map(g => <li key={g.id}>{accounts.find(account => account.id === g.user_id)?.username || `#${g.user_id}`} · {t(`deliveries.roles.${g.role}`)} · {new Date(g.expires_at).toLocaleString()}<button className="action-secondary" disabled={busy} onClick={() => run(async () => { await deliveries.revoke(record.id, g.id); setGrants(await deliveries.grants(record.id)); })}>{t("deliveries.revoke")}</button></li>)}</ul></>}
+    {tab === "access" && canManage(user) && <><div className="delivery-form-grid"><label>{t("deliveries.userId")}<select value={userId} onChange={e => setUserId(e.target.value)}><option value="">—</option>{accounts.filter(account => account.active !== false).map(account => <option key={account.id} value={account.id}>{account.username} · {account.email}</option>)}</select></label><label>{t("deliveries.email")}<input type="email" disabled={!!userId} value={email} onChange={e => setEmail(e.target.value)} /></label><label>{t("users.role")}<select value={grantRole} onChange={e => setGrantRole(e.target.value)}>{["operator", "recipient"].map(role => <option key={role} value={role}>{t(`deliveries.roles.${role}`)}</option>)}</select></label><label>{t("deliveries.expires")}<input type="datetime-local" value={expires} onChange={e => setExpires(e.target.value)} /></label><fieldset><legend>{t("deliveries.goods")}</legend>{allocations.filter(a => grantRole !== "recipient" || a.leg_ids[a.leg_ids.length - 1] === legId).map(a => <label className="delivery-file-choice" key={a.id}><input type="checkbox" checked={grantShipments.includes(a.id)} onChange={e => setGrantShipments(ids => e.target.checked ? [...ids, a.id] : ids.filter(id => id !== a.id))} />{allocationLabel(record.sources, a)} · {a.quantity}</label>)}</fieldset></div><button className="action-primary" disabled={busy || !grantShipments.length || (!email && !userId)} onClick={() => run(async () => { await deliveries.invite(record.id, { user_id: userId ? Number(userId) : null, email, role: grantRole, leg_id: legId, allocation_ids: grantShipments, expires_at: iso(expires) }); setGrants(await deliveries.grants(record.id)); notify(t("deliveries.assignmentSaved")); })}>{t("deliveries.invite")}</button><ul className="delivery-files">{grants.filter(g => !g.revoked).map(g => <li key={g.id}>{accounts.find(account => account.id === g.user_id)?.username || `#${g.user_id}`} · {t(`deliveries.roles.${g.role}`)} · {new Date(g.expires_at).toLocaleString()}<button className="action-secondary" disabled={busy} onClick={() => run(async () => { await deliveries.revoke(record.id, g.id); setGrants(await deliveries.grants(record.id)); })}>{t("deliveries.revoke")}</button></li>)}</ul></>}
     </>}
   </section>;
 }

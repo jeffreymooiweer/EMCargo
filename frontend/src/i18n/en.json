@@ -894,7 +894,7 @@
     },
     "work": {
       "owner_invalid": "Choose an active colleague who can access this shipment.",
-      "not_ready": "Finish the documents and required DG release first.",
+      "not_ready": "Complete the goods, addresses and required DG review first.",
       "changed": "This task has changed. Refresh the list before retrying."
     },
     "intake": {
@@ -972,6 +972,16 @@
       "import": "This delivery archive cannot be imported. Use version 1.0 with matching local source shipments.",
       "legacy_readonly": "Legacy trips are read-only. Convert the trip to a delivery concept to continue planning.",
       "document_scope": "Select consecutive transport parts with the same modality and goods, and enter the transport contract reference."
+    },
+    "routing": {
+      "addresses": "Complete the pickup and delivery addresses, countries and responsible parties.",
+      "references": "Check the goods, location and distribution references.",
+      "goods": "Complete and confirm the goods before finalizing the shipment.",
+      "quantities": "Distribute the exact goods quantities across the pickup and delivery addresses.",
+      "packing": "Keep each closed packing unit together on one pickup and delivery address pair.",
+      "dg": "Resolve the dangerous goods identification and classification before finalizing.",
+      "dg_split": "Confirm the dangerous goods quantities and packaging for every distribution again.",
+      "override": "Enter a reason for changing the original shipment address."
     }
   },
   "instructions": {
@@ -2777,5 +2787,46 @@
     "onwardQuantity": "Quantity on transport leg {{number}}",
     "onwardHint": "After resolving a shortage, the quantity on a subsequent draft leg may be reduced to the quantity actually received. Executed legs remain unchanged. Closed packages and DG declarations cannot be silently split.",
     "scopedIntro": "View your assigned deliveries, record receipt and consult the evidence."
+  },
+  "routing": {
+    "intro": "Specify which goods go from each pickup location to each recipient.",
+    "addresses": "Addresses and distribution",
+    "pickup": "Pickup address",
+    "delivery": "Delivery address",
+    "choose": "Choose an address",
+    "addressBook": "From address book",
+    "name": "Name / organisation",
+    "address": "Address",
+    "country": "Country",
+    "contact": "Contact",
+    "legalParty": "Responsible party (different from location)",
+    "remove": "Remove",
+    "distribution": "Goods distribution",
+    "distributed": "{{total}} of {{quantity}} {{unit}} distributed",
+    "quantity": "Quantity",
+    "dgSplit": "Confirm the actual dangerous goods quantities and packaging for this address pair. Quantities are not scaled automatically.",
+    "declare": "Specify this distribution",
+    "confirm": "Checked and confirmed",
+    "confirmed": "Confirmation recorded",
+    "documentsLater": "Transport documents are prepared in the delivery, based on the planned goods and route.",
+    "finalize": "Finalize shipment",
+    "export": "Download shipment data",
+    "retention": "Shipments and drafts are always retained. Deletion requires the explicit administration action below.",
+    "stops": "Stops and route",
+    "override": "Reason for address change",
+    "original": "Original address",
+    "up": "Move up",
+    "down": "Move down",
+    "routeHint": "The initial order is pickups followed by deliveries. Check the route and choose the mode for each leg.",
+    "dgFields": {
+      "quantity_packages": "Number of packages",
+      "type_of_package": "Package type",
+      "net_mass_liters_per_package": "Net per package (kg/l)",
+      "gross_mass_per_package": "Gross per package (kg)",
+      "adr_total_quantity": "Total DG quantity",
+      "net_explosive_mass": "Net explosive mass (kg)"
+    },
+    "import": "Import shipment or draft",
+    "preparation": "Shipment preparation"
   }
 }

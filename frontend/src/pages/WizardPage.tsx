@@ -1,52 +1,44 @@
-import TemporaryDelivery from "../components/TemporaryDelivery";
+import ShipmentRouting from "../components/ShipmentRouting";
+import { emptyRouting, routingFromLegacy } from "../wizard/routing";
+import { readShipmentFile } from "../wizard/shipmentImport";
 import { canManage } from "../permissions";
 import type { User } from "../api/client";
 import CargoWorkspace from "../components/cargo/CargoWorkspace";
 import { cargoApi, type CargoManifest, type CargoAssessment } from "../api/cargo";
 import { emptyCargo, cloneCargo, bindReusableCargo } from "../utils/cargo";
 import { cargoLines, cargoGoods, migrateCargo, templateCargoDrafts, editCargo, preservesCargo } from "../wizard/cargoState";
-import { containerAutoValues } from "../utils/containerValues";
 import { equipmentPatch } from "../utils/equipment";
-import { useDgReview } from "../wizard/useDgReview";
-import { ArrowRightIcon, ChevronDownIcon, DownloadIcon, DocumentIcon } from "../components/icons";
+import { useDgReview, DgReviewGate } from "../wizard/useDgReview";
+import { ArrowRightIcon } from "../components/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   api,
   CalcResult,
   DgEntry,
   DocumentDefinition,
-  DocumentExportPayload,
   DocumentRegistry,
-  LocalizedText,
   ShipmentIn,
   ShipmentSummary,
-  UnCardsAvailability,
-  WrittenInstruction,
   UserPreferences,
 } from "../api/client";
-import { documentLanguage, localised, LANGUAGE_NAMES, SUPPORTED_LANGUAGES, Language } from "../i18n/language";
+import { documentLanguage, Language } from "../i18n/language";
 import DangerousGoodsStep, { buildDgEntries } from "../components/DangerousGoodsStep";
 import DgCompliancePanel from "../components/DgCompliancePanel";
-import { groupDocumentWarnings, useDocumentValidation } from "../components/DocumentWarnings";
 import AiIcon from "../components/AiIcon";
 import AssistantModal from "../components/AssistantModal";
-import DocumentFieldsStep, { resolveSections } from "../components/DocumentFieldsStep";
-import DocumentAdvicePanel, { buildAdvice } from "../components/DocumentAdvicePanel";
+import { resolveSections } from "../components/DocumentFieldsStep";
 import ReviewLinesPanel, { DraftLine, draftToText, openQuestions, textToDraftLines } from "../components/ReviewLinesPanel";
 import DraftBar, { DraftStatus } from "../components/DraftBar";
-import CheckYourAnswers, { AnswerRow } from "../components/CheckYourAnswers";
 import WizardShell, { WizardActions } from "../components/WizardShell";
-import ShipmentPanel, { PanelDocument } from "../components/ShipmentPanel";
-import { AVAILABLE_MODALITIES, isModalityAvailable } from "./ModalitySelectPage";
+import ShipmentPanel from "../components/ShipmentPanel";
+import { isModalityAvailable } from "./ModalitySelectPage";
 import { usePreferences } from "../settings/preferences";
 import { SNAPSHOT_VERSION, WizardSnapshot, readSnapshot, templateValues } from "../wizard/snapshot";
-import { addedQuestions } from "../wizard/documentGroups";
 import {
   applyLineWeightChange,
   recalcTotals,
-  scaleLinesToTotalWeight,
   weightOverridesFromLines,
   dimensionOverridesFromDrafts,
   mergeOverrides,
@@ -55,10 +47,7 @@ import { buildAssistantState, draftLinesFromAssistant, wizardDgEntriesFromAssist
 import { DocumentEvidenceList } from "../components/DocumentIntake";
 import type { DocumentEvidence } from "../api/client";
 import { useToast } from "../toast/ToastProvider";
-import NumberInput from "../components/NumberInput";
 
-const weightInputClass =
-  "w-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm";
 const panelClass = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800";
 const buttonSecondary =
   "px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 min-h-[44px] text-sm";
@@ -77,24 +66,8 @@ const TODAY_DATE_FIELDS = new Set([
   "determination_date",
 ]);
 
-const LAST_SHIPMENT_KEY = "emcargo:last-shipment";
 
-type DocStatus = "ready" | "draft" | "blocked" | "not_applicable";
 
-const DG_BASE_REQUIRED = ["un_number", "proper_shipping_name", "class"] as const;
-const DG_PROFILE_REQUIRED: Record<string, string[]> = {
-  ADR: [...DG_BASE_REQUIRED],
-  RID: [...DG_BASE_REQUIRED],
-  ADN: [...DG_BASE_REQUIRED],
-  IMDG: [...DG_BASE_REQUIRED, "quantity_packages", "type_of_package"],
-  IATA_DGR: [
-    ...DG_BASE_REQUIRED,
-    "packing_instruction",
-    "quantity_packages",
-    "type_of_package",
-    "net_mass_liters_per_package",
-  ],
-};
 
 const DG_EXTRA_FIELDS: Record<string, string[]> = {
   // The mode comes first because it decides what the rest of the answers mean:
@@ -157,7 +130,6 @@ const PREFILL_FIELDS: Record<string, keyof UserPreferences> = {
   loading_point: "loading_point",
 };
 
-const HEADER_FIELDS = ["shipment_reference"];
 
 const MODALITY_DG_PROFILES: Record<string, string[]> = {
   road: ["ADR"],
@@ -170,17 +142,16 @@ const MODALITY_DG_PROFILES: Record<string, string[]> = {
 
 export default function WizardPage({ user }: { user?: User } = {}) {
   const { t, i18n } = useTranslation();
-  const { modality } = useParams();
+  const modality = "preparation";
+  const [routing, setRouting] = useState(emptyRouting);
   const lang = documentLanguage(i18n.language);
-  const L = (text?: LocalizedText) => localised(text, lang);
   // The language the documents are drawn up in is not the language the screen
   // is in. ADR 5.4.1.4.1 (and RID and ADN in the same words) asks for an
   // official language of the forwarding country and, where that is not German,
   // English or French, additionally one of those three — which is about the
   // consignment, not about who is typing. So it is a choice, defaulting to the
   // screen's language because that is right more often than not.
-  const [chosenDocLang, setChosenDocLang] = useState<Language | null>(null);
-  const docLang = chosenDocLang ?? lang;
+  const docLang = lang;
   const { preferences, publicSettings, loaded: preferencesLoaded } = usePreferences();
   const prefill = preferencesLoaded && preferences.prefill_documents;
 
@@ -189,7 +160,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
   const [stepKey, setStepKey] = useState<StepKey>("lines");
   // null means "the advice decides": the selection follows the shipment until
   // the user touches it, and from that moment it is theirs.
-  const [selectedDocs, setSelectedDocs] = useState<string[] | null>(null);
   const [docValues, setDocValues] = useState<Record<string, string>>({});
   const setShipmentReference = (value: string) => setDocValues((current) => ({
     ...current,
@@ -230,14 +200,8 @@ export default function WizardPage({ user }: { user?: User } = {}) {
     return () => { active = false; clearTimeout(timer); };
   }, [cargoKey]);
   const [dgEntries, setDgEntries] = useState<DgEntry[]>([]);
-  const [signature, setSignature] = useState<string | null>(null);
   const [documentEvidence, setDocumentEvidence] = useState<DocumentEvidence[]>([]);
   const [loading, setLoading] = useState(false);
-  const [exportingDoc, setExportingDoc] = useState<string | null>(null);
-  const [unCards, setUnCards] = useState<UnCardsAvailability | null>(null);
-  const [instructions, setInstructions] = useState<WrittenInstruction[]>([]);
-  const [checklist, setChecklist] = useState<WrittenInstruction[]>([]);
-  const [unCardsBusy, setUnCardsBusy] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const assistantDraftSignature = useRef<string | null>(null);
   const toast = useToast();
@@ -320,55 +284,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
     });
   }, [prefill, preferences]);
 
-  // A signature that was drawn once in the settings. Never overwrites one drawn
-  // for this shipment.
-  useEffect(() => {
-    if (prefill && preferences.signature_image) {
-      setSignature((current) => current ?? preferences.signature_image);
-    }
-  }, [prefill, preferences.signature_image]);
-
-  // The previous shipment's details, saved at export. The same consignor ships
-  // to the same handful of parties; retyping them every ride was the details
-  // step's whole cost. Dates stay out: last week's date on today's document
-  // would be a wrong answer prefilled.
-  const [lastShipment] = useState<Record<string, string> | null>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(LAST_SHIPMENT_KEY) ?? "null");
-    } catch {
-      return null;
-    }
-  });
-  const reuseLastShipment = () => {
-    if (!lastShipment) return;
-    setDocValues((current) => {
-      const filled = { ...current };
-      for (const [key, value] of Object.entries(lastShipment)) {
-        if (key.endsWith("_date") || !String(value ?? "").trim()) continue;
-        if (!(filled[key] ?? "").trim()) filled[key] = String(value);
-      }
-      return filled;
-    });
-  };
-
-  // The discharge point defaults to the consignee's own address line the
-  // moment the details step is done — only while the user typed nothing else,
-  // and visibly editable on the way back.
-  const completeDetails = () => {
-    setDocValues((current) => {
-      if ((current.discharge_point ?? "").trim() || !(current.consignee_address ?? "").trim()) {
-        return current;
-      }
-      const lines = current.consignee_address
-        .split(/\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-      const place = lines[lines.length - 1];
-      return place ? { ...current, discharge_point: place } : current;
-    });
-    setStepKey("export");
-  };
-
   // A blank starting line still carries the default unit; the moment something
   // has been typed it is left alone.
   useEffect(() => {
@@ -380,7 +295,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
     );
   }, [preferencesLoaded, preferences.default_unit]);
 
-  const modalityDef = registry?.modalities.find((m) => m.key === modality);
 
   /** Going to one field and coming back.
    *
@@ -423,11 +337,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
    *  reachable, and nothing else happens. */
   const [addedByDoc, setAddedByDoc] = useState<{ label: string; count: number; first: string | null } | null>(null);
 
-  const returnFromField = () => {
-    const back = returnTo ?? "export";
-    setReturnTo(null);
-    setStepKey(back);
-  };
 
   // A substance suggestion nobody answered is not an answer. It stays visible
   // to the end, because "we thought this might be UN 1203 and never found out"
@@ -456,11 +365,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
   // it where the questions are, before answering them. Until they do, the
   // selection follows the shipment — a DG line appearing pulls the transport
   // document and the DG papers in.
-  const advice = useMemo(
-    () => (registry && modalityDef ? buildAdvice(registry, modalityDef.key, needsDg) : null),
-    [registry, modalityDef, needsDg],
-  );
-  const selected = selectedDocs ?? advice?.preselected ?? [];
+  const selected: string[] = [];
 
   const selectedDefinitions = useMemo(
     () =>
@@ -472,30 +377,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
 
   const genericDocs = selectedDefinitions;
 
-  /** Change the document set and say what that added to the form. */
-  const chooseDocuments = (keys: string[]) => {
-    const after = keys
-      .map((key) => registry?.documents.find((d) => d.key === key))
-      .filter((d): d is DocumentDefinition => !!d);
-    const fresh = keys.filter((key) => !selected.includes(key));
-    if (registry && fresh.length === 1) {
-      const doc = after.find((d) => d.key === fresh[0]);
-      const added = addedQuestions(registry, selectedDefinitions, after);
-      // The way in goes to the first question that is actually needed; the
-      // count says how many came with it.
-      const first = added.find((field) => field.status === "USER_REQUIRED") ?? added[0];
-      if (doc) {
-        setAddedByDoc({
-          label: L(doc.label),
-          count: added.length,
-          first: first?.key ?? null,
-        });
-      }
-    } else {
-      setAddedByDoc(null);
-    }
-    setSelectedDocs(keys);
-  };
 
   // "Drawn up on" dates start as today — that is what they mean — and each
   // field is defaulted at most once, so a date the user deliberately cleared
@@ -547,18 +428,15 @@ export default function WizardPage({ user }: { user?: User } = {}) {
   }, [dgProfiles]);
 
   const steps: StepKey[] = useMemo(() => {
-    const list: StepKey[] = ["lines"];
+    const list: StepKey[] = ["lines", "details"];
     if (needsDg) list.push("dg");
-    if (genericDocs.length > 0) list.push("details");
+
     list.push("export");
     return list;
   }, [needsDg, genericDocs.length]);
 
-  const stepPills = [
-    { n: 1, key: "lines" as const, label: t("wizard.stageGoods") },
-    ...(genericDocs.length > 0 ? [{ n: 2, key: "details" as const, label: t("wizard.stageDetails") }] : []),
-    { n: 3, key: "export" as const, label: t("wizard.stageReview") },
-  ];
+  const stepPills = steps.map((key, index) => ({ n: index + 1, key,
+    label: t(key === "lines" ? "wizard.stageGoods" : key === "details" ? "routing.addresses" : key === "dg" ? "wizard.step3dg" : "wizard.stageReview") }));
 
   const goNextFrom = (from: StepKey) => {
     const index = steps.indexOf(from);
@@ -764,16 +642,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
     } : line));
   };
 
-  const handleTotalWeightChange = (value: number | null) => {
-    if (!result || value == null || Number.isNaN(value)) return;
-    const scaled = scaleLinesToTotalWeight(result.lines, value);
-    updateResultLines(scaled);
-    const ids = draftLines.filter(line => line.description.trim()).map(line => line.id);
-    setDraftLines(lines => lines.map(line => {
-      const item = scaled[ids.indexOf(line.id)];
-      return item?.include ? { ...line, weight_each_kg: undefined, weight_total_kg: item.weight_total_kg ?? undefined } : line;
-    }));
-  };
 
   /** The 24-hour emergency number, which IMDG 5.4.1.5.11 and the IATA DGR
    *  shipper's declaration both ask for. It never changes and was typed again
@@ -802,181 +670,8 @@ export default function WizardPage({ user }: { user?: User } = {}) {
       const prepared = buildDgEntries(res.lines, draftLines.filter(line => line.description.trim()));
       setDgEntries(withEmergencyContact(assistantDraftSignature.current === signatureOf(draftLines)
         ? retainAssistantDgAnswers(prepared, dgEntries) : prepared));
-      setStepKey("dg");
-    } else if (genericDocs.length > 0) {
-      setStepKey("details");
-    } else {
-      setStepKey("export");
     }
-  };
-
-  const autoValues = useMemo(
-    () => containerAutoValues(result, docValues.container_number ?? ""),
-    [result, docValues.container_number],
-  );
-
-  const exportValuesFor = (doc: DocumentDefinition): Record<string, string> => {
-    if (!registry) return docValues;
-    const merged = { ...docValues };
-    for (const section of resolveSections(doc, registry)) {
-      for (const field of section.fields ?? []) {
-        if (field.auto_from && !(merged[field.key] ?? "").trim()) {
-          const auto = autoValues[field.auto_from as keyof typeof autoValues];
-          if (auto) merged[field.key] = auto;
-        }
-      }
-    }
-    return merged;
-  };
-
-  const docStatus = (doc: DocumentDefinition): {
-    status: DocStatus;
-    /** The fields that are missing, by key *and* label: the label is what the
-     *  card says, the key is what takes the user to the field itself. */
-    missing: { key: string; label: string }[];
-    waitingCarrier: boolean;
-  } => {
-    if (!registry) return { status: "draft", missing: [], waitingCarrier: false };
-    if (cargoUsed && (!cargoAssessment || cargoFailure || cargoAssessment.issues.some(issue => /exceeded|invalid|missing|cycle|allocated/.test(issue.code)))) {
-      return { status: "blocked", missing: [{ key: "cargo", label: t("cargoIntegration.checkCargo") }], waitingCarrier: false };
-    }
-    if (doc.dg_only && !needsDg) return { status: "not_applicable", missing: [], waitingCarrier: false };
-    if (cargoUsed && cargo.units.some(unit => unit.kind === "package") && ["cim", "iata_dgd", "imo_dgd", "adn_transport_doc", "bl_si", "awb_si", "iftdgn", "vgm"].includes(doc.key)) {
-      return { status: "blocked", missing: [{ key: "cargo", label: t("errors.cargo.document_unsupported", { document: L(doc.label) }) }], waitingCarrier: false };
-    }
-    if (cargoUsed && ["cmr", "avc_waybill", "packing_list", "delivery_note", "vgm", "imo_dgd", "bl_si", "iftdgn"].includes(doc.key) && cargoAssessment?.totals.cargo_gross_kg == null) {
-      return { status: "blocked", missing: [{ key: "cargo", label: t("errors.cargo.documents_incomplete") }], waitingCarrier: false };
-    }
-    const values = exportValuesFor(doc);
-    const missing: { key: string; label: string }[] = [];
-    if (["cmr", "avc_waybill"].includes(doc.key)) {
-      const goods = result?.lines.filter((line) => line.include) ?? [];
-      if (!goods.length || goods.some((line) => !line.description.trim() || !(Number(line.quantity) > 0) || !(Number(line.weight_total_kg) > 0))) {
-        missing.push({ key: "goods_complete", label: t("errors.documents.goods_incomplete") });
-      }
-    }
-    let waitingCarrier = false;
-    for (const section of resolveSections(doc, registry)) {
-      for (const field of section.fields ?? []) {
-        const value = (values[field.key] ?? "").trim();
-        if (field.status === "USER_REQUIRED" && !value) missing.push({ key: field.key, label: L(field.label) });
-        if (field.status === "CARRIER_PROVIDED" && !value) waitingCarrier = true;
-      }
-    }
-    if (doc.dg_profile && (doc.dg_only || dgEntries.length > 0)) {
-      const required = DG_PROFILE_REQUIRED[doc.dg_profile] ?? [...DG_BASE_REQUIRED];
-      const incomplete =
-        dgEntries.length === 0 ||
-        dgEntries.some((entry) =>
-          entry.products.some((product) =>
-            required.some((field) => !String(product[field as keyof typeof product] ?? "").trim()),
-          ),
-        );
-      if (incomplete) return { status: "blocked", missing, waitingCarrier };
-    }
-    if (missing.length > 0) return { status: "draft", missing, waitingCarrier };
-    return { status: "ready", missing: [], waitingCarrier };
-  };
-
-  // One payload builder for validation and export both, so that what is
-  // validated is what is exported by construction. These used to be able to
-  // drift — and did: the validate endpoint had no caller at all, so every
-  // warning it computed (missing unit, lost exemption, VGM mismatch, eleven
-  // more) was thrown away twice over. The signature is export-only; validation
-  // does not read it.
-  const payloadFor = (doc: DocumentDefinition): DocumentExportPayload => ({
-    document_key: doc.key,
-    values: exportValuesFor(doc),
-    lines: cargoInputLines,
-    cargo: cargoPayload,
-    dangerous_goods: dgEntries.length > 0 ? dgEntries : undefined,
-    output_language: docLang,
-    // The regimes this consignment travels under. Only the documents that
-    // answer differently per regime read it, and the package label sheet is
-    // the first: the IMDG Code marks the proper shipping name on every package
-    // where the land regimes ask for it on Class 1 and Class 7 only. Sending
-    // it from the one payload builder means validation and export cannot
-    // disagree about which rules were applied.
-    profiles: dgProfiles,
-    modality: modality === "preparation" ? undefined : modality,
-  });
-
-  // Warnings per document, shown on the card before the download button — a
-  // warning after the file is on disk is a warning shown too late. This runs
-  // whether or not there are dangerous goods: the VGM mass check warns on a
-  // plain sea consignment.
-  const docWarnings = useDocumentValidation(
-    stepKey === "export" && result ? selectedDefinitions.filter(doc => {
-      const info = docStatus(doc);
-      // Known cargo failures already have a precise recovery action. Sending
-      // them to validation produces a 422, not an unavailable service.
-      return !(info.status === "blocked" && info.missing.some(field => field.key === "cargo"));
-    }).map(payloadFor) : [],
-    stepKey === "export" && !!result,
-    t("exportFocus.validationFailed"),
-  );
-
-  const exportGenericDoc = async (doc: DocumentDefinition) => {
-    if (!result || docStatus(doc).status !== "ready") return;
-    setExportingDoc(doc.key);
-    try {
-      await api.exportDocument({
-        ...payloadFor(doc),
-        dg_review_id: dgReview.id,
-        signature_image: signature ?? undefined,
-      });
-      // What was exported is worth offering next time.
-      try {
-        localStorage.setItem(LAST_SHIPMENT_KEY, JSON.stringify(docValues));
-      } catch {
-        // Storage full or blocked: the export succeeded, the memory is a bonus.
-      }
-      if (historyOn) void keepInHistory(true);
-    } catch (e) {
-      toast.error(String(e));
-    } finally {
-      setExportingDoc(null);
-    }
-  };
-
-  // One click for the whole pack: every selected document that is ready,
-  // plus the UN cards and the instructions in writing for this journey's
-  // regimes, in one archive. Drafts and blocked documents stay behind —
-  // bundling an incomplete paper would hide that it is incomplete, and the
-  // server writes anything it must leave out into the archive's README.
-  const readyDocs = selectedDefinitions.filter((doc) => docStatus(doc).status === "ready");
-  const [downloadingAll, setDownloadingAll] = useState(false);
-  //: Whether the package has been handed over on this screen. A document in
-  //: the Downloads folder is not a document that reached the driver.
-  const [handedOver, setHandedOver] = useState(false);
-  const downloadAll = async () => {
-    setDownloadingAll(true);
-    try {
-      await api.exportBundle({
-        dg_review_id: dgReview.id,
-        documents: readyDocs.map(payloadFor),
-        cargo: cargoPayload,
-        dangerous_goods: dgEntries.length > 0 ? dgEntries : undefined,
-        profiles: dgProfiles,
-        output_language: docLang,
-        signature_image: signature ?? undefined,
-      });
-      try {
-        localStorage.setItem(LAST_SHIPMENT_KEY, JSON.stringify(docValues));
-      } catch {
-        // Storage full or blocked: the export succeeded, the memory is a bonus.
-      }
-      // A download is what makes a shipment "made": it goes into the history
-      // without a second press, where the installation keeps one.
-      if (historyOn) void keepInHistory(true);
-      // Having a document is not having sent it, and the moment somebody has
-      // just pressed the finishing button is the moment to say so.
-      setHandedOver(true);
-    } catch (e) {
-      toast.error(String(e));
-    } finally {
-      setDownloadingAll(false);
-    }
+    setStepKey("details");
   };
 
   /** The wizard's own state as one document: what a kept shipment reopens
@@ -984,44 +679,36 @@ export default function WizardPage({ user }: { user?: User } = {}) {
   const wizardSnapshot = (): WizardSnapshot => ({
     version: SNAPSHOT_VERSION,
     cargo,
+    routing,
     cargoBaseRevision: cargoBaseRevision.current,
     modality: modality ?? "",
     stepKey,
-    docLang: chosenDocLang,
-    selectedDocs,
+    docLang: null,
+    selectedDocs: [],
     docValues,
     skippedQuestions,
     draftLines,
     nextId,
     result,
     dgEntries,
-    signature,
+    signature: null,
     documentEvidence,
   });
 
   /** The shipment as the server takes it. A draft carries no bundle: nothing
    *  has been produced yet, and the row stays small enough to write often. */
   const shipmentPayload = (draft: boolean): ShipmentIn => ({
+    routing,
     expected_cargo_revision: cargoPayload ? cargoBaseRevision.current : undefined,
     modality: modality === "preparation" ? "" : modality ?? "",
     language: docLang,
-    profiles: dgProfiles,
-    values: docValues,
+    profiles: [],
+    values: { shipment_reference: docValues.shipment_reference || "" },
     lines: cargoInputLines,
     cargo: cargoPayload,
     dangerous_goods: dgEntries.length > 0 ? dgEntries : undefined,
-    documents: selected,
-    bundle:
-      !draft && readyDocs.length > 0
-        ? {
-            documents: readyDocs.map(payloadFor),
-            cargo: cargoPayload,
-            dangerous_goods: dgEntries.length > 0 ? dgEntries : undefined,
-            profiles: dgProfiles,
-            output_language: docLang,
-            signature_image: signature ?? undefined,
-          }
-        : null,
+    documents: [],
+    bundle: null,
     snapshot: wizardSnapshot() as unknown as Record<string, unknown>,
     draft,
   });
@@ -1110,7 +797,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
     // The payload is rebuilt from these; the body comparison does the rest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyOn, hasEntry, reopenId, reviewSourceId, stepKey, draftLines, docValues, result, dgEntries,
-      selectedDocs, signature, chosenDocLang, skippedQuestions, documentEvidence, cargo, closing, restorePending, keeping, keptAt]);
+      routing, skippedQuestions, documentEvidence, cargo, closing, restorePending, keeping, keptAt]);
 
   // Finish a read before allowing entry or autosave. Marking it restored when
   // the request started stranded StrictMode and registry-cancelled responses;
@@ -1134,13 +821,14 @@ export default function WizardPage({ user }: { user?: User } = {}) {
         if (detail) {
           const snap = readSnapshot(detail.snapshot);
           if (!snap) throw new Error("Invalid shipment snapshot");
-          if (reopenId || !snap.modality || snap.modality === modality) {
+          {
             let restoredCargo = migrateCargo(snap.draftLines, snap.cargo);
             if (restoredCargo.units.some(unit => unit.legacy_goods_id != null && unit.equipment_id != null)) {
               restoredCargo = bindReusableCargo(restoredCargo, (await Promise.all([...new Set(restoredCargo.units.filter(unit => unit.equipment_id != null).map(unit => unit.equipment_id!))].map(id => cargoApi.reusableUnits("", id)))).flat());
               if (cancelled) return;
             }
-            setCargo(asTemplate ? cloneCargo(restoredCargo) : restoredCargo);
+            const nextCargo = asTemplate ? cloneCargo(restoredCargo) : restoredCargo;
+            setCargo(nextCargo);
             cargoBaseRevision.current = asTemplate || reviewSourceId ? null : ("cargo_revision" in detail ? Number(detail.cargo_revision) : snap.cargoBaseRevision) ?? null;
             setDraftLines(asTemplate ? templateCargoDrafts(snap.draftLines, restoredCargo) : snap.draftLines);
             setDocumentEvidence(asTemplate ? [] : snap.documentEvidence ?? []);
@@ -1148,10 +836,10 @@ export default function WizardPage({ user }: { user?: User } = {}) {
             setResult(asTemplate ? null : snap.result);
             setDgEntries(snap.dgEntries);
             setDocValues(asTemplate ? templateValues(snap.docValues, declarationKeys) : snap.docValues);
-            setSelectedDocs(snap.selectedDocs);
+            const restoredRouting = snap.routing || routingFromLegacy(snap.docValues, snap.result?.lines || []);
+            const copiedIds = new Map(restoredCargo.units.map((unit, i) => [unit.id, nextCargo.units[i].id]));
+            setRouting(asTemplate ? { ...restoredRouting, distributions: restoredRouting.distributions.map(a => ({ ...a, id: crypto.randomUUID(), unit_ids: a.unit_ids.map(id => copiedIds.get(id)).filter((id): id is string => !!id), dangerous_goods: [], dg_confirmation: null })) } : restoredRouting);
             setSkippedQuestions(snap.skippedQuestions);
-            setSignature(asTemplate ? null : snap.signature);
-            setChosenDocLang(snap.docLang as Language | null);
             setStepKey(asTemplate ? "lines" : snap.stepKey);
             setHistoryId(asTemplate || reviewSourceId ? null : detail.id);
             setKeptAt(reopenId && !asTemplate ? new Date(detail.updated_at) : null);
@@ -1205,10 +893,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
     setDgEntries(snap.dgEntries);
     setDocValues(snap.docValues);
     setSkippedQuestions(snap.skippedQuestions);
-    setSignature(snap.signature);
-    setChosenDocLang(snap.docLang as Language | null);
     setResult(null);
-    setSelectedDocs(null);
     setStepKey("lines");
     const origin = location.state as { sourceShipmentId?: number; keptAt?: string } | null;
     setHistoryId(origin?.sourceShipmentId ?? null);
@@ -1243,9 +928,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
     setResult(null);
     setDgEntries([]);
     setDocValues({});
-    setSelectedDocs(null);
     setSkippedQuestions([]);
-    setSignature(null);
     setStepKey("lines");
   };
 
@@ -1275,7 +958,8 @@ export default function WizardPage({ user }: { user?: User } = {}) {
 
   const openDraftFile = async (file: File) => {
     try {
-      const snap = readSnapshot(JSON.parse(await file.text()));
+      if (file.size > 4 * 1024 * 1024) throw new Error("File too large");
+      const snap = readShipmentFile(JSON.parse(await file.text()));
       if (!snap) {
         toast.error(t("draft.notADraft"));
         return;
@@ -1294,10 +978,8 @@ export default function WizardPage({ user }: { user?: User } = {}) {
       setResult(snap.result);
       setDgEntries(snap.dgEntries);
       setDocValues(snap.docValues);
-      setSelectedDocs(snap.selectedDocs);
+            setRouting(snap.routing || routingFromLegacy(snap.docValues, snap.result?.lines || []));
       setSkippedQuestions(snap.skippedQuestions);
-      setSignature(snap.signature);
-      setChosenDocLang(snap.docLang as Language | null);
       setStepKey(snap.stepKey);
       toast.success(t("draft.opened"));
     } catch {
@@ -1347,176 +1029,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
   // It lands the user back on the goods step rather than leaving them on the
   // export step looking at documents for a shipment that no longer matches
   // what is loaded.
-  const [turningRound, setTurningRound] = useState(false);
-  const returnShipment = async () => {
-    setTurningRound(true);
-    try {
-      const back = await api.dgReturn(docValues, result?.lines ?? [], dgEntries);
-      setDocValues(back.values);
-      setDgEntries(back.dangerous_goods);
-      setStepKey(needsDg ? "dg" : "lines");
-      toast.success(t("wizard.returnPrepared"));
-    } catch (e) {
-      toast.error(String(e));
-    } finally {
-      setTurningRound(false);
-    }
-  };
-
-  // Mailing the same bundle. Offered only when an administrator configured a
-  // mail server, because a button that can only fail is not a feature.
-  const [mailOpen, setMailOpen] = useState(false);
-  const [mailTo, setMailTo] = useState("");
-  const [mailSubject, setMailSubject] = useState("");
-  const [mailMessage, setMailMessage] = useState("");
-  const [mailing, setMailing] = useState(false);
-
-  const mailAll = async () => {
-    setMailing(true);
-    // Mailing takes as long as the mail server takes: the loading toast holds
-    // the user's place until the send has actually succeeded or failed.
-    const pending = toast.loading(t("wizardDocs.mailSending"));
-    try {
-      // One field, several addresses: a consignment's papers go to the
-      // carrier and the consignee in the same breath.
-      const recipients = mailTo
-        .split(/[,;]/)
-        .map((address) => address.trim())
-        .filter(Boolean);
-      const result = await api.mailBundle({
-        bundle: {
-          dg_review_id: dgReview.id,
-          documents: readyDocs.map(payloadFor),
-        cargo: cargoPayload,
-          dangerous_goods: dgEntries.length > 0 ? dgEntries : undefined,
-          profiles: dgProfiles,
-          output_language: docLang,
-          signature_image: signature ?? undefined,
-        },
-        to: recipients,
-        subject: mailSubject,
-        message: mailMessage,
-      });
-      pending.success(t("wizardDocs.mailSent", { to: result.to.join(", ") }));
-      setMailOpen(false);
-    } catch (e) {
-      pending.error(String(e));
-    } finally {
-      setMailing(false);
-    }
-  };
-
-  // Which UN cards this shipment can be given. Asked only on the export step,
-  // and only when dangerous goods were actually declared.
-  useEffect(() => {
-    if (stepKey !== "export" || dgEntries.length === 0) {
-      setUnCards(null);
-      return;
-    }
-    let cancelled = false;
-    api
-      .unCardsAvailability({ dangerous_goods: dgEntries, profiles: dgProfiles, output_language: docLang })
-      .then((status) => {
-        if (!cancelled) setUnCards(status);
-      })
-      .catch(() => {
-        if (!cancelled) setUnCards(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [stepKey, dgEntries, docLang]);
-
-  // The instructions in writing of 5.4.3, which the crew has to carry with the
-  // transport document. Asked for the regimes this shipment actually travels
-  // under — ADR on the road, ADN on the water — and only when dangerous goods
-  // were declared, because without them the document is not required.
-  useEffect(() => {
-    if (stepKey !== "export" || dgEntries.length === 0) {
-      setInstructions([]);
-      return;
-    }
-    let cancelled = false;
-    api
-      .writtenInstructions()
-      .then((answer) => {
-        if (!cancelled) setInstructions(answer.documents);
-      })
-      .catch(() => {
-        if (!cancelled) setInstructions([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [stepKey, dgEntries]);
-
-  const instructionRegimes = useMemo(
-    () => ["adr", "rid", "adn"].filter((regime) => dgProfiles.includes(regime.toUpperCase())),
-    [dgProfiles],
-  );
-
-  // ADN 8.6.3: the checklist that has to be filled in and signed before a tank
-  // vessel is loaded or unloaded. It is asked for only when this shipment is
-  // one — a dry cargo vessel does not fill it in, and a card that offered it
-  // anyway would be telling the boatmaster something untrue about his trip.
-  const inCargoTanks = useMemo(
-    () =>
-      dgProfiles.includes("ADN") &&
-      dgEntries.some((entry) =>
-        (entry.products ?? []).some((product) => product.carriage_mode === "tank"),
-      ),
-    [dgProfiles, dgEntries],
-  );
-
-  useEffect(() => {
-    if (stepKey !== "export" || !inCargoTanks) {
-      setChecklist([]);
-      return;
-    }
-    let cancelled = false;
-    api
-      .models("8.6.3")
-      .then((answer) => {
-        if (!cancelled) setChecklist(answer.documents);
-      })
-      .catch(() => {
-        if (!cancelled) setChecklist([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [stepKey, inCargoTanks]);
-
-  const downloadChecklist = async (regime: string, language: string) => {
-    try {
-      await api.downloadModel("8.6.3", regime, language);
-    } catch (e) {
-      toast.error(String(e));
-    }
-  };
-
-  const downloadInstructions = async (regime: string, language: string) => {
-    try {
-      await api.downloadInstructions(regime, language);
-    } catch (e) {
-      toast.error(String(e));
-    }
-  };
-
-  const downloadUnCards = async () => {
-    setUnCardsBusy(true);
-    try {
-      await api.downloadUnCards({ dangerous_goods: dgEntries, profiles: dgProfiles, output_language: docLang });
-    } catch (e) {
-      toast.error(String(e));
-    } finally {
-      setUnCardsBusy(false);
-    }
-  };
-
-  /** The wizard state, in the shape the assistant exchanges. Result-derived
-   *  facts (recognised candidates) ride along so the assistant asks about
-   *  what the user already sees on the lines step. */
   const buildStateForAssistant = () =>
     buildAssistantState({
       modality,
@@ -1524,7 +1036,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
       resultLines: result?.lines,
       dgEntries,
       docValues,
-      selectedDocs,
+      selectedDocs: [],
       skippedQuestions,
       documentEvidence,
     });
@@ -1550,7 +1062,12 @@ export default function WizardPage({ user }: { user?: User } = {}) {
       setNextId(Math.max(0, ...nextLines.map(line => line.id)) + 1);
     }
     if (Array.isArray(state.dg_entries)) setDgEntries(wizardDgEntriesFromAssistant(state));
-    if (state.doc_values) setDocValues(state.doc_values);
+    if (state.doc_values) {
+      setDocValues(state.doc_values);
+      // Imported evidence may seed an empty address editor, never overwrite a
+      // distribution the planner has already made.
+      if (!routing.locations.length) setRouting(routingFromLegacy(state.doc_values, cargoInputLines));
+    }
     if (Array.isArray(state.skipped_questions)) {
       setSkippedQuestions(state.skipped_questions.map(String));
     }
@@ -1579,21 +1096,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
     : includedLines.length > 0 && includedLines.every(line => line.weight_total_kg != null)
       ? result?.totals.total_weight_kg ?? null : null;
 
-  /** The documents being prepared, for the panel that stands beside the work.
-   *  A document that does not apply to this shipment is not being prepared and
-   *  is left out; the rest carry what they are still short of. */
-  const panelDocuments: PanelDocument[] = selectedDefinitions
-    .map((doc) => ({ doc, info: docStatus(doc) }))
-    .filter(({ info }) => info.status !== "not_applicable")
-    .map(({ doc, info }) => ({
-      key: doc.key,
-      label: L(doc.label),
-      state: info.status as PanelDocument["state"],
-      missing: info.missing.length,
-      firstMissing: info.missing[0]?.key ?? null,
-      blockedReason: info.status === "blocked" ? info.missing.find(field => field.key === "cargo")?.label : undefined,
-    }));
-
   /** What this shipment is called, in the header. The reference is what a
    *  forwarder calls it by; failing that the consignee, who is the other thing
    *  people say out loud ("the one going to Müller"). Neither yet, and it is
@@ -1603,46 +1105,6 @@ export default function WizardPage({ user }: { user?: User } = {}) {
     (docValues.reference ?? "").trim() ||
     (docValues.consignee_name ?? "").trim() ||
     t("wizard.newShipment");
-
-  /** The check-your-answers rows: the shipment as it stands, each with the way
-   *  back to the answer itself. What is derived — the totals, the assessment —
-   *  carries no way back, because it is not something to type. */
-  const answerRows: AnswerRow[] = (() => {
-    if (!result) return [];
-    const value = (key: string) => (docValues[key] ?? "").trim();
-    const route = [value("loading_point"), value("discharge_point")].filter(Boolean).join(" → ");
-    const contents = includedLines
-      .slice(0, 3)
-      .map((line) => line.output_description || line.description)
-      .filter(Boolean);
-    const rest = includedLines.length - contents.length;
-    const packages = contents.join("; ") + (rest > 0 ? `; ${t("check.andMore", { count: rest })}` : "");
-    const assessment = [
-      needsDg ? t("check.dgOnBoard", { count: dgEntries.length }) : t("check.noDg"),
-      unanswered > 0 ? t("check.openQuestions", { count: unanswered }) : "",
-    ].filter(Boolean).join(" · ");
-    return [
-      { key: "modality", label: t("check.modality"), value: t(`modality.${modality}`) },
-      { key: "consignor", label: t("check.consignor"), value: value("consignor_name"),
-        onChange: () => goToField("consignor_name"), wanted: true },
-      { key: "consignee", label: t("check.consignee"), value: value("consignee_name"),
-        onChange: () => goToField("consignee_name"), wanted: true },
-      { key: "route", label: t("check.route"), value: route,
-        onChange: () => goToField("loading_point"), wanted: true },
-      { key: "goods", label: t("check.goods"),
-        value: t("check.goodsValue", {
-          count: result.totals.included_count,
-          weight: completeShipmentWeight ?? "—",
-          volume: completeTransportVolume ?? "—",
-        }),
-        onChange: () => setStepKey("lines") },
-      { key: "packages", label: t("check.packages"), value: packages,
-        onChange: () => setStepKey("lines") },
-      { key: "assessment", label: t("check.assessment"), value: assessment },
-      { key: "language", label: t("check.language"), value: LANGUAGE_NAMES[docLang] ?? docLang,
-        onChange: () => document.getElementById("document-language")?.focus() },
-    ];
-  })();
 
   if (registryError) {
     return <p className="text-sm text-red-600 dark:text-red-400">{registryError}</p>;
@@ -1673,10 +1135,10 @@ export default function WizardPage({ user }: { user?: User } = {}) {
           onBlur={(event) => setShipmentReference(event.target.value.trim())} />
       </label>}
       modality={modality}
-      modalities={AVAILABLE_MODALITIES}
+      modalities={[]}
       onModality={switchModality}
       steps={stepPills}
-      currentStep={stepKey === "export" ? 3 : stepKey === "details" ? 2 : 1}
+      currentStep={steps.indexOf(stepKey) + 1}
       visited={visited}
       onGoTo={(key) => {
         if (key !== "lines" && draftLines.some(line => line.quantity_unconfirmed)) { toast.error(t("assistant.quantityNeeded")); return; }
@@ -1693,20 +1155,20 @@ export default function WizardPage({ user }: { user?: User } = {}) {
           weightKg={completeShipmentWeight}
           volumeM3={completeTransportVolume}
           attention={attention}
-          documents={panelDocuments}
+          documents={[]}
           onMissing={goToField}
         />
       }
       draft={
         <DraftBar
           compact
-          mode={historyOn ? "kept" : "file"}
+          mode="kept"
           status={draftStatus}
           savedAt={draftSavedAt}
-          active={hasEntry && !reopenId && !reviewSourceId && !keptAt}
+          active={!reopenId && !reviewSourceId && !keptAt}
           onDiscard={historyOn ? discardDraft : undefined}
           onDownload={historyOn ? undefined : downloadDraft}
-          onOpenFile={historyOn ? undefined : openDraftFile}
+          onOpenFile={openDraftFile}
         />
       }
       aside={
@@ -1804,7 +1266,7 @@ export default function WizardPage({ user }: { user?: User } = {}) {
 
           <WizardActions>
             <button type="button" onClick={goFromLines} disabled={loading} className={buttonPrimary + " wizard-next"}
-              aria-label={t("review.continueTo", { step: needsDg ? t("wizard.step3dg") : t("wizard.toShipmentDetails") })}>
+              aria-label={t("review.continueTo", { step: t("routing.addresses") })}>
               {t("review.continue")}<ArrowRightIcon className="h-4 w-4" />
             </button>
           </WizardActions>
@@ -1833,558 +1295,21 @@ export default function WizardPage({ user }: { user?: User } = {}) {
         </div>
       )}
 
-      {stepKey === "details" && (
-        <div className="space-y-4">
-          {/* The advice arrives before the work, not after it: what is being
-              prepared and why, while there is still a point in changing it. */}
-          <DocumentAdvicePanel
-            registry={registry}
-            modality={modality ?? ""}
-            needsDg={needsDg}
-            selected={selected}
-            onChange={chooseDocuments}
-          />
-          {addedByDoc && (
-            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-900/50 dark:bg-sky-950/30">
-              <p className="text-sm text-sky-900 dark:text-sky-200">
-                {addedByDoc.count === 0
-                  ? t("advice.addedNothing", { document: addedByDoc.label })
-                  : t("advice.added", { document: addedByDoc.label, count: addedByDoc.count })}
-              </p>
-              {addedByDoc.first && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFocusField(addedByDoc.first);
-                    setAddedByDoc(null);
-                  }}
-                  className="mt-2 rounded-lg border border-sky-300 bg-white px-3 py-1 text-xs font-medium text-sky-900 hover:bg-sky-100 dark:border-sky-800 dark:bg-slate-900 dark:text-sky-200"
-                >
-                  {t("advice.toTheQuestions")}
-                </button>
-              )}
-            </div>
-          )}
-          {lastShipment && (
-            <div className={`${panelClass} flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between`}>
+      {stepKey === "details" && <div className="space-y-4">
+        <ShipmentRouting value={routing} onChange={setRouting} lines={cargoInputLines} cargo={cargoPayload} />
+        <WizardActions><button type="button" className={buttonSecondary} onClick={() => goBackFrom("details")}>{t("wizard.back")}</button><button type="button" className={buttonPrimary} onClick={() => goNextFrom("details")}>{t("review.continue")}</button></WizardActions>
+      </div>}
 
-              <button type="button" onClick={reuseLastShipment} className={buttonSecondary}>
-                {t("docfields.reuseLast")}
-              </button>
-            </div>
-          )}
-          <DocumentFieldsStep
-            registry={registry}
-            excludedFields={HEADER_FIELDS}
-            documents={genericDocs}
-            values={docValues}
-            onChange={setDocValues}
-            autoValues={autoValues}
-            modality={modality}
-            onBack={() => goBackFrom("details")}
-            onDone={completeDetails}
-            focusField={focusField}
-            onFocusHandled={() => setFocusField(null)}
-            returnLabel={returnTo ? t("wizard.backToOverview") : undefined}
-            onReturn={returnTo ? returnFromField : undefined}
-            signature={signature}
-            onSignatureChange={setSignature}
-            addressBook={historyOn}
-          />
-        </div>
-      )}
-
-      {(modality === "preparation" || modality === "air") && <p className="surface p-4">{t(modality === "air" ? "deliveries.airPreparationHint" : "deliveries.preparationHint")}</p>}
-      {stepKey === "export" && result && (
-        <div className="export-workspace space-y-4">
-          {/* The last look before anything is produced: what is about to go on
-              paper, and one way back to each answer that is not right. */}
-          <CheckYourAnswers title={t("check.title")} rows={answerRows} />
-          {!publicSettings?.history_enabled && <TemporaryDelivery shipment={shipmentPayload(false)} />}
-          <p className="surface p-4">{t("deliveries.draftNotice")}{historyId && <> <Link className="underline" to={`/deliveries/new?shipments=${historyId}`}>{t("deliveries.new")}</Link></>}</p>
-
-            {needsDg && (
-              <p className="text-sm text-amber-700 dark:text-amber-300">
-                {t("wizard.dgIncluded", { count: dgEntries.length })}
-              </p>
-            )}
-            {unanswered > 0 && (
-              <p className="text-sm text-amber-700 dark:text-amber-300">
-                {t("wizard.unansweredSubstances", { count: unanswered })}{" "}
-                <button
-                  type="button"
-                  onClick={() => setStepKey("lines")}
-                  className="font-medium underline underline-offset-2"
-                >
-                  {t("wizard.unansweredGo")}
-                </button>
-              </p>
-            )}
-          <details className="surface export-goods">
-            <summary><span>{t("exportFocus.goods", { count: result.totals.included_count })}</span><strong>{result.totals.total_weight_kg?.toLocaleString(i18n.language)} kg</strong><ChevronDownIcon /></summary>
-            <div className="export-goods-content space-y-4">
-            <div className="space-y-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t("wizard.products")}</h4>
-                <div className="sm:w-48">
-                  <label className="text-xs font-medium text-slate-600 dark:text-slate-400">{t("wizard.adjustTotalWeight")}</label>
-                  <NumberInput
-                    step="0.01"
-                    className={`${weightInputClass} mt-1`}
-                    value={result.totals.total_weight_kg ?? ""}
-                    onChange={(e) => handleTotalWeightChange(e.target.value === "" ? null : Number(e.target.value))}
-                  />
-
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {includedLines.map((line) => (
-                  <div key={line.line_id} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm dark:border-slate-700">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-slate-900 dark:text-slate-100">
-                          {line.output_description || line.description}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {line.quantity ?? "—"} {line.unit ?? ""}
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 sm:w-56">
-                        <div>
-                          <label className="text-[11px] text-slate-500 dark:text-slate-400">{t("review.weightEach")}</label>
-                          <NumberInput
-                            step="0.01"
-                            className={`${weightInputClass} mt-0.5`}
-                            value={line.weight_each_kg ?? ""}
-                            onChange={(e) =>
-                              handleLineWeightChange(line.line_id, "weight_each_kg", e.target.value === "" ? null : Number(e.target.value))
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[11px] text-slate-500 dark:text-slate-400">{t("review.weightTotal")}</label>
-                          <NumberInput
-                            step="0.01"
-                            className={`${weightInputClass} mt-0.5`}
-                            value={line.weight_total_kg ?? ""}
-                            onChange={(e) =>
-                              handleLineWeightChange(line.line_id, "weight_total_kg", e.target.value === "" ? null : Number(e.target.value))
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <ul className="space-y-1 text-sm text-slate-600 dark:text-slate-400">
-              <li>{t("wizard.lines")}: {result.totals.included_count}</li>
-              <li>{t("wizard.totalWeight")}: {result.totals.total_weight_kg} kg</li>
-              <li>{t("wizard.totalVolume")}: {completeTransportVolume ?? "—"} m³</li>
-            </ul>
-            </div>
-          </details>
-
-          {needsDg && dgEntries.length > 0 && modality !== "preparation" && <DgCompliancePanel entries={dgEntries} profiles={dgProfiles} />}
-
-
-          <div className={`${panelClass} export-documents space-y-3 p-4 sm:p-6`}>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h3 className="export-documents-title"><DocumentIcon className="h-6 w-6" />{t("wizardDocs.title")}</h3>
-              <div className="flex flex-wrap gap-2">
-                {readyDocs.length > 0 && publicSettings?.mail_enabled && (
-                  <button
-                    type="button"
-                    onClick={() => setMailOpen((open) => !open)}
-                    disabled={mailing}
-                    className={buttonSecondary}
-                  >
-                    {t("wizardDocs.mail", { count: readyDocs.length })}
-                  </button>
-                )}
-                {/* One action finishes the job, with one document as with
-                    five. What is not ready is named below rather than turning
-                    this into a choice. */}
-                {readyDocs.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={downloadAll}
-                    disabled={downloadingAll}
-                    className={buttonPrimary}
-                  >
-                    {downloadingAll
-                      ? t("wizardDocs.exporting")
-                      : readyDocs.length < selectedDefinitions.length
-                        ? t("wizardDocs.downloadPartial", {
-                            ready: readyDocs.length,
-                            total: selectedDefinitions.length,
-                          })
-                        : t("wizardDocs.downloadAll", { count: readyDocs.length })}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* A partial package is called partial, and says which documents
-                are not in it. */}
-            {readyDocs.length > 0 && readyDocs.length < selectedDefinitions.length && (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
-                {t("wizardDocs.partialNotice", {
-                  list: selectedDefinitions
-                    .filter((doc) => docStatus(doc).status !== "ready")
-                    .map((doc) => L(doc.label))
-                    .join(", "),
-                })}
-              </p>
-            )}
-
-            {/* Having a document is not having sent it. */}
-            {handedOver && (
-              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-300">
-                {t("wizardDocs.downloadedNotSent")}
-              </p>
-            )}
-
-            {mailOpen && (
-              <div className="space-y-3 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
-
-                <div>
-                  <label className="text-sm font-medium text-slate-800 dark:text-slate-200" htmlFor="mail-to">
-                    {t("wizardDocs.mailTo")}
-                  </label>
-                  <input
-                    id="mail-to"
-                    type="text"
-                    className={`${weightInputClass} mt-1`}
-                    placeholder={t("wizardDocs.mailToPlaceholder")}
-                    value={mailTo}
-                    onChange={(e) => setMailTo(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-800 dark:text-slate-200" htmlFor="mail-subject">
-                    {t("wizardDocs.mailSubject")}
-                  </label>
-                  <input
-                    id="mail-subject"
-                    type="text"
-                    className={`${weightInputClass} mt-1`}
-                    placeholder={t("wizardDocs.mailSubjectPlaceholder")}
-                    value={mailSubject}
-                    onChange={(e) => setMailSubject(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-800 dark:text-slate-200" htmlFor="mail-message">
-                    {t("wizardDocs.mailMessage")}
-                  </label>
-                  <textarea
-                    id="mail-message"
-                    className={`${weightInputClass} mt-1 min-h-[80px]`}
-                    value={mailMessage}
-                    onChange={(e) => setMailMessage(e.target.value)}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={mailAll}
-                  disabled={mailing || !mailTo.trim()}
-                  className={buttonPrimary}
-                >
-                  {mailing ? t("wizardDocs.mailSending") : t("wizardDocs.mailSend")}
-                </button>
-              </div>
-            )}
-
-            {/* The set itself is chosen where its questions are asked. From
-                here it is one press back to that choice, not a second place
-                to make it. */}
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              <button
-                type="button"
-                onClick={() => {
-                  setReturnTo("export");
-                  setStepKey("details");
-                }}
-                className="font-medium text-brand-700 underline hover:text-brand-800 dark:text-brand-300"
-              >
-                {t("wizardDocs.changeSet")}
-              </button>
-            </p>
-            <p className="text-xs text-slate-500">
-              <Link to="/account/about/terms" className="font-medium underline">
-                {t("nav.legal")}
-              </Link>
-            </p>
-            {Object.values(docWarnings).some((warnings) => warnings.length > 0) && <section className="export-checks" id="export-checks">
-              <h4>{t("exportFocus.checks")}</h4>
-              <ul>{groupDocumentWarnings(docWarnings).map(({ message, documents }) => <li key={message}>
-                <p>{message}</p>
-                <details><summary>{t("exportFocus.appliesTo", { count: documents.length })}</summary>
-                  <ul>{documents.map((key) => <li key={key}>{L(selectedDefinitions.find((doc) => doc.key === key)?.label) || key}</li>)}</ul>
-                </details>
-              </li>)}</ul>
-            </section>}
-            <div className="space-y-2">
-              {selectedDefinitions.map((doc) => {
-                const info = docStatus(doc);
-                const busy = exportingDoc === doc.key;
-                return (
-                  <div key={doc.key} className="export-document-row" data-state={info.status}>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium text-slate-900 dark:text-slate-100">{L(doc.label)}</p>
-                          <StatusBadge status={info.status} />
-                          {info.waitingCarrier && info.status !== "not_applicable" && (
-                            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300">
-                              {t("wizardDocs.waitingCarrier")}
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{L(doc.issue_status)}</p>
-                        {info.status === "draft" && info.missing.length > 0 && (
-                          <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
-                            <span className="mr-1">{t("wizardDocs.missingFieldsLead")}</span>
-                            {info.missing.map((field) => (
-                              <button
-                                key={field.key}
-                                type="button"
-                                onClick={() => goToField(field.key)}
-                                className="mb-1 mr-1 inline-flex rounded-lg border border-amber-300 bg-white px-2 py-0.5 text-xs font-medium text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-slate-900 dark:text-amber-200"
-                              >
-                                {field.label}
-                              </button>
-                            ))}
-                          </p>
-                        )}
-                        {info.status === "blocked" && info.missing.some(field => field.key === "cargo") ? (
-                          <button type="button" onClick={() => goToField("cargo")}
-                            className="mt-1 text-left text-xs text-red-600 underline underline-offset-2 dark:text-red-400">
-                            {info.missing.find(field => field.key === "cargo")!.label}
-                          </button>
-                        ) : info.status === "blocked" && (
-                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{t("wizardDocs.dgBlocked")}</p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => exportGenericDoc(doc)}
-                        disabled={busy || info.status === "blocked" || info.status === "not_applicable" || info.status === "draft"}
-                        className={buttonSecondary + " inline-flex items-center justify-center gap-2"}
-                      >
-                        <DownloadIcon />{busy ? t("wizardDocs.exporting") : t("wizard.download")}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className={`${panelClass} space-y-3 p-4 sm:p-6`}>
-            <div className="flex flex-wrap items-center gap-3">
-            <label
-              htmlFor="document-language"
-              className="text-sm font-medium text-slate-800 dark:text-slate-100"
-            >
-              {t("wizardDocs.documentLanguage")}
-            </label>
-            <select
-              id="document-language"
-              value={docLang}
-              onChange={(event) => setChosenDocLang(event.target.value as Language)}
-              className={weightInputClass + " sm:max-w-xs"}
-            >
-              {SUPPORTED_LANGUAGES.map((code) => (
-                <option key={code} value={code}>
-                  {LANGUAGE_NAMES[code]}
-                </option>
-              ))}
-            </select>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {t("wizardDocs.documentLanguageRule")}
-            </p>
-          </div>
-
-          {historyOn && (
-            <div className={`${panelClass} p-4 sm:p-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`}>
-              <div className="min-w-0">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t("history.keepTitle")}</h3>
-
-                <p className="text-sm text-slate-700 dark:text-slate-200 mt-2" data-testid="history-status">
-                  {keptAt
-                    ? t("history.keptAt", { time: keptAt.toLocaleTimeString(i18n.language, { timeStyle: "short" }) })
-                    : t("history.notKept")}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void keepInHistory()}
-                disabled={keeping}
-                className={buttonSecondary}
-              >
-                {/* Kept, not merely written: a draft has a row of its own, and
-                    a button that said "update" over a shipment nobody has kept
-                    yet would be claiming something that never happened. */}
-                {keeping ? t("history.keeping") : keptAt ? t("history.update") : t("history.keep")}
-              </button>
-            </div>
-          )}
-
-          {((instructionRegimes.length > 0 && instructions.length > 0) || checklist.length > 0 || (unCards?.enabled && unCards.count > 0)) && <details className="surface export-reference">
-            <summary><DocumentIcon />{t("exportFocus.reference")}<ChevronDownIcon /></summary>
-            <div className="space-y-3 p-4">
-          {instructionRegimes.length > 0 && instructions.length > 0 && (
-            <div className={`${panelClass} space-y-3 p-4 sm:p-6`}>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {t("instructions.title")}
-              </h3>
-
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t("instructions.languageRule")}
-              </p>
-              {instructionRegimes.map((regime) => (
-                <div key={regime} className="space-y-2">
-                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                    {regime.toUpperCase()}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {instructions
-                      .filter((item) => item.regime === regime)
-                      .map((item) => (
-                        <button
-                          key={`${item.regime}-${item.language}`}
-                          type="button"
-                          disabled={!item.available}
-                          title={
-                            item.available
-                              ? undefined
-                              : `${t("instructions.unavailable", { document: item.needs ?? "" })} ${t("instructions.howto")}`
-                          }
-                          onClick={() => downloadInstructions(item.regime, item.language)}
-                          className={`${buttonSecondary} ${item.available ? "" : "opacity-40"}`}
-                        >
-                          {item.language.toUpperCase()}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {checklist.length > 0 && (
-            <div className={`${panelClass} space-y-3 p-4 sm:p-6`}>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {t("checklist.title")}
-              </h3>
-
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t("checklist.notFilledIn")}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {checklist.map((item) => (
-                  <button
-                    key={`${item.regime}-${item.language}`}
-                    type="button"
-                    disabled={!item.available}
-                    title={
-                      item.available
-                        ? undefined
-                        : `${t("instructions.unavailable", { document: item.needs ?? "" })} ${t("instructions.howto")}`
-                    }
-                    onClick={() => downloadChecklist(item.regime, item.language)}
-                    className={`${buttonSecondary} ${item.available ? "" : "opacity-40"}`}
-                  >
-                    {item.language.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {unCards && unCards.enabled && unCards.count > 0 && (
-            <div className={`${panelClass} space-y-3 p-4 sm:p-6`}>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {t("unCards.title")}
-              </h3>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-sm text-slate-700 dark:text-slate-200">
-                    {t("unCards.forSubstances", {
-                      list: unCards.available.map((un) => `UN ${un}`).join(", "),
-                    })}
-                  </p>
-                  {unCards.missing.length > 0 && (
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {t("unCards.missing", {
-                        list: unCards.missing.map((un) => `UN ${un}`).join(", "),
-                      })}
-                    </p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={downloadUnCards}
-                  disabled={unCardsBusy}
-                  className={buttonSecondary}
-                >
-                  {unCardsBusy
-                    ? t("wizardDocs.exporting")
-                    : t("unCards.download", { count: unCards.count })}
-                </button>
-              </div>
-            </div>
-          )}
-
-            </div>
-          </details>}
-
-          <WizardActions>
-            <button type="button" onClick={() => goBackFrom("export")} className={buttonSecondary}>
-              {t("wizard.back")}
-            </button>
-            {needsDg && (
-              <button
-                type="button"
-                onClick={returnShipment}
-                disabled={turningRound}
-                className={buttonSecondary}
-                title={t("wizard.returnShipmentHint")}
-              >
-                {turningRound ? t("wizard.returnPreparing") : t("wizard.returnShipment")}
-              </button>
-            )}
-          </WizardActions>
-        </div>
-      )}
+      {stepKey === "export" && result && <div className="space-y-4">
+        <ShipmentRouting value={routing} onChange={setRouting} lines={cargoInputLines} cargo={cargoPayload} entries={dgEntries} review />
+        {unanswered > 0 && <p role="alert">{t("wizard.unansweredSubstances", { count: unanswered })}</p>}
+        <p className="surface p-4">{t("routing.documentsLater")}</p>
+        {reviewRequired && <DgReviewGate control={dgReview} ready={unanswered === 0} />}
+        {keptAt && historyId && <div className="surface p-4 space-y-3"><p>{t("history.keptToast")}</p><Link className="action-primary" to={`/deliveries/new?shipments=${historyId}`}>{t("deliveries.new")}</Link> <Link className="action-secondary" to="/shipments">{t("nav.shipments")}</Link><a className="action-secondary" href={`/api/shipments/${historyId}/export.json`}>{t("routing.export")}</a></div>}
+        <WizardActions><button type="button" className={buttonSecondary} onClick={() => goBackFrom("export")}>{t("wizard.back")}</button><button type="button" className={buttonPrimary} disabled={keeping || unanswered > 0 || dgReview.blocked} onClick={() => void keepInHistory()}>{t("routing.finalize")}</button></WizardActions>
+      </div>}
 
       </div>
     </WizardShell>
-  );
-}
-
-function StatusBadge({ status }: { status: DocStatus }) {
-  const { t } = useTranslation();
-  const styles: Record<DocStatus, string> = {
-    ready: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-    draft: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-    blocked: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
-    not_applicable: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-  };
-  const labels: Record<DocStatus, string> = {
-    ready: t("wizardDocs.statusReady"),
-    draft: t("wizardDocs.statusDraft"),
-    blocked: t("wizardDocs.statusBlocked"),
-    not_applicable: t("wizardDocs.statusNotApplicable"),
-  };
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${styles[status]}`}>{labels[status]}</span>
   );
 }

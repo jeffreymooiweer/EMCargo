@@ -43,12 +43,12 @@ def setup(synthetic_templates):
 
 
 def shipment():
-    document = {"document_key": "cmr", "values": deepcopy(CONSIGNMENT), "lines": deepcopy(LINES),
+    document = {"document_key": "cmr", "values": {**deepcopy(CONSIGNMENT), "consignor_country": "NL", "consignee_country": "DE"}, "lines": deepcopy(LINES),
                 "dangerous_goods": deepcopy(DG), "profiles": ["ADR"], "modality": "road", "output_language": "nl"}
-    return {"modality": "road", "language": "nl", "profiles": ["ADR"], "values": deepcopy(CONSIGNMENT),
+    return {"modality": "road", "language": "nl", "profiles": ["ADR"], "values": {**deepcopy(CONSIGNMENT), "consignor_country": "NL", "consignee_country": "DE"},
             "lines": deepcopy(LINES), "dangerous_goods": deepcopy(DG), "documents": ["cmr"],
             "bundle": {"documents": [document], "dangerous_goods": deepcopy(DG), "profiles": ["ADR"], "output_language": "nl"},
-            "snapshot": {"version": 1, "stepKey": "export", "docValues": deepcopy(CONSIGNMENT)}}
+            "snapshot": {"version": 1, "stepKey": "export", "docValues": {**deepcopy(CONSIGNMENT), "consignor_country": "NL", "consignee_country": "DE"}}}
 
 
 def release(as_role, payload):
@@ -68,11 +68,11 @@ def test_defaults_and_review_storage_are_independent_of_history(setup):
     settings = as_role("user").get("/api/settings/public").json()
     assert settings["dg_review_enabled"] is True
     assert settings["super_user_dgsa_enabled"] is False
-    assert settings["history_enabled"] is False
+    assert settings["history_enabled"] is True
     payload = shipment()
     review_id = release(as_role, payload)
     assert db.get(DgReview, review_id).status == "approved"
-    assert settings_store.history_enabled(db) is False
+    assert settings_store.history_enabled(db) is True
     # Reloads recover an approval by the actual inputs, not a browser token.
     assert as_role("user").post("/api/dg-reviews/status", json=payload).json()["status"] == "approved"
     payload["values"]["reference"] = "changed"
@@ -111,7 +111,7 @@ def test_preparation_exports_are_stamped_without_execution_approval(setup):
     review_id = release(as_role, payload)
     client = as_role("user")
     assert client.delete(f"/api/dg-reviews/{review_id}").status_code == 200
-    assert client.post(f"/api/shipments/{shipment_id}/documents").status_code == 200
+    assert client.post(f"/api/shipments/{shipment_id}/documents").status_code == 404
     assert client.get(f"/api/shipments/{shipment_id}/export.json").status_code == 200
 
 
@@ -243,7 +243,7 @@ def test_drafts_can_be_saved_but_do_not_bypass_dg_export_policy(setup):
     payload["bundle"]["documents"][0]["dangerous_goods"] = []
     draft = client.post("/api/shipments", json=payload)
     assert draft.status_code == 200, draft.text
-    assert client.post(f"/api/shipments/{draft.json()['id']}/documents").status_code == 409
+    assert client.post(f"/api/shipments/{draft.json()['id']}/documents").status_code == 404
     exported = client.get(f"/api/shipments/{draft.json()['id']}/export.json")
     assert exported.status_code == 200
     assert exported.json()["dangerous_goods"]

@@ -48,12 +48,14 @@ def bundle_data(payload: DocumentBundleRequest) -> dict:
 
 
 def shipment_data(payload: ShipmentIn) -> dict:
-    data = payload.model_dump(exclude={"snapshot", "draft", "dg_review_id", "bundle", "expected_cargo_revision"})
+    data = payload.model_dump(mode="json", exclude={"snapshot", "draft", "dg_review_id", "bundle", "expected_cargo_revision"})
     if data.get("cargo") is not None:
         data["cargo"].pop("revision", None)
     else:
         data.pop("cargo", None)
     data["dangerous_goods"] = data.get("dangerous_goods") or []
+    if data.get("routing") is None:
+        data.pop("routing", None)
     data["bundle"] = bundle_data(payload.bundle) if payload.bundle else None
     return data
 
@@ -119,47 +121,57 @@ def enforce_shipment(db: Session, user: User, payload: ShipmentIn) -> None:
     if not payload.draft:
         from app.services.dg.source_verification import require_verified_payload
         require_verified_payload(payload.model_dump())
+        if payload.routing is not None and has_dg(payload) and instance_settings(db).dg_review_enabled:
+            record = approved(db, payload.dg_review_id, user)
+            if record.fingerprint != fingerprint(payload):
+                raise error(409, "review.required")
     # Keeping goods is preparation, not permission to transport them. Execution
     # release and final documents are approved against the actual delivery leg.
 
 
 def submit(db: Session, user: User, payload: ShipmentIn) -> DgReview:
     from app.services.documents import get_document, validate_document
-    if not has_dg(payload) or not payload.dangerous_goods or not payload.bundle or not payload.bundle.documents:
-        raise error(422, "review.incomplete")
-    for entry in payload.dangerous_goods:
-        products = entry.get("products")
-        if not isinstance(products, list) or not products or any(
-            not isinstance(product, dict) or not str(product.get("un_number") or "").strip()
-            for product in products
-        ):
+    if payload.routing is not None:
+        from app.services.shipment_routing import validate
+        validate(payload)
+        if not has_dg(payload):
             raise error(422, "review.incomplete")
-    if (payload.bundle.cargo != payload.cargo
-            or payload.bundle.dangerous_goods != payload.dangerous_goods
-            or payload.bundle.profiles != payload.profiles
-            or payload.bundle.output_language != payload.language
-            or sorted(payload.documents) != sorted(item.document_key for item in payload.bundle.documents)):
-        raise error(422, "review.inconsistent")
-    from app.services.documents.signature import decode_signature_image
-    if payload.bundle.signature_image:
-        try:
-            decode_signature_image(payload.bundle.signature_image)
-        except ValueError as exc:
-            raise error(422, "review.incomplete") from exc
-    for item in payload.bundle.documents:
-        if item.signature_image and item.signature_image != payload.bundle.signature_image:
+    else:
+        if not has_dg(payload) or not payload.dangerous_goods or not payload.bundle or not payload.bundle.documents:
+            raise error(422, "review.incomplete")
+        for entry in payload.dangerous_goods:
+            products = entry.get("products")
+            if not isinstance(products, list) or not products or any(
+                not isinstance(product, dict) or not str(product.get("un_number") or "").strip()
+                for product in products
+            ):
+                raise error(422, "review.incomplete")
+        if (payload.bundle.cargo != payload.cargo
+                or payload.bundle.dangerous_goods != payload.dangerous_goods
+                or payload.bundle.profiles != payload.profiles
+                or payload.bundle.output_language != payload.language
+                or sorted(payload.documents) != sorted(item.document_key for item in payload.bundle.documents)):
             raise error(422, "review.inconsistent")
-        if (item.dangerous_goods != payload.dangerous_goods or item.lines != payload.lines
-                or item.profiles != payload.profiles or item.modality != payload.modality
-                or item.output_language != payload.language or item.cargo != payload.cargo):
-            raise error(422, "review.inconsistent")
-        document = get_document(item.document_key)
-        if document is None:
-            raise error(422, "review.incomplete")
-        errors, _ = validate_document(document, item.values, item.lines, item.dangerous_goods, item.output_language)
-        if errors:
-            raise error(422, "review.incomplete")
-    serialized = canonical(payload.model_dump())
+        from app.services.documents.signature import decode_signature_image
+        if payload.bundle.signature_image:
+            try:
+                decode_signature_image(payload.bundle.signature_image)
+            except ValueError as exc:
+                raise error(422, "review.incomplete") from exc
+        for item in payload.bundle.documents:
+            if item.signature_image and item.signature_image != payload.bundle.signature_image:
+                raise error(422, "review.inconsistent")
+            if (item.dangerous_goods != payload.dangerous_goods or item.lines != payload.lines
+                    or item.profiles != payload.profiles or item.modality != payload.modality
+                    or item.output_language != payload.language or item.cargo != payload.cargo):
+                raise error(422, "review.inconsistent")
+            document = get_document(item.document_key)
+            if document is None:
+                raise error(422, "review.incomplete")
+            errors, _ = validate_document(document, item.values, item.lines, item.dangerous_goods, item.output_language)
+            if errors:
+                raise error(422, "review.incomplete")
+    serialized = canonical(payload.model_dump(mode="json"))
     if len(serialized.encode()) > MAX_BYTES:
         raise error(413, "review.too_large")
     digest = fingerprint(payload)

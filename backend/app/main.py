@@ -43,7 +43,6 @@ from app.api.routes.legal import router as legal_router
 from app.api.routes.document_templates import router as document_templates_router
 from app.api.routes.trips import router as trips_router
 from app.api.routes.deliveries import router as deliveries_router
-from app.api.routes.temporary_deliveries import router as temporary_deliveries_router
 from app.api.routes.un_cards_admin import router as un_cards_admin_router
 from app.api.routes.users import router as users_router
 from app.core.config import get_settings
@@ -60,7 +59,6 @@ logger = logging.getLogger(__name__)
 
 #: Authenticated document work, reference data and shared settings.
 WORK_ROUTERS = (
-    temporary_deliveries_router,
     assistant_router,
     cargo_router,
     jobs_router,
